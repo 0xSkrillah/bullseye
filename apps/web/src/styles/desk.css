@@ -1,0 +1,73 @@
+/* Desk layout from docs/design-system/guidelines/10-screens.md. Tokens only. */
+
+html, body { margin: 0; background: var(--canvas); color: var(--ink); }
+body { min-height: 100vh; }
+
+.be-desk {
+  display: grid;
+  grid-template-columns: 320px minmax(560px, 1fr) 360px;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  align-items: start;
+}
+
+.be-region {
+  background: var(--canvas-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  min-width: 0;
+}
+
+/* the working area is the only region that scrolls independently */
+.be-region.is-work { max-height: calc(100vh - 2 * var(--space-6)); overflow-y: auto; }
+
+.be-seg { display: none; gap: var(--space-2); }
+.be-console-strip { display: none; }
+
+.be-banner {
+  border: 1px solid var(--invalid);
+  background: var(--invalid-fill);
+  color: var(--ink);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.be-doc { max-width: var(--measure); position: relative; display: grid; gap: var(--space-8); }
+
+/* the paywall sits over the locked part of the Brief */
+.be-doc-locked {
+  position: sticky;
+  background: var(--canvas-overlay);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+  padding: var(--space-6);
+}
+
+@media (max-width: 1199px) {
+  .be-desk { grid-template-columns: 280px minmax(0, 1fr); }
+  .be-region.is-console { display: none; }
+  .be-console-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+    min-height: 72px;
+    align-items: center;
+    background: var(--canvas-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-6);
+  }
+}
+
+@media (max-width: 767px) {
+  .be-desk { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); padding: var(--space-4); }
+  .be-seg { display: flex; position: sticky; top: 0; z-index: 2; background: var(--canvas); padding: var(--space-2) 0; }
+  .be-console-strip { display: none; }
+  .be-region.is-console { display: block; }
+  .be-region.is-hidden-phone { display: none; }
+  .be-region.is-work { max-height: none; overflow: visible; }
+}
