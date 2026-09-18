@@ -28,6 +28,7 @@ given) · **NOT CLAIMED**.
 | V14 | Data is labelled LIVE, CACHED, HISTORICAL or FIXTURE by the transport that produced it; a failed live source yields CACHED only when allowed and otherwise an error; nothing falls back to fixtures. | `apps/api/src/adapters/transport.ts`; `transport.test.ts`. |
 | V15 | Economics show price, measured usage and costs, and estimated allowances in separate lists with separate totals; testnet and fixture payments are reported as not revenue. | `apps/api/src/economics/receipt.ts`; `checkout.test.ts` last test. |
 | V16 | The whole pipeline runs offline from recorded real data with no keys: `npm run start:offline`, then `npm run demo -- IFFx --buy`. | `artifacts/evidence/demo-run-*.json` (data HISTORICAL, synthesis FIXTURE, rail FIXTURE, all stated in the transcript). |
+| V17 | In a real browser, the golden path and two failure paths behave as claimed: a gate-rejected draft is never offered for sale; a delivered Brief on screen is a rendering of the delivered JSON and its order carries the terms hash the buyer saw; an unknown payment delivers nothing and completes after reconciliation with one wallet signature. | `tests/e2e/golden-path.spec.ts` (`npm run test:e2e`; offline configuration, so data HISTORICAL, synthesis and rail FIXTURE). |
 
 ## Partial
 

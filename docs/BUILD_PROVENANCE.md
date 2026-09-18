@@ -29,7 +29,7 @@ team ("Judges assess only the work completed during the official build period").
 | Design system (tokens, component contracts, screens, UI copy) | `docs/design-system` |
 | Web app | `apps/web` |
 | Spike, recorder, agent buyer, payment verifier, demo driver | `scripts` |
-| Tests | `apps/api/test`, `apps/web/src/__tests__`, `tests/e2e` |
+| Tests | `apps/api/test`, `apps/web/test`, `apps/web/src/__tests__`, `tests/e2e` |
 
 ## Third-party code
 

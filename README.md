@@ -83,6 +83,7 @@ npm run detect           # what the detector sees right now
 npm run buy -- latest    # an agent discovers, pays for and receives the newest Brief
 npm run verify-payment -- ord_…   # re-checks a payment against X Layer without trusting the API
 npm run test:e2e         # Playwright: golden path and failure paths in a browser (offline configuration)
+                         # first run: `npx playwright install chromium`, or set PW_CHANNEL=msedge|chrome to use an installed browser
 ```
 
 If a key is missing, Bullseye says so and stops: the API answers `503 payment_rail_unavailable`

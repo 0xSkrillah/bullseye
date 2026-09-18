@@ -10,7 +10,14 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [["list"]],
-  use: { baseURL: "http://localhost:5173", trace: "retain-on-failure", ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+  use: {
+    baseURL: "http://localhost:5173",
+    trace: "retain-on-failure",
+    ...devices["Desktop Chrome"],
+    viewport: { width: 1440, height: 900 },
+    // PW_CHANNEL=msedge (or chrome) uses an installed browser instead of `npx playwright install chromium`
+    channel: process.env.PW_CHANNEL || undefined,
+  },
   webServer: [
     { command: "npm run start:offline", url: "http://localhost:4402/api/health", reuseExistingServer: false, timeout: 60_000 },
     { command: "npm run dev:web", url: "http://localhost:5173", reuseExistingServer: false, timeout: 60_000 },

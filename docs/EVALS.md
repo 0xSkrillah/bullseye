@@ -12,10 +12,14 @@
 | `ledger.test.ts` | Transition table; quote hash survives storage; tampering is detected; one authorization per order; expired quotes refused; illegal transitions leave the order untouched; state survives a restart. |
 | `checkout.test.ts` | The OKX client SDK parses Bullseye's challenge, signs it and is served; state walk; replay and concurrent retries settle once; timeout and dropped connection become PAYMENT_UNKNOWN and reconcile without a second settle; explicit failure; invalid signature; immutable quotes; no challenge when the rail cannot settle; economics separation. |
 | `transport.test.ts` | LIVE / CACHED / HISTORICAL / FIXTURE labelling; no silent fallback; schema mismatch is an error; the 18 Sep 2026 recording replays and reproduces the on-chain agreement. |
-| `apps/web/src/__tests__` | The five brand rules from the design system (estimates never green, badges carry words, PAYMENT_UNKNOWN copy, no combined total, all Brief sections present). |
+| `apps/web/test/brand.test.ts` | The five brand rules from the design system: estimates never green, badges carry their word, the PAYMENT_UNKNOWN sentence and no pay-again, no total spanning measured and estimated, a price is green only when paid and chain-verified. |
+| `apps/web/src/__tests__` | Component contracts, and the wallet signer: nothing is signed when the 402 challenge differs from the quote on screen; one authorization per quote. |
 
-`npm run test:e2e` (Playwright) drives the golden path and the failure path in a browser against
-the offline configuration.
+`npm run test:e2e` (Playwright) runs three browser tests against the offline configuration: a draft
+with an unevidenced number is held and never offered for sale; the golden path from recorded event
+to delivered Brief and receipt, checking that the page renders the delivered JSON and that the
+order is bound to the terms hash the buyer saw; and an unknown payment that delivers nothing,
+reconciles, and completes with exactly one wallet signature.
 
 `npm run spike` is the live check. It is not part of `npm test` because it needs the network.
 

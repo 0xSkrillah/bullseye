@@ -68,7 +68,7 @@ export function createApp(c: Container) {
     const signal = c.signals.get(req.params.id);
     if (!signal) return res.status(404).json({ error: "signal_not_found" });
     const started = c.investigations.start(signal);
-    res.status(started.created ? 202 : 200).json(started);
+    res.status(started.created ? 202 : 200).json({ ...started, id: started.investigationId });
   });
 
   app.get("/api/investigations/:id", (req, res) => {
