@@ -1,0 +1,116 @@
+<!-- @dsCard group="Brief" height=920 page subtitle="Screen 3 composition: header, eight sections, evidence chips, paywall from 'Why it may matter' down" -->
+<style>
+  html,body{margin:0;background:var(--canvas)}
+  .screen{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;padding:24px;max-width:1160px}
+  .doc{display:grid;gap:32px;max-width:68ch;position:relative}
+  .doc-head{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start;padding-bottom:24px;border-bottom:1px solid var(--line)}
+  .doc-head h1{margin:0;font-size:22px;line-height:28px;font-weight:500;letter-spacing:-.005em}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .sec h2{margin:0 0 8px;font-size:15px;line-height:20px;font-weight:600}
+  .sec p{margin:0 0 8px;font-size:14px;line-height:21px}
+  .sec ol{margin:0;padding-left:20px;font-size:14px;line-height:21px}
+  .chips{display:inline-flex;gap:4px;margin-left:4px;vertical-align:middle}
+  .q{text-decoration:underline dotted var(--ink-secondary);text-underline-offset:3px;cursor:help}
+  .disclaimer{font-size:13px;line-height:18px;color:var(--ink-secondary);border-top:1px solid var(--line);padding-top:16px}
+  .locked{position:absolute;left:0;right:0;bottom:0;top:var(--lock-top);background:var(--canvas);border-top:1px solid var(--line-strong);display:flex;justify-content:center;align-items:flex-start;padding-top:48px}
+  .locked .be-paywall{box-shadow:var(--shadow-overlay)}
+  @media (max-width:900px){.screen{grid-template-columns:1fr}}
+</style>
+<div class="be screen">
+  <main class="doc" aria-labelledby="bt">
+    <div class="doc-head">
+      <div id="conf"></div>
+      <div>
+        <span class="be-stage">Brief · brf_9c0e2b7f1a3341aa · published <time datetime="2026-09-18T09:41:48Z">09:41:48Z</time></span>
+        <h1 id="bt">Dividend rebase applied: KOx multiplier 1.000000 → 1.004871</h1>
+        <div class="badges" id="hb"></div>
+      </div>
+    </div>
+
+    <section class="sec">
+      <h2>What happened</h2>
+      <p>The xStocks corporate-action feed records a dividend rebase for KOx (Coca-Cola Co.) with the multiplier moving from <span class="q" title="EV-CA-RECORD · multiplierOld">1.000000</span> to <span class="q" title="EV-CA-RECORD · multiplierNew">1.004871</span>, a change of <span class="q" title="EV-CA-RECORD · changePct">+0.4871%</span>.<span class="chips"><span class="be-chip">EV-CA-RECORD</span></span></p>
+      <p>The on-chain multiplier read at block <span class="q" title="EV-ONCHAIN-AFTER · block">12 884 102</span> returns <span class="q" title="EV-ONCHAIN-AFTER · multiplier">1.004871</span>, matching the issuer record to six decimals.<span class="chips"><span class="be-chip">EV-ONCHAIN-BEFORE</span><span class="be-chip">EV-ONCHAIN-AFTER</span></span></p>
+    </section>
+
+    <section class="sec">
+      <h2>Why it may matter</h2>
+      <p>Holders' unit balances now represent 0.4871% more of the underlying than before the record date; integrations that cache the multiplier will misprice KOx until they refresh.<span class="chips"><span class="be-chip">EV-CA-RECORD</span></span></p>
+    </section>
+
+    <section class="sec">
+      <h2>On-chain observations</h2>
+      <p>Activation block <span class="q" title="EV-ONCHAIN-ACTIVATION · block">12 884 096</span> at <span class="q">09:41:02Z</span>; the multiplier was unchanged at block 12 884 090 six seconds earlier.<span class="chips"><span class="be-chip">EV-ONCHAIN-BEFORE</span></span></p>
+    </section>
+
+    <section class="sec">
+      <h2>Evidence</h2>
+      <ol>
+        <li><span class="mono">EV-CA-RECORD</span> · CORPORATE_ACTION_RECORD · <span id="e1"></span></li>
+        <li><span class="mono">EV-ONCHAIN-BEFORE</span> · ONCHAIN_MULTIPLIER_BEFORE · <span id="e2"></span></li>
+        <li><span class="mono">EV-ONCHAIN-AFTER</span> · ONCHAIN_MULTIPLIER_AFTER · <span id="e3"></span></li>
+        <li><span class="mono">EV-PRICE</span> · REFERENCE_PRICE · <span id="e4"></span></li>
+      </ol>
+    </section>
+
+    <section class="sec">
+      <h2>Confidence</h2>
+      <p><span class="mono c-high" style="color:var(--verified)">HIGH</span> — Issuer record and on-chain multiplier agree to six decimals; activation block confirmed by an independent read. Gate cap: HIGH.</p>
+    </section>
+
+    <section class="sec" id="unk"></section>
+    <section class="sec" id="conf2"></section>
+
+    <section class="sec">
+      <h2>Limitations</h2>
+      <ol>
+        <li>The reference price is CACHED (08:10Z); no live price was available during the investigation.</li>
+        <li>Net cash flow per unit is not stated in the issuer record.</li>
+      </ol>
+    </section>
+
+    <p class="disclaimer">Bullseye Briefs describe observed market-structure events and the evidence for them. They are not investment, legal or tax advice and contain no recommendation to buy, sell or hold any asset.<br><span class="mono" style="font-size:11px">JSON · bullseye.brief/v1 · sha256 7d31a0…0c4e</span></p>
+
+    <div class="locked" style="--lock-top:392px" aria-label="Full Brief locked until purchase">
+      <section class="be-paywall" role="dialog" aria-labelledby="pw">
+        <span class="be-stage" id="pw">Immutable quote</span>
+        <div class="be-price"><span class="numeral">$3.00</span><span id="tag"></span></div>
+        <span class="be-quote-meta">quo_5d8e21a0c37f19b4 · terms sha256 a91f…62d7 · expires 09:59:00Z (14:37)</span>
+        <p>Pay once to unlock the full Brief. These terms are frozen and hashed; they cannot change after you approve. If payment cannot be confirmed, nothing is delivered and a retry cannot charge you twice.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="be-btn be-btn-primary" type="button">Pay $3.00 via OKX x402</button><button class="be-btn" type="button">View evidence first</button></div>
+      </section>
+    </div>
+  </main>
+
+  <aside style="display:grid;gap:16px;align-content:start">
+    <span class="be-stage">Console</span>
+    <div class="be-panel" style="padding:16px;display:grid;gap:8px">
+      <span class="be-stage">Preview · free</span>
+      <div class="mono" style="font-size:13px;display:grid;gap:4px;color:var(--ink-secondary)">
+        <span>Evidence <b style="color:var(--ink);font-weight:500">5</b> · kinds 4</span>
+        <span>Unknowns <b style="color:var(--uncertain);font-weight:500">3</b> · conflicts <b style="color:var(--ink);font-weight:500">0</b></span>
+        <span>Data mode <span id="dm"></span></span>
+        <span>Model <span id="sm"></span></span>
+      </div>
+    </div>
+    <div class="be-panel be-pay" style="padding:16px">
+      <span class="be-stage">Order · none yet</span>
+      <div class="be-pay-steps" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <span style="font-size:13px;color:var(--ink-secondary)">Request a quote to begin. Rail OKX_X402_TESTNET · eip155:1952.</span>
+    </div>
+    <div class="be-gate" id="gate"></div>
+  </aside>
+</div>
+<script>
+  var B = window.Bullseye;
+  B.confidence(document.getElementById('conf'), { level:'HIGH', large:true });
+  document.getElementById('hb').innerHTML = B.badge('LIVE', {title:'Weakest input mode across all evidence: LIVE'}) + '<span class="be-badge be-badge-historical">MODEL: LIVE</span><span class="be-gate-chip is-publish">✓ PUBLISH · 11/11</span>';
+  document.getElementById('e1').innerHTML = B.badge('LIVE'); document.getElementById('e2').innerHTML = B.badge('HISTORICAL');
+  document.getElementById('e3').innerHTML = B.badge('LIVE'); document.getElementById('e4').innerHTML = B.badge('CACHED');
+  document.getElementById('tag').innerHTML = B.badge('TESTNET');
+  document.getElementById('dm').innerHTML = B.badge('LIVE'); document.getElementById('sm').innerHTML = '<span class="be-badge be-badge-historical">LIVE</span>';
+  document.getElementById('unk').innerHTML = '<div class="be-unknowns"><div class="be-unknowns-head"><h2 class="be-unknowns-title" style="margin:0">Unknowns</h2><span class="mono" style="font-size:11px;color:var(--uncertain)">3 open</span></div><ol>' +
+    ['Whether the 15% withholding-tax rate in the issuer record applied to all holders or only non-US holders.','Net cash flow per unit: the record gives a gross figure and no net figure.','Proof-of-reserves attestation for the post-rebase supply has not been published yet.'].map(function(u){return '<li><span class="g" aria-hidden="true">?</span><span>'+u+'</span></li>'}).join('') + '</ol></div>';
+  document.getElementById('conf2').innerHTML = '<div class="be-unknowns"><div class="be-unknowns-head"><h2 class="be-unknowns-title" style="margin:0">Conflicts</h2><span class="mono" style="font-size:11px;color:var(--verified)">0</span></div><p class="empty" style="margin:0">No conflicts. 5 consistency checks passed.</p></div>';
+  document.getElementById('gate').innerHTML = '<div class="be-gate-head"><span class="g mono" style="color:var(--verified)">✓</span><h3 class="be-gate-title" style="color:var(--verified)">Published</h3><span class="be-gate-sub">gate v1 · 09:41:47Z</span></div><div class="be-gate-next">11 of 11 rules passed. Brief available for purchase.</div>';
+</script>

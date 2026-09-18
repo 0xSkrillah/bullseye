@@ -1,0 +1,10 @@
+{
+  "ranAt": "2026-09-18T19:35:31.512Z",
+  "url": "https://www.okx.com/api/v1/pay/mock-merchant/resource",
+  "httpStatus": 402,
+  "paymentRequiredHeaderPresent": false,
+  "challengeInBody": true,
+  "buyerFunded": false,
+  "sdkParsedChallenge": false,
+  "outcome": "FAILED before signing: Invalid payment required response"
+}

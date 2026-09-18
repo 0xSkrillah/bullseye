@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"Bullseye","components":[{"name":"SignalCard"},{"name":"ProvenanceBadge"},{"name":"EvidenceDrawer"},{"name":"InvestigationTimeline"},{"name":"ConfidenceIndicator"},{"name":"UnknownsPanel"},{"name":"BriefPaywall"},{"name":"PaymentState"},{"name":"EconomicsReceipt"},{"name":"PublicationGateResult"},{"name":"RadarHero"}]} */
+/* @ds-bundle: {"format":4,"namespace":"Bullseye","components":[{"name":"SignalCard"},{"name":"ProvenanceBadge"},{"name":"EvidenceDrawer"},{"name":"InvestigationTimeline"},{"name":"ConfidenceIndicator"},{"name":"UnknownsPanel"},{"name":"BriefPaywall"},{"name":"PaymentState"},{"name":"EconomicsReceipt"},{"name":"PublicationGateResult"},{"name":"RadarHero"},{"name":"BriefScreen"}]} */
 /* Bullseye helper bundle. Vanilla DOM builders the previews use; the React app
    implements the same contract in TSX (see guidelines/40-implementation.md). */
 (function () {

@@ -17,3 +17,6 @@ playwright-report/
 
 # design tool manifest; not needed by the app
 docs/design-system/design-system.json
+
+# working notes between sessions; not part of the project
+docs/DESIGN_HANDOFF.md

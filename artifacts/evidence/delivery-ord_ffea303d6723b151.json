@@ -1,0 +1,590 @@
+{
+  "schema": "bullseye.delivery/v1",
+  "orderId": "ord_ffea303d6723b151",
+  "state": "DELIVERED",
+  "quote": {
+    "id": "quo_5acfda9c70a9793b",
+    "termsHash": "d4e87a145a81d97a809c35f31efa8cc2fa3eeaa11de355e0a3e432985703a869",
+    "terms": {
+      "briefId": "brf_62893ae79392b126",
+      "briefContentHash": "b2fdf7344e8d05d04c900b7cbfc5d47c7a3244f63ac1acc5a8b1bd9c0e2a9ce2",
+      "priceUsd": "3.00",
+      "amount": "3000000",
+      "asset": "0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c",
+      "assetName": "USD₮0",
+      "assetDecimals": 6,
+      "network": "eip155:1952",
+      "payTo": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "scheme": "exact",
+      "maxTimeoutSeconds": 300,
+      "extra": {
+        "name": "USD₮0",
+        "version": "1"
+      },
+      "rail": "FIXTURE",
+      "resource": "http://localhost:4412/api/v1/briefs/brf_62893ae79392b126",
+      "issuedAt": "2026-09-18T19:36:38.704Z",
+      "expiresAt": "2026-09-18T19:51:38.704Z"
+    }
+  },
+  "payment": {
+    "rail": "FIXTURE",
+    "payer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "txHash": null,
+    "network": "eip155:1952",
+    "facilitatorStatus": "success",
+    "chainVerified": false,
+    "chainBlockNumber": null,
+    "chainCheckedAt": "2026-09-18T19:36:43.271Z",
+    "explorerUrl": null,
+    "note": "this rail has no chain to check"
+  },
+  "brief": {
+    "schema": "bullseye.brief/v1",
+    "id": "brf_62893ae79392b126",
+    "investigationId": "inv_dbfb9e91c0f2bd41",
+    "publishedAt": "2026-09-18T19:36:38.687Z",
+    "dataMode": "FIXTURE",
+    "synthesis": {
+      "provider": "fixture",
+      "model": "deterministic-template",
+      "mode": "FIXTURE"
+    },
+    "signal": {
+      "id": "sig_785dd21340ea7ac6",
+      "category": "CORPORATE_ACTION_REBASE",
+      "asset": {
+        "symbol": "IFFx",
+        "name": "International Flavors & Fragrances xStock",
+        "isin": "CH1580495633",
+        "underlyingSymbol": "IFF",
+        "network": "XLayer",
+        "chainId": 196,
+        "tokenAddress": "0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5"
+      },
+      "observedAt": "2026-09-18T00:30:00.000Z",
+      "detectedAt": "2026-09-18T19:27:25.580Z",
+      "headline": "IFFx rebased +0.329761% (CashDividend)",
+      "reasonFlagged": "Issuer reported a CashDividend that moves the IFFx balance multiplier from 1 to 1.003297609233. Holder balances on X Layer change without Transfer events, so the change needs independent on-chain confirmation.",
+      "facts": {
+        "corporateActionId": "80ab63a3-b09e-4bf2-910d-171583785eaf",
+        "corporateActionVersion": 2,
+        "caType": "CashDividend",
+        "status": "Initial",
+        "multiplierOld": "1",
+        "multiplierNew": "1.003297609233",
+        "changePct": 0.329761,
+        "grossCashflowUsd": "0.4",
+        "netCashflowUsd": "0.28",
+        "withholdingTaxRate": "0.3"
+      },
+      "sources": [
+        {
+          "mode": "HISTORICAL",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/corporate-actions/history?pageSize=50&sortBy=createdTimeUtc&sortOrder=desc",
+          "fetchedAt": "2026-09-18T19:27:25.586Z",
+          "sha256": "7937c8135f76e6e5983ec4bda347e0440616415e0b99a99f9c9fe2f391cd074f",
+          "note": "replayed from a recording of the real source response"
+        },
+        {
+          "mode": "HISTORICAL",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/assets/IFFx",
+          "fetchedAt": "2026-09-18T19:27:26.584Z",
+          "sha256": "304512a6a097cb6d5cc01d74aa2fc18b620c4a24172320e18a0d219be3664a33",
+          "note": "replayed from a recording of the real source response"
+        }
+      ],
+      "provenance": {
+        "mode": "HISTORICAL",
+        "detector": "xstocks-rebase-on-xlayer",
+        "detectorVersion": "1.0.0",
+        "inputHash": "13d63199e4c910dce00ca02d958273fe8144a5a663e546a689a36706ed1c154b"
+      }
+    },
+    "draft": {
+      "headline": "Multiplier change confirmed against X Layer contract state",
+      "whatHappened": [
+        {
+          "text": "The issuer recorded a corporate action that changed the token balance multiplier from 1 to 1.003297609233, a change of 0.329761%.",
+          "evidenceIds": [
+            "EV-CA"
+          ],
+          "quantities": [
+            {
+              "label": "old multiplier",
+              "value": 1,
+              "unit": "x",
+              "evidenceId": "EV-CA",
+              "valueKey": "multiplierOld"
+            },
+            {
+              "label": "new multiplier",
+              "value": 1.003297609233,
+              "unit": "x",
+              "evidenceId": "EV-CA",
+              "valueKey": "multiplierNew"
+            },
+            {
+              "label": "change",
+              "value": 0.329761,
+              "unit": "%",
+              "evidenceId": "EV-CA",
+              "valueKey": "changePct"
+            }
+          ]
+        }
+      ],
+      "whyItMayMatter": [
+        {
+          "text": "Rebasing balances change without Transfer events, so integrations that cache balances or track shares separately need to account for the new multiplier.",
+          "evidenceIds": [
+            "EV-CA"
+          ],
+          "quantities": []
+        }
+      ],
+      "onchainObservations": [
+        {
+          "text": "On X Layer the contract returned multiplier 1 at block 70922304 and 1.003297609233 at block 70922424.",
+          "evidenceIds": [
+            "EV-CHAIN-BEFORE",
+            "EV-CHAIN-AFTER"
+          ],
+          "quantities": [
+            {
+              "label": "multiplier before",
+              "value": 1,
+              "unit": "x",
+              "evidenceId": "EV-CHAIN-BEFORE",
+              "valueKey": "multiplier"
+            },
+            {
+              "label": "block before",
+              "value": 70922304,
+              "unit": "block",
+              "evidenceId": "EV-CHAIN-BEFORE",
+              "valueKey": "blockNumber"
+            },
+            {
+              "label": "multiplier after",
+              "value": 1.003297609233,
+              "unit": "x",
+              "evidenceId": "EV-CHAIN-AFTER",
+              "valueKey": "multiplier"
+            },
+            {
+              "label": "block after",
+              "value": 70922424,
+              "unit": "block",
+              "evidenceId": "EV-CHAIN-AFTER",
+              "valueKey": "blockNumber"
+            }
+          ]
+        }
+      ],
+      "confidence": {
+        "level": "MEDIUM",
+        "rationale": "Issuer record and on-chain reads were compared by deterministic checks."
+      },
+      "unknowns": [
+        "Deployments on other chains were not read."
+      ],
+      "conflicts": [],
+      "limitations": [
+        "Issuer-reported figures are not independently audited by Bullseye."
+      ]
+    },
+    "evidence": [
+      {
+        "id": "EV-CA",
+        "investigationId": "inv_dbfb9e91c0f2bd41",
+        "kind": "CORPORATE_ACTION_RECORD",
+        "summary": "Issuer corporate-action record 80ab63a3-b09e-4bf2-910d-171583785eaf v2 for IFFx: CashDividend, multiplier 1 -> 1.003297609233, effective 2026-09-18T00:30:00.000Z.",
+        "values": {
+          "eventId": "80ab63a3-b09e-4bf2-910d-171583785eaf",
+          "version": 2,
+          "caType": "CashDividend",
+          "status": "Initial",
+          "effectiveTimeUtc": "2026-09-18T00:30:00.000Z",
+          "createdTimeUtc": "2026-09-17T20:22:24.985Z",
+          "multiplierOld": 1,
+          "multiplierNew": 1.003297609233,
+          "changePct": 0.329761,
+          "grossCashflowUsd": 0.4,
+          "netCashflowUsd": 0.28,
+          "withholdingTaxRate": 0.3,
+          "withholdingTaxPct": 30
+        },
+        "observedAt": "2026-09-18T00:30:00.000Z",
+        "staleAfter": "2026-09-25T19:28:25.511Z",
+        "provenance": {
+          "mode": "HISTORICAL",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/corporate-actions/history?pageSize=50&sortBy=createdTimeUtc&sortOrder=desc&symbol=IFFx",
+          "fetchedAt": "2026-09-18T19:28:25.511Z",
+          "sha256": "c7a0640e442dea8e0141da83fe18b3c8db59e801c01c27f25f3fda3f9e9f7ffd",
+          "note": "replayed from a recording of the real source response"
+        }
+      },
+      {
+        "id": "EV-MULT-API",
+        "investigationId": "inv_dbfb9e91c0f2bd41",
+        "kind": "ISSUER_MULTIPLIER_STATE",
+        "summary": "Issuer API reports current multiplier 1.003297609233 for the X Layer deployment; pending multiplier 0.",
+        "values": {
+          "currentMultiplier": 1.003297609233,
+          "pendingMultiplier": 0,
+          "hasPendingChange": false,
+          "network": "XLayer"
+        },
+        "observedAt": "2026-09-18T19:28:26.282Z",
+        "staleAfter": "2026-09-18T19:58:26.282Z",
+        "provenance": {
+          "mode": "HISTORICAL",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/assets/IFFx/multiplier?network=XLayer",
+          "fetchedAt": "2026-09-18T19:28:26.282Z",
+          "sha256": "509797e1450087ec7a6a1ca0d1f0b02e5851f64a211745977dfa5b0d276d49bb",
+          "note": "replayed from a recording of the real source response"
+        }
+      },
+      {
+        "id": "EV-CHAIN-BEFORE",
+        "investigationId": "inv_dbfb9e91c0f2bd41",
+        "kind": "ONCHAIN_MULTIPLIER_BEFORE",
+        "summary": "multiplier() on X Layer at block 70922304 (2026-09-18T00:29:00.000Z, 60s before the issuer's effective time) returned 1.",
+        "values": {
+          "multiplier": 1,
+          "multiplierExact": "1",
+          "blockNumber": 70922304,
+          "blockTimestamp": "2026-09-18T00:29:00.000Z",
+          "offsetSeconds": -60,
+          "chainId": 196,
+          "tokenAddress": "0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5"
+        },
+        "observedAt": "2026-09-18T00:29:00.000Z",
+        "staleAfter": "2027-09-18T19:28:36.088Z",
+        "provenance": {
+          "mode": "HISTORICAL",
+          "source": "rpc.xlayer.tech",
+          "url": "https://rpc.xlayer.tech",
+          "fetchedAt": "2026-09-18T19:28:36.088Z",
+          "sha256": "d467ad38cbe9700a96f161bb31d5bc6507a065c886f02d15251b1a57352a6941",
+          "note": "replayed from a recording of the real source response"
+        }
+      },
+      {
+        "id": "EV-CHAIN-AFTER",
+        "investigationId": "inv_dbfb9e91c0f2bd41",
+        "kind": "ONCHAIN_MULTIPLIER_AFTER",
+        "summary": "multiplier() on X Layer at block 70922424 (2026-09-18T00:31:00.000Z, 60s after the issuer's effective time) returned 1.003297609233.",
+        "values": {
+          "multiplier": 1.003297609233,
+          "multiplierExact": "1.003297609233",
+          "blockNumber": 70922424,
+          "blockTimestamp": "2026-09-18T00:31:00.000Z",
+          "offsetSeconds": 60,
+          "chainId": 196,
+          "tokenAddress": "0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5"
+        },
+        "observedAt": "2026-09-18T00:31:00.000Z",
+        "staleAfter": "2027-09-18T19:28:46.994Z",
+        "provenance": {
+          "mode": "HISTORICAL",
+          "source": "rpc.xlayer.tech",
+          "url": "https://rpc.xlayer.tech",
+          "fetchedAt": "2026-09-18T19:28:46.994Z",
+          "sha256": "351418b6b0c879b3ad15794cb06f22c9dc22627b94dd956dd2944c17c0b15f74",
+          "note": "replayed from a recording of the real source response"
+        }
+      },
+      {
+        "id": "EV-CHAIN-LATEST",
+        "investigationId": "inv_dbfb9e91c0f2bd41",
+        "kind": "ONCHAIN_MULTIPLIER_LATEST",
+        "summary": "multiplier() on X Layer at head block 70990691 (2026-09-18T19:28:47.000Z) returned 1.003297609233.",
+        "values": {
+          "multiplier": 1.003297609233,
+          "multiplierExact": "1.003297609233",
+          "blockNumber": 70990691,
+          "blockTimestamp": "2026-09-18T19:28:47.000Z",
+          "chainId": 196,
+          "tokenAddress": "0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5"
+        },
+        "observedAt": "2026-09-18T19:28:47.000Z",
+        "staleAfter": "2026-09-18T19:58:47.359Z",
+        "provenance": {
+          "mode": "HISTORICAL",
+          "source": "rpc.xlayer.tech",
+          "url": "https://rpc.xlayer.tech",
+          "fetchedAt": "2026-09-18T19:28:47.359Z",
+          "sha256": "d8f5553b1e66c21361e8ebc02914c71b86ac56c8aa689fc64b6dbac174ff3868",
+          "note": "replayed from a recording of the real source response"
+        }
+      },
+      {
+        "id": "EV-CHAIN-ACTIVATION",
+        "investigationId": "inv_dbfb9e91c0f2bd41",
+        "kind": "ONCHAIN_ACTIVATION_BLOCK",
+        "summary": "multiplier() first returned 1.003297609233 at X Layer block 70922364 (2026-09-18T00:30:00.000Z); the previous block still returned 1.",
+        "values": {
+          "changeFound": true,
+          "activationBlock": 70922364,
+          "activationTimestamp": "2026-09-18T00:30:00.000Z",
+          "lagSecondsVsIssuerEffectiveTime": 0,
+          "multiplierBefore": 1,
+          "multiplierAfter": 1.003297609233,
+          "lastBlockWithOld": 70922363,
+          "rpcReads": 17,
+          "chainId": 196,
+          "tokenAddress": "0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5"
+        },
+        "observedAt": "2026-09-18T00:30:00.000Z",
+        "staleAfter": "2027-09-18T19:29:08.367Z",
+        "provenance": {
+          "mode": "HISTORICAL",
+          "source": "rpc.xlayer.tech",
+          "url": "https://rpc.xlayer.tech",
+          "fetchedAt": "2026-09-18T19:29:08.367Z",
+          "sha256": "ff484d0c1f42a906ac5e60ecbd83ef96989daffb16d10fbb7b3a2f922bfd62d2",
+          "note": "replayed from a recording of the real source response"
+        }
+      },
+      {
+        "id": "EV-POR",
+        "investigationId": "inv_dbfb9e91c0f2bd41",
+        "kind": "PROOF_OF_RESERVES",
+        "summary": "Issuer proof-of-reserves at 2026-09-18T19:25:22.350Z: 5 IFF shares held against 0.949587642861368799 circulating IFFx.",
+        "values": {
+          "sharesHeld": 5,
+          "circulatingSupply": 0.949588,
+          "coverageRatio": 5.265443,
+          "surplusShares": 4.050412,
+          "custodians": "Alpaca",
+          "reportedAt": "2026-09-18T19:25:22.350Z"
+        },
+        "observedAt": "2026-09-18T19:25:22.350Z",
+        "staleAfter": "2026-09-19T19:29:18.557Z",
+        "provenance": {
+          "mode": "HISTORICAL",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/proof-of-reserves/IFFx",
+          "fetchedAt": "2026-09-18T19:29:18.557Z",
+          "sha256": "a137b21030abb2dc457b1e7c18bb5cdd0b2c9d267723b249ad767e33fdcf0d69",
+          "note": "replayed from a recording of the real source response"
+        }
+      },
+      {
+        "id": "EV-PRICE",
+        "investigationId": "inv_dbfb9e91c0f2bd41",
+        "kind": "REFERENCE_PRICE",
+        "summary": "Issuer reference price for IFFx is 82.785 USD (current quote, not the ex-date price).",
+        "values": {
+          "quoteUsd": 82.785,
+          "netCashflowUsd": 0.28,
+          "impliedRebasePctAtCurrentPrice": 0.338226
+        },
+        "observedAt": "2026-09-18T19:29:19.062Z",
+        "staleAfter": "2026-09-18T19:59:19.062Z",
+        "provenance": {
+          "mode": "HISTORICAL",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/assets/IFFx/price-data",
+          "fetchedAt": "2026-09-18T19:29:19.062Z",
+          "sha256": "f46f40967ddca7461727c3060aa8b3082c68d773f94934b8e514c370358ac88b",
+          "note": "replayed from a recording of the real source response"
+        }
+      },
+      {
+        "id": "EV-STATUS",
+        "investigationId": "inv_dbfb9e91c0f2bd41",
+        "kind": "TRADING_STATUS",
+        "summary": "Issuer trading status: market trading halted = false, atomic trading halted = false.",
+        "values": {
+          "isMarketTradingHalted": false,
+          "isAtomicTradingHalted": false
+        },
+        "observedAt": "2026-09-18T19:29:19.279Z",
+        "staleAfter": "2026-09-18T19:59:19.279Z",
+        "provenance": {
+          "mode": "HISTORICAL",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/system/status/IFFx",
+          "fetchedAt": "2026-09-18T19:29:19.279Z",
+          "sha256": "43c17b38ce08e0f063698ba0855db3789055be218d9fe56493c97e374b3d940e",
+          "note": "replayed from a recording of the real source response"
+        }
+      },
+      {
+        "id": "EV-SUPPLY",
+        "investigationId": "inv_dbfb9e91c0f2bd41",
+        "kind": "SUPPLY",
+        "summary": "Issuer reports total supply 796473.1979188217 and circulating supply 0.9495876416166648 across all chains; totalSupply() on X Layer is 79103.622278554533508281 at block 70990724.",
+        "values": {
+          "issuerTotalSupplyAllChains": 796473.197919,
+          "issuerCirculatingSupplyAllChains": 0.949588,
+          "xlayerTotalSupply": 79103.622279,
+          "xlayerBlockNumber": 70990724,
+          "chainId": 196
+        },
+        "observedAt": "2026-09-18T19:29:20.000Z",
+        "staleAfter": "2026-09-19T19:29:19.498Z",
+        "provenance": {
+          "mode": "HISTORICAL",
+          "source": "rpc.xlayer.tech",
+          "url": "https://rpc.xlayer.tech",
+          "fetchedAt": "2026-09-18T19:29:19.498Z",
+          "sha256": "68a9a883ef34a75b22158b8ca871c12882ef7bab7aaf893bc19bf0b5e42faa1f",
+          "note": "combines https://api.xstocks.fi/api/v2/public/assets/IFFx/total-supply and https://api.xstocks.fi/api/v2/public/assets/IFFx/circulating-supply with an on-chain totalSupply() read"
+        }
+      }
+    ],
+    "checks": [
+      {
+        "id": "CHK-BEFORE-MATCHES-OLD",
+        "description": "On-chain multiplier before the effective time equals the issuer's old multiplier",
+        "status": "PASS",
+        "detail": "on-chain 1 vs issuer old 1",
+        "evidenceIds": [
+          "EV-CHAIN-BEFORE",
+          "EV-CA"
+        ]
+      },
+      {
+        "id": "CHK-AFTER-MATCHES-NEW",
+        "description": "On-chain multiplier after the effective time equals the issuer's new multiplier",
+        "status": "PASS",
+        "detail": "on-chain 1.003297609233 vs issuer new 1.003297609233",
+        "evidenceIds": [
+          "EV-CHAIN-AFTER",
+          "EV-CA"
+        ]
+      },
+      {
+        "id": "CHK-LATEST-MATCHES-NEW",
+        "description": "On-chain multiplier at the chain head still equals the issuer's new multiplier",
+        "status": "PASS",
+        "detail": "on-chain head 1.003297609233 vs issuer new 1.003297609233",
+        "evidenceIds": [
+          "EV-CHAIN-LATEST",
+          "EV-CA"
+        ]
+      },
+      {
+        "id": "CHK-API-STATE-MATCHES-CHAIN",
+        "description": "Issuer API current multiplier equals the on-chain multiplier at the chain head",
+        "status": "PASS",
+        "detail": "issuer API 1.003297609233 vs on-chain 1.003297609233",
+        "evidenceIds": [
+          "EV-MULT-API",
+          "EV-CHAIN-LATEST"
+        ]
+      },
+      {
+        "id": "CHK-RESERVES-COVER-SUPPLY",
+        "description": "Issuer-reported underlying shares held are at least the circulating token supply",
+        "status": "PASS",
+        "detail": "coverage ratio 5.265443",
+        "evidenceIds": [
+          "EV-POR"
+        ]
+      },
+      {
+        "id": "CHK-ACTIVATION-ON-SCHEDULE",
+        "description": "On-chain activation happened close to the issuer's effective time",
+        "status": "PASS",
+        "detail": "activation lag 0s (tolerance 900s)",
+        "evidenceIds": [
+          "EV-CHAIN-ACTIVATION",
+          "EV-CA"
+        ]
+      },
+      {
+        "id": "CHK-REBASE-SIZE-PLAUSIBLE",
+        "description": "Rebase size is consistent with net cashflow per share divided by the reference price",
+        "status": "PASS",
+        "detail": "implied 0.338226% at current price vs reported 0.329761% (relative gap 2.6%, tolerance 25%)",
+        "evidenceIds": [
+          "EV-PRICE",
+          "EV-CA"
+        ]
+      },
+      {
+        "id": "CHK-TRADING-NOT-HALTED",
+        "description": "Issuer reports trading is not halted",
+        "status": "PASS",
+        "detail": "market halted=false, atomic halted=false",
+        "evidenceIds": [
+          "EV-STATUS"
+        ]
+      }
+    ],
+    "gate": {
+      "decision": "PUBLISH",
+      "evaluatedAt": "2026-09-18T19:27:25.580Z",
+      "gateVersion": "1.0.0",
+      "confidenceCap": "MEDIUM",
+      "findings": [
+        {
+          "rule": "INVESTIGATION_COMPLETED",
+          "passed": true,
+          "detail": "investigation stop reason: COMPLETED"
+        },
+        {
+          "rule": "SCHEMA",
+          "passed": true,
+          "detail": "draft matches BriefDraft"
+        },
+        {
+          "rule": "MANDATORY_EVIDENCE_PRESENT",
+          "passed": true,
+          "detail": "all mandatory evidence kinds collected"
+        },
+        {
+          "rule": "EVIDENCE_FRESH",
+          "passed": true,
+          "detail": "all evidence fresh as of 2026-09-18T19:27:25.580Z"
+        },
+        {
+          "rule": "EVIDENCE_MODE_ALLOWED",
+          "passed": true,
+          "detail": "fixture inputs present and explicitly allowed (test configuration); the Brief is labelled FIXTURE"
+        },
+        {
+          "rule": "CLAIMS_CITE_KNOWN_EVIDENCE",
+          "passed": true,
+          "detail": "3 claims cite collected evidence"
+        },
+        {
+          "rule": "QUANTITIES_RESOLVE_TO_EVIDENCE",
+          "passed": true,
+          "detail": "every declared quantity equals its evidence value"
+        },
+        {
+          "rule": "NUMBERS_IN_TEXT_ARE_EVIDENCED",
+          "passed": true,
+          "detail": "every number and timestamp in the text resolves to collected evidence"
+        },
+        {
+          "rule": "NO_INVESTMENT_ADVICE",
+          "passed": true,
+          "detail": "no advisory language found"
+        },
+        {
+          "rule": "FAILED_CHECKS_DISCLOSED",
+          "passed": true,
+          "detail": "no failed checks"
+        },
+        {
+          "rule": "CONFIDENCE_WITHIN_CAP",
+          "passed": true,
+          "detail": "draft claims MEDIUM; evidence and checks allow at most MEDIUM"
+        }
+      ]
+    },
+    "disclaimer": "Bullseye Briefs describe observed market-structure events and the evidence for them. They are not investment, legal or tax advice and contain no recommendation to buy, sell or hold any asset.",
+    "contentHash": "b2fdf7344e8d05d04c900b7cbfc5d47c7a3244f63ac1acc5a8b1bd9c0e2a9ce2"
+  }
+}

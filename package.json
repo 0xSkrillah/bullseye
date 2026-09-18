@@ -5,8 +5,13 @@
   "description": "Autonomous intelligence desk for tokenised markets",
   "license": "MIT",
   "type": "module",
-  "engines": { "node": ">=22.13" },
-  "workspaces": ["packages/*", "apps/*"],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "concurrently -n api,web -c green,cyan \"npm run dev -w @bullseye/api\" \"npm run dev -w @bullseye/web\"",
     "dev:api": "npm run dev -w @bullseye/api",
@@ -16,11 +21,13 @@
     "typecheck": "tsc -p apps/api && tsc -p apps/web",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "spike": "tsx scripts/spike.ts",
-    "detect": "tsx scripts/detect.ts",
-    "buy": "tsx scripts/buy-brief.ts",
-    "verify-payment": "tsx scripts/verify-payment.ts",
-    "demo": "tsx scripts/run-demo.ts"
+    "spike": "tsx --env-file-if-exists=.env scripts/spike.ts",
+    "detect": "tsx --env-file-if-exists=.env scripts/detect.ts",
+    "buy": "tsx --env-file-if-exists=.env scripts/buy-brief.ts",
+    "verify-payment": "tsx --env-file-if-exists=.env scripts/verify-payment.ts",
+    "demo": "tsx --env-file-if-exists=.env scripts/run-demo.ts",
+    "record": "tsx --env-file-if-exists=.env scripts/record.ts",
+    "start:offline": "npm run start:offline -w @bullseye/api"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

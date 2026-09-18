@@ -8,6 +8,7 @@ The desk is dense; it must still be readable by a judge on a projector and navig
 - Every state hue passes 4.5:1 as text on `canvas`, `canvas-raised` and `canvas-overlay`: `verified` 7.6:1, `uncertain` 8.7:1, `invalid` 5.6:1 (4.9:1 on `canvas-overlay`), `fixture` 9.2:1. On their tinted fills they stay above 4.5:1 (verified on verified-fill 6.1:1, uncertain on uncertain-fill 7.0:1, invalid on invalid-fill 4.7:1, fixture on fixture-fill 7.7:1).
 - No state is carried by colour alone. Every badge has a word; every verdict has a glyph and a word; the locked card has a border, a marker and the word LOCKED; the estimated contribution has `≈`, the word *estimated* and a footnote.
 - Green and red are never adjacent as the only difference between two values: Paid (`verified ✓`) and Failed (`invalid ✕`) differ by glyph and word. `verified` and `invalid` differ in lightness by roughly 1.3:1 only, so the words are load-bearing by design.
+- The light (projector) theme meets the same floors: every state hue is at or above 4.5:1 on `canvas`, `canvas-raised`, `canvas-inset` and its own fill (lowest: `verified` on `verified-fill`, 5.4:1); `ink-muted` rises to 4.7:1; `line-strong` is 3.6:1.
 - Meaningful borders use `line-strong` (3.1:1 on `canvas`, 3.0:1 on `canvas-raised`). `line` is decorative and may fall below 3:1.
 - The focus ring is 2px solid `focus` with 2px offset, so it sits on the surface around the control (16.4:1 on `canvas`, 15:1 on `canvas-overlay`), never on the control's own fill.
 

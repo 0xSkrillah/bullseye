@@ -42,3 +42,28 @@
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
 }
+[data-theme="light"] {
+  --canvas: #f4f3ee;
+  --canvas-raised: #ffffff;
+  --canvas-overlay: #ffffff;
+  --canvas-inset: #e9e8e1;
+  --line: #d8d7cf;
+  --line-strong: #7d7f85;
+  --ink: #15161a;
+  --ink-secondary: #50525a;
+  --ink-muted: #6b6d6a;
+  --ink-inverse: #f4f3ee;
+  --verified: #196d3e;
+  --verified-fill: #dcf1e3;
+  --on-verified: #f4f3ee;
+  --uncertain: #7f5300;
+  --uncertain-fill: #fbedd0;
+  --invalid: #b0261f;
+  --invalid-fill: #fadad8;
+  --fixture: #5a3ea6;
+  --fixture-fill: #e8e2f8;
+  --historical: var(--ink-secondary);
+  --focus: #15161a;
+  --radar-sweep: #196d3e33;
+  --radar-grid: #c9cac3;
+}

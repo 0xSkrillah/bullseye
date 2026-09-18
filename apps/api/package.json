@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=../../.env src/main.ts",
-    "start": "tsx --env-file-if-exists=../../.env src/main.ts"
+    "start": "tsx --env-file-if-exists=../../.env src/main.ts",
+    "start:offline": "tsx src/offline.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

@@ -63,7 +63,7 @@
 }
 .be-btn:hover { background: var(--canvas-overlay); }
 .be-btn-primary { background: var(--ink); color: var(--ink-inverse); border-color: var(--ink); }
-.be-btn-primary:hover { background: #ffffff; }
+.be-btn-primary:hover { filter: brightness(1.08); }
 .be-btn[disabled] { color: var(--ink-muted); border-color: var(--line); cursor: not-allowed; background: transparent; }
 .be-btn .mono { font-size: 13px; }
 
