@@ -27,7 +27,7 @@ const evidence = (): EvidenceItem[] => [
 ];
 
 const pass = (id: string): ConsistencyCheck => ({ id, description: id, status: "PASS", detail: "", evidenceIds: [] });
-const checks = (): ConsistencyCheck[] => [pass("CHK-BEFORE-MATCHES-OLD"), pass("CHK-AFTER-MATCHES-NEW"), pass("CHK-LATEST-MATCHES-NEW"), pass("CHK-RESERVES-COVER-SUPPLY")];
+const checks = (): ConsistencyCheck[] => [pass("CHK-ACTION-STILL-CURRENT"), pass("CHK-BEFORE-MATCHES-OLD"), pass("CHK-AFTER-MATCHES-NEW"), pass("CHK-LATEST-MATCHES-NEW"), pass("CHK-RESERVES-COVER-SUPPLY")];
 
 const draft = (): BriefDraft => ({
   headline: "IFFx multiplier change confirmed on X Layer",

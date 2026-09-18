@@ -112,6 +112,8 @@ export function openDb(path: string): Db {
   const db = new DatabaseSync(path);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   db.exec(SCHEMA);
+  const signalColumns = (db.prepare("PRAGMA table_info(signals)").all() as { name: string }[]).map((c) => c.name);
+  if (!signalColumns.includes("superseded_json")) db.exec("ALTER TABLE signals ADD COLUMN superseded_json TEXT");
   return db;
 }
 

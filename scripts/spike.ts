@@ -12,7 +12,7 @@ import { loadConfig } from "../apps/api/src/config.js";
 import { LiveTransport } from "../apps/api/src/adapters/transport.js";
 import { XStocksAdapter } from "../apps/api/src/adapters/xstocks.js";
 import { XLayerAdapter, xLayerTestnet } from "../apps/api/src/adapters/xlayer.js";
-import { detectRebaseSignals, isRebaseCandidate } from "../apps/api/src/signals/rebaseDetector.js";
+import { currentVersions, detectRebaseSignals, isRebaseCandidate } from "../apps/api/src/signals/rebaseDetector.js";
 import { createOkxRail, SDK_VERSIONS } from "../apps/api/src/commerce/rail.js";
 
 type StepStatus = "PASS" | "FAIL" | "BLOCKED";
@@ -38,15 +38,18 @@ let signalForChain: ReturnType<typeof detectRebaseSignals>[number] | undefined;
 try {
   const now = new Date();
   const actions = await xstocks.corporateActionHistory({ pageSize: 50 });
-  const candidates = actions.data.filter((a) => isRebaseCandidate(a, now, 96));
+  const tainted = new Set(actions.rejected.map((r) => r.eventId).filter((id): id is string => id !== null));
+  const candidates = currentVersions(actions.data).filter((a) => !tainted.has(a.eventId) && isRebaseCandidate(a, now, 96));
   const assets = new Map();
   for (const symbol of [...new Set(candidates.map((c) => c.xstockSymbol))].slice(0, 6)) assets.set(symbol, await xstocks.asset(symbol));
-  const signals = detectRebaseSignals({ actions, assets, now, lookbackHours: 96 });
+  const signals = detectRebaseSignals({ actions, assets, now, lookbackHours: 96, taintedEventIds: tainted });
   signalForChain = signals[0];
   record("xstocks: corporate-action history fetched and schema-validated", "PASS", {
     url: actions.provenance.url,
     sha256: actions.provenance.sha256,
     actions: actions.data.length,
+    rejectedBySchema: actions.rejected,
+    statuses: Object.fromEntries([...new Set(actions.data.map((a) => a.status))].map((s) => [s, actions.data.filter((a) => a.status === s).length])),
     rebaseCandidates: candidates.length,
     signalsOnXLayer: signals.map((s) => ({ id: s.id, headline: s.headline, observedAt: s.observedAt, token: s.asset.tokenAddress })),
   });

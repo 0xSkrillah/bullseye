@@ -27,6 +27,8 @@ export interface CheckoutDeps {
   priceUsd: string;
   quoteTtlSeconds: number;
   getBrief(id: string): Brief | null;
+  /** why a Brief may no longer be sold (the issuer voided the action it describes), or null */
+  withdrawnReason?(brief: Brief): string | null;
   now?: () => Date;
 }
 
@@ -82,7 +84,8 @@ export class Checkout {
       return json(503, { error: "payment_rail_unavailable", rail: status.rail, detail: status.detail });
     }
 
-    if (!paymentHeader) return this.challenge(brief, quoteId ? ledger.getQuote(quoteId) : null);
+    const withdrawn = this.deps.withdrawnReason?.(brief) ?? null;
+    if (!paymentHeader) return withdrawn ? gone(brief, withdrawn) : this.challenge(brief, quoteId ? ledger.getQuote(quoteId) : null);
 
     let payload: PaymentPayload;
     try {
@@ -94,8 +97,10 @@ export class Checkout {
     if (!auth) return this.challenge(brief, null, "payment payload carries no EIP-3009 authorization");
     const paymentKey = sha256(`${payload.accepted?.network}:${payload.accepted?.asset}:${auth.from}:${auth.nonce}`.toLowerCase());
 
+    // someone who already paid still gets what they paid for; nobody new is charged for a withdrawn Brief
     const existing = ledger.findByPaymentKey(paymentKey);
     if (existing) return this.resume(existing, brief, payload);
+    if (withdrawn) return gone(brief, withdrawn);
 
     const quote = this.resolveQuote(brief, payload, quoteId);
     if (!quote) return this.challenge(brief, null, "payment does not match any quote issued for this brief");
@@ -298,6 +303,10 @@ export class Checkout {
 }
 
 export class RailNotReadyError extends Error {}
+
+function gone(brief: Brief, reason: string): HttpReply {
+  return json(410, { error: "brief_withdrawn", briefId: brief.id, detail: reason, message: "This Brief is no longer sold. Nothing was charged." });
+}
 
 function json(status: number, body: unknown): HttpReply {
   return { status, headers: { "content-type": "application/json" }, body };

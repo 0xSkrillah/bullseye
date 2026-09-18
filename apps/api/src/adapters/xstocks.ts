@@ -36,7 +36,8 @@ export const XsCorporateAction = z
     xstockSymbol: z.string(),
     spvSymbol: z.string(),
     caType: z.string(),
-    effectiveTimeUtc: z.string().datetime(),
+    /** null on cancelled actions */
+    effectiveTimeUtc: z.string().datetime().nullable(),
     multiplierOld: decimalString.nullable(),
     multiplierNew: decimalString.nullable(),
     grossCashflowUsd: decimalString.nullable(),
@@ -44,6 +45,8 @@ export const XsCorporateAction = z
     withholdingTaxRate: decimalString.nullable(),
     createdTimeUtc: z.string().datetime(),
     status: z.string(),
+    /** on a cancellation the issuer names the cancelled version here: "[CANCELLED v2] reason" */
+    notes: z.string().nullable().optional(),
   })
   .passthrough();
 export type XsCorporateAction = z.infer<typeof XsCorporateAction>;
@@ -78,6 +81,15 @@ export const XsTradingStatus = z
   .passthrough();
 export type XsTradingStatus = z.infer<typeof XsTradingStatus>;
 
+export interface RejectedRecord {
+  index: number;
+  eventId: string | null;
+  reason: string;
+}
+
+/** a list response is unusable once this share of its records fails validation: the contract has changed */
+const MAX_REJECTED_SHARE = 0.5;
+
 export class SchemaMismatchError extends Error {
   constructor(key: string, issues: string) {
     super(`response for ${key} did not match the expected schema: ${issues}`);
@@ -104,7 +116,11 @@ export class XStocksAdapter {
     private readonly baseUrl: string,
   ) {}
 
-  async corporateActionHistory(opts: { symbol?: string; pageSize?: number } = {}): Promise<Sourced<XsCorporateAction[]>> {
+  /**
+   * Records that fail validation are left out and returned in `rejected`, so one odd record
+   * cannot hide every other event; callers must surface them. A mostly invalid page still throws.
+   */
+  async corporateActionHistory(opts: { symbol?: string; pageSize?: number } = {}): Promise<Sourced<XsCorporateAction[]> & { rejected: RejectedRecord[] }> {
     const params = new URLSearchParams({
       pageSize: String(opts.pageSize ?? 50),
       sortBy: "createdTimeUtc",
@@ -113,12 +129,18 @@ export class XStocksAdapter {
     if (opts.symbol) params.set("symbol", opts.symbol);
     const key = `xstocks.ca-history.${opts.symbol ?? "all"}`;
     const page = parse(XsPage, key, await this.transport.http(key, `${this.baseUrl}/public/corporate-actions/history?${params}`));
-    const nodes = page.data.nodes.map((n, i) => {
+    const nodes: XsCorporateAction[] = [];
+    const rejected: RejectedRecord[] = [];
+    page.data.nodes.forEach((n, index) => {
       const r = XsCorporateAction.safeParse(n);
-      if (!r.success) throw new SchemaMismatchError(`${key}[${i}]`, r.error.issues.map((x) => x.message).join("; "));
-      return r.data;
+      if (r.success) return nodes.push(r.data);
+      const eventId = typeof (n as { eventId?: unknown } | null)?.eventId === "string" ? (n as { eventId: string }).eventId : null;
+      rejected.push({ index, eventId, reason: r.error.issues.map((x) => `${x.path.join(".") || "(root)"}: ${x.message}`).join("; ") });
     });
-    return { data: nodes, provenance: page.provenance };
+    if (page.data.nodes.length > 0 && rejected.length / page.data.nodes.length > MAX_REJECTED_SHARE) {
+      throw new SchemaMismatchError(key, `${rejected.length} of ${page.data.nodes.length} records failed validation, e.g. [${rejected[0]!.index}] ${rejected[0]!.reason}`);
+    }
+    return { data: nodes, provenance: page.provenance, rejected };
   }
 
   async asset(symbol: string): Promise<Sourced<XsAsset>> {

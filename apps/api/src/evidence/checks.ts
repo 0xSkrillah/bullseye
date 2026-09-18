@@ -29,10 +29,25 @@ export function runConsistencyChecks(signal: SignalEvent, evidence: EvidenceItem
   const activation = byId.get("EV-CHAIN-ACTIVATION");
   const price = byId.get("EV-PRICE");
   const status = byId.get("EV-STATUS");
+  const record = byId.get("EV-CA");
   const checks: ConsistencyCheck[] = [];
 
   const add = (id: string, description: string, status_: CheckStatus, detail: string, evidenceIds: string[]) =>
     checks.push({ id, description, status: status_, detail, evidenceIds });
+
+  if (record) {
+    const voided = record.values.supersededByVersion !== null || String(record.values.status).toLowerCase() === "cancelled";
+    const termsUnchanged = typeof record.values.multiplierNewExact === "string" && sameMultiplier(record.values.multiplierNewExact, signal.facts.multiplierNew);
+    add(
+      "CHK-ACTION-STILL-CURRENT",
+      "The issuer has not cancelled or replaced this version of the action since the signal was raised",
+      !voided && termsUnchanged ? "PASS" : "FAIL",
+      voided
+        ? `issuer ${String(record.values.supersededReason ?? "CANCELLED").toLowerCase()} v${record.values.version} with v${record.values.supersededByVersion ?? record.values.version}${record.values.supersedingNotes ? ` (${record.values.supersedingNotes})` : ""}`
+        : `issuer record v${record.values.version} status ${record.values.status}, new multiplier ${record.values.multiplierNewExact}; newest version listed is v${record.values.newestVersion}`,
+      ["EV-CA"],
+    );
+  } else add("CHK-ACTION-STILL-CURRENT", "The issuer has not cancelled or replaced this version of the action since the signal was raised", "UNKNOWN", "EV-CA not collected", []);
 
   if (before) {
     const got = String(before.values.multiplierExact);
@@ -126,4 +141,4 @@ export function runConsistencyChecks(signal: SignalEvent, evidence: EvidenceItem
 }
 
 /** Checks that go to the heart of the claim "the rebase happened on X Layer as the issuer said". */
-export const CORE_CHECKS = ["CHK-BEFORE-MATCHES-OLD", "CHK-AFTER-MATCHES-NEW", "CHK-LATEST-MATCHES-NEW"] as const;
+export const CORE_CHECKS = ["CHK-ACTION-STILL-CURRENT", "CHK-BEFORE-MATCHES-OLD", "CHK-AFTER-MATCHES-NEW", "CHK-LATEST-MATCHES-NEW"] as const;

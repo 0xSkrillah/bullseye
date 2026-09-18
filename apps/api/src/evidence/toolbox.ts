@@ -1,6 +1,7 @@
 import { EvidenceItem, weakestMode, type EvidenceKind, type EvidenceValue, type Provenance, type SignalEvent } from "@bullseye/domain";
 import type { XLayerAdapter } from "../adapters/xlayer.js";
 import type { XStocksAdapter } from "../adapters/xstocks.js";
+import { supersededBy } from "../signals/rebaseDetector.js";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -117,23 +118,37 @@ export class EvidenceToolbox {
   private async corporateAction(): Promise<EvidenceItem> {
     const { symbol } = this.signal.asset;
     const history = await this.xstocks.corporateActionHistory({ symbol, pageSize: 50 });
-    const action = history.data.find((a) => a.eventId === this.signal.facts.corporateActionId);
-    if (!action) throw new Error(`corporate action ${this.signal.facts.corporateActionId} is no longer present in the issuer history for ${symbol}`);
+    const mine = history.data.filter((row) => row.eventId === this.signal.facts.corporateActionId);
+    // a row that failed validation may be a newer version of this very action; do not vouch for it
+    const unreadable = history.rejected.filter((r) => r.eventId === null || r.eventId === this.signal.facts.corporateActionId);
+    if (unreadable.length > 0) throw new Error(`the issuer history for ${symbol} contains ${unreadable.length} record(s) that failed validation and may revise this action: ${unreadable[0]!.reason}`);
+    const action = mine.find((row) => row.version === this.signal.facts.corporateActionVersion);
+    if (!action) throw new Error(`corporate action ${this.signal.facts.corporateActionId} v${this.signal.facts.corporateActionVersion} is no longer present in the issuer history for ${symbol}`);
+    const newest = mine.reduce((x, y) => (y.version > x.version ? y : x));
+    const superseded = supersededBy(action, mine);
     const oldM = Number(action.multiplierOld);
     const newM = Number(action.multiplierNew);
     const withholding = action.withholdingTaxRate === null ? null : Number(action.withholdingTaxRate);
-    return this.put("EV-CA", "CORPORATE_ACTION_RECORD", history.provenance, action.effectiveTimeUtc, {
-      summary: `Issuer corporate-action record ${action.eventId} v${action.version} for ${symbol}: ${action.caType}, multiplier ${action.multiplierOld} -> ${action.multiplierNew}, effective ${action.effectiveTimeUtc}.`,
+    return this.put("EV-CA", "CORPORATE_ACTION_RECORD", history.provenance, action.effectiveTimeUtc ?? this.signal.observedAt, {
+      summary:
+        `Issuer corporate-action record ${action.eventId} v${action.version} for ${symbol}: ${action.caType}, status ${action.status}, multiplier ${action.multiplierOld} -> ${action.multiplierNew}, effective ${action.effectiveTimeUtc ?? "not set"}.` +
+        (superseded ? ` The issuer has since ${superseded.reason === "CANCELLED" ? "cancelled" : "replaced"} it with v${superseded.byVersion} (${superseded.status}${superseded.notes ? `: ${superseded.notes}` : ""}).` : newest.version !== action.version ? ` A later version v${newest.version} (${newest.status}) exists and does not void this one.` : ""),
       values: {
         eventId: action.eventId,
         version: action.version,
         caType: action.caType,
         status: action.status,
+        newestVersion: newest.version,
+        newestStatus: newest.status,
+        supersededByVersion: superseded?.byVersion ?? null,
+        supersededReason: superseded?.reason ?? null,
+        supersedingNotes: superseded?.notes ?? null,
         effectiveTimeUtc: action.effectiveTimeUtc,
         createdTimeUtc: action.createdTimeUtc,
         multiplierOld: action.multiplierOld === null ? null : oldM,
         multiplierNew: action.multiplierNew === null ? null : newM,
-        changePct: round((newM / oldM - 1) * 100, 6),
+        multiplierNewExact: action.multiplierNew,
+        changePct: action.multiplierOld === null || action.multiplierNew === null || oldM === 0 ? null : round((newM / oldM - 1) * 100, 6),
         grossCashflowUsd: action.grossCashflowUsd === null ? null : Number(action.grossCashflowUsd),
         netCashflowUsd: action.netCashflowUsd === null ? null : Number(action.netCashflowUsd),
         withholdingTaxRate: withholding,

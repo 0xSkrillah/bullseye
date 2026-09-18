@@ -11,18 +11,65 @@ export interface DetectorInput {
   /** detection clock; passed in so that the same inputs always produce the same output */
   now: Date;
   lookbackHours: number;
+  /** events with a row that failed validation: that row may be a newer version, so the event is not trusted */
+  taintedEventIds?: ReadonlySet<string>;
 }
 
 /**
  * A corporate action is a rebase candidate when the issuer reports a multiplier
  * change that has already taken effect inside the lookback window.
  */
-export function isRebaseCandidate(action: XsCorporateAction, now: Date, lookbackHours: number): boolean {
+export function isRebaseCandidate(action: XsCorporateAction, now: Date, lookbackHours: number): action is XsCorporateAction & { effectiveTimeUtc: string; multiplierOld: string; multiplierNew: string } {
+  // a cancelled action never took effect; the issuer also nulls its effective time
+  if (action.status.toLowerCase() === "cancelled" || action.effectiveTimeUtc === null) return false;
   if (action.multiplierOld === null || action.multiplierNew === null) return false;
   if (action.multiplierOld === action.multiplierNew) return false;
   const effective = Date.parse(action.effectiveTimeUtc);
   if (effective > now.getTime()) return false;
   return now.getTime() - effective <= lookbackHours * 3_600_000;
+}
+
+export interface Supersession {
+  byVersion: number;
+  reason: "CANCELLED" | "REPLACED";
+  status: string;
+  notes: string | null;
+}
+
+const isCancelled = (a: XsCorporateAction) => a.status.toLowerCase() === "cancelled";
+
+/** "1", "1.0" and "1.000" are the same multiplier */
+function sameDecimal(a: string, b: string): boolean {
+  const norm = (s: string) => (s.includes(".") ? s.replace(/0+$/, "").replace(/\.$/, "") : s);
+  return norm(a) === norm(b);
+}
+
+/**
+ * The issuer's history is append-only: every version of an event stays listed, unchanged.
+ * A later version can mean three different things, and only two of them void an earlier one:
+ *  - a Cancelled row voids the version it names ("[CANCELLED v2] ..."), or the one before it;
+ *  - a live row that starts from the SAME multiplier replaces the earlier row;
+ *  - a live row that starts where the earlier row ended is a further rebase; both took effect.
+ */
+export function supersededBy(row: XsCorporateAction, all: XsCorporateAction[]): Supersession | null {
+  const versions = all.filter((v) => v.eventId === row.eventId).sort((x, y) => x.version - y.version);
+  for (const later of versions.filter((v) => v.version > row.version)) {
+    if (isCancelled(later)) {
+      const named = /\[CANCELLED v(\d+)\]/i.exec(later.notes ?? "")?.[1];
+      const target = named !== undefined ? Number(named) : versions.filter((v) => v.version < later.version && !isCancelled(v)).at(-1)?.version;
+      if (target === row.version) return { byVersion: later.version, reason: "CANCELLED", status: later.status, notes: later.notes ?? null };
+      continue;
+    }
+    if (later.multiplierOld !== null && row.multiplierOld !== null && sameDecimal(later.multiplierOld, row.multiplierOld)) {
+      return { byVersion: later.version, reason: "REPLACED", status: later.status, notes: later.notes ?? null };
+    }
+  }
+  return null;
+}
+
+/** rows that still describe something the issuer stands behind */
+export function currentVersions(actions: XsCorporateAction[]): XsCorporateAction[] {
+  return actions.filter((a) => !isCancelled(a) && supersededBy(a, actions) === null);
 }
 
 /**
@@ -31,7 +78,8 @@ export function isRebaseCandidate(action: XsCorporateAction, now: Date, lookback
  */
 export function detectRebaseSignals(input: DetectorInput): SignalEvent[] {
   const signals: SignalEvent[] = [];
-  for (const action of input.actions.data) {
+  for (const action of currentVersions(input.actions.data)) {
+    if (input.taintedEventIds?.has(action.eventId)) continue;
     if (!isRebaseCandidate(action, input.now, input.lookbackHours)) continue;
     const asset = input.assets.get(action.xstockSymbol);
     if (!asset) continue;
