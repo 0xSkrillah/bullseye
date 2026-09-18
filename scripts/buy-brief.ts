@@ -4,7 +4,8 @@
  *
  *   npm run buy -- <briefId|latest> [--base http://localhost:4402] [--max-usd 5] [--allow-mainnet]
  *
- * BUYER_PRIVATE_KEY must hold the buyer's key. It is never printed or written anywhere.
+ * BUYER_PRIVATE_KEY must hold the buyer's key (64 hex characters, with or without 0x). It is never
+ * printed or written anywhere.
  * If the seller answers "payment outcome unknown" the SAME signed authorization is
  * retried; this script never signs twice for one purchase.
  */
@@ -12,6 +13,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { privateKeyToAccount } from "viem/accounts";
 import { x402Client, x402HTTPClient } from "@okxweb3/x402-core/client";
 import { registerExactEvmScheme } from "@okxweb3/x402-evm/exact/client";
+import { api, friendlyErrors, readPrivateKey, ScriptError } from "./lib.js";
+import { acceptable, SETTLEMENT_ASSETS, type SpendLimits } from "./spend-guard.js";
+
+friendlyErrors();
 
 const args = process.argv.slice(2);
 const flag = (name: string) => {
@@ -21,21 +26,20 @@ const flag = (name: string) => {
 const target = args.find((a) => !a.startsWith("--") && a !== flag("--base") && a !== flag("--max-usd")) ?? "latest";
 const base = flag("--base") ?? process.env.PUBLIC_BASE_URL ?? "http://localhost:4402";
 const maxUsd = Number(flag("--max-usd") ?? "5");
+if (!Number.isFinite(maxUsd) || maxUsd <= 0) throw new ScriptError("--max-usd must be a positive number", 2);
 const allowMainnet = args.includes("--allow-mainnet");
+const limits: SpendLimits = { maxUsd, networks: allowMainnet ? ["eip155:1952", "eip155:196"] : ["eip155:1952"] };
 
-const key = process.env.BUYER_PRIVATE_KEY;
-if (!key || !/^0x[0-9a-fA-F]{64}$/.test(key)) {
-  console.error("BLOCKED: BUYER_PRIVATE_KEY is not set (expected a 0x-prefixed 32-byte hex key in the environment or .env).");
-  process.exit(2);
-}
-const account = privateKeyToAccount(key as `0x${string}`);
+const account = privateKeyToAccount(readPrivateKey("BUYER_PRIVATE_KEY"));
 const client = new x402Client();
-registerExactEvmScheme(client, { signer: account });
+// the signer exists only for the allowed networks, and only offers that pass the limits can be selected for signing
+registerExactEvmScheme(client, { signer: account, networks: limits.networks });
+client.registerPolicy((_version, offers) => offers.filter((o) => acceptable(o, limits).ok));
 const http = new x402HTTPClient(client);
 
 let briefId = target;
 if (target === "latest") {
-  const catalog = (await (await fetch(`${base}/api/v1/catalog`)).json()) as { items: { id: string; headline: string }[] };
+  const catalog = (await (await api(base, "/api/v1/catalog")).json()) as { items: { id: string; headline: string }[] };
   if (catalog.items.length === 0) {
     console.error("nothing for sale: the catalogue is empty");
     process.exit(1);
@@ -44,34 +48,34 @@ if (target === "latest") {
   console.log(`catalogue: ${catalog.items.length} brief(s); buying ${briefId} — ${catalog.items[0]!.headline}`);
 }
 
-const url = `${base}/api/v1/briefs/${briefId}`;
-const challenge = await fetch(url);
+const path = `/api/v1/briefs/${briefId}`;
+const challenge = await api(base, path);
 if (challenge.status !== 402) {
   console.error(`expected 402 Payment Required, got ${challenge.status}: ${await challenge.text()}`);
   process.exit(1);
 }
 const required = http.getPaymentRequiredResponse((name) => challenge.headers.get(name));
-const offer = required.accepts[0]!;
 const quoted = (await challenge.json()) as { bullseye?: { quoteId: string; termsHash: string; priceUsd: string; rail: string } };
-console.log(`quote ${quoted.bullseye?.quoteId} · $${quoted.bullseye?.priceUsd} · ${offer.amount} base units of ${offer.asset} on ${offer.network} · rail ${quoted.bullseye?.rail}`);
+console.log(`quote ${quoted.bullseye?.quoteId} · stated price $${quoted.bullseye?.priceUsd} · rail ${quoted.bullseye?.rail}`);
 
-// spend guards: an agent should not sign whatever a seller asks for
-if (offer.network === "eip155:196" && !allowMainnet) {
-  console.error("refusing to pay on X Layer mainnet without --allow-mainnet");
-  process.exit(3);
-}
-if (Number(quoted.bullseye?.priceUsd ?? Number.POSITIVE_INFINITY) > maxUsd) {
-  console.error(`refusing: price $${quoted.bullseye?.priceUsd} exceeds --max-usd ${maxUsd}`);
-  process.exit(3);
-}
+// Spend guards run on the payment terms that would be signed, never on the seller's description of them.
+const verdicts = required.accepts.map((o) => ({ offer: o, verdict: acceptable(o, limits) }));
+for (const { offer, verdict } of verdicts) console.log(`  offer: ${offer.amount} base units of ${offer.asset} on ${offer.network} to ${offer.payTo} -> ${verdict.ok ? "within limits" : `refused: ${verdict.reason}`}`);
+if (!verdicts.some((v) => v.verdict.ok)) throw new ScriptError(`refusing to sign: no offer is within the limits (max $${maxUsd}, networks ${limits.networks.join(", ")}, known settlement assets only). Nothing was signed.`, 3);
 
 const payload = await http.createPaymentPayload(required);
+// last look at what was actually signed, before it leaves this process
+const signed = acceptable(payload.accepted, limits);
+const authorization = (payload.payload as { authorization?: { to?: string; value?: string } }).authorization;
+if (!signed.ok || authorization?.value !== payload.accepted.amount || authorization?.to?.toLowerCase() !== payload.accepted.payTo.toLowerCase()) {
+  throw new ScriptError(`refusing to send: the signed authorization does not match an acceptable offer (${signed.ok ? "authorization differs from the offer" : signed.reason}). It was not sent.`, 3);
+}
 const headers = http.encodePaymentSignatureHeader(payload);
-console.log(`signed one authorization as ${account.address}`);
+console.log(`signed one authorization as ${account.address}: ${payload.accepted.amount} base units of ${SETTLEMENT_ASSETS[payload.accepted.network]?.name} on ${payload.accepted.network}`);
 
 let res: Response | undefined;
 for (let attempt = 1; attempt <= 6; attempt++) {
-  res = await fetch(url, { headers });
+  res = await api(base, path, { headers });
   if (res.status !== 503 && res.status !== 409) break;
   const body = (await res.clone().json()) as { error?: string; state?: string; orderId?: string };
   console.log(`attempt ${attempt}: ${res.status} ${body.error} (order ${body.orderId}, state ${body.state}); retrying the same authorization in 10s`);

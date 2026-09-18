@@ -28,7 +28,9 @@
     "demo": "tsx --env-file-if-exists=.env scripts/run-demo.ts",
     "record": "tsx --env-file-if-exists=.env scripts/record.ts",
     "start:offline": "npm run start:offline -w @bullseye/api",
-    "test:web": "vitest run --root apps/web"
+    "test:web": "vitest run --root apps/web",
+    "wallet": "tsx --env-file-if-exists=.env scripts/wallet-check.ts",
+    "model-check": "tsx --env-file-if-exists=.env scripts/model-check.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

@@ -15,6 +15,9 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { x402Client, x402HTTPClient } from "@okxweb3/x402-core/client";
 import { registerExactEvmScheme } from "@okxweb3/x402-evm/exact/client";
 import { xLayer, xLayerTestnet } from "../apps/api/src/adapters/xlayer.js";
+import { api, friendlyErrors, readPrivateKey, ScriptError } from "./lib.js";
+
+friendlyErrors();
 
 const args = process.argv.slice(2);
 const base = args.includes("--base") ? args[args.indexOf("--base") + 1]! : (process.env.PUBLIC_BASE_URL ?? "http://localhost:4402");
@@ -22,9 +25,9 @@ mkdirSync("artifacts/integration", { recursive: true });
 
 if (args.includes("--mock-merchant")) {
   const MOCK = "https://www.okx.com/api/v1/pay/mock-merchant/resource";
-  const funded = process.env.BUYER_PRIVATE_KEY;
+  const funded = process.env.BUYER_PRIVATE_KEY?.trim() ? readPrivateKey("BUYER_PRIVATE_KEY") : null;
   // parsing the challenge needs no funds, so an ephemeral key is enough to reach the first failure
-  const account = privateKeyToAccount((funded ?? generatePrivateKey()) as `0x${string}`);
+  const account = privateKeyToAccount(funded ?? generatePrivateKey());
   const client = new x402Client();
   registerExactEvmScheme(client, { signer: account });
   const sdk = new x402HTTPClient(client);
@@ -61,13 +64,15 @@ if (args.includes("--mock-merchant")) {
   process.exit(0);
 }
 
-const orderId = args.find((a) => a.startsWith("ord_"));
+const orderId = args.find((a) => /^ord_[0-9a-f]{16}$/.test(a));
 if (!orderId) {
-  console.error("usage: npm run verify-payment -- <orderId> | --mock-merchant");
-  process.exit(2);
+  throw new ScriptError(
+    ["usage: npm run verify-payment -- <orderId> | --mock-merchant", "", "<orderId> is a real order id such as ord_96c880f882fe7647: `npm run buy` prints it, and GET /api/orders lists them."].join("\n"),
+    2,
+  );
 }
 
-const found = (await (await fetch(`${base}/api/orders/${orderId}`)).json()) as {
+const found = (await (await api(base, `/api/orders/${orderId}`)).json()) as {
   order?: { state: string; terms: { rail: string; network: string; asset: string; payTo: string; amount: string }; payment: { txHash: string | null; payer: string | null } | null };
 };
 if (!found.order) {

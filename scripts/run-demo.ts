@@ -8,6 +8,9 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { api, friendlyErrors } from "./lib.js";
+
+friendlyErrors();
 
 const args = process.argv.slice(2);
 const base = args.includes("--base") ? args[args.indexOf("--base") + 1]! : "http://localhost:4402";
@@ -26,8 +29,8 @@ const save = () => {
   writeFileSync(out, JSON.stringify(transcript, null, 2));
   console.log(`\ntranscript: ${out}`);
 };
-const get = async (path: string) => (await fetch(`${base}${path}`)).json() as Promise<any>;
-const post = async (path: string) => (await fetch(`${base}${path}`, { method: "POST" })).json() as Promise<any>;
+const get = async (path: string) => (await api(base, path)).json() as Promise<any>;
+const post = async (path: string) => (await api(base, path, { method: "POST" })).json() as Promise<any>;
 
 const health = await get("/api/health");
 log("health", health);
@@ -36,7 +39,8 @@ const scan = await post("/api/signals/scan");
 log("detect", { scannedAt: scan.scannedAt, actionsSeen: scan.actionsSeen, signals: scan.signals?.map((s: any) => `${s.id} ${s.provenance.mode} ${s.headline}`) });
 const signal = (scan.signals ?? []).find((s: any) => !symbol || s.asset.symbol === symbol);
 if (!signal) {
-  log("stopped", `no signal${symbol ? ` for ${symbol}` : ""}; nothing to investigate`);
+  const seen = [...new Set((scan.signals ?? []).map((s: any) => s.asset.symbol))].join(", ") || "none";
+  log("stopped", `no signal${symbol ? ` for ${symbol}` : ""}; nothing to investigate. SYMBOL is an xStock ticker the detector has flagged; currently flagged: ${seen}`);
   save();
   process.exit(1);
 }
@@ -65,14 +69,19 @@ if (view.investigation.status !== "PUBLISHED") {
 
 const briefId = view.investigation.briefId as string;
 log("preview", await get(`/api/briefs/${briefId}/preview`));
-const challenge = await fetch(`${base}/api/v1/briefs/${briefId}`);
+const challenge = await api(base, `/api/v1/briefs/${briefId}`);
 log("unpaid request", { httpStatus: challenge.status, paymentRequiredHeader: challenge.headers.has("payment-required"), body: await challenge.json() });
 
 if (buy) {
   const run = spawnSync(process.execPath, ["--import", "tsx", "scripts/buy-brief.ts", briefId, "--base", base], { encoding: "utf8" });
-  log("agent purchase", (run.stdout + run.stderr).trim());
+  log("agent purchase", `${run.stdout ?? ""}${run.stderr ?? ""}`.trim() || `buyer exited with status ${run.status}`);
   const orders = await get("/api/orders");
   const mine = orders.orders.find((o: any) => o.order.terms.briefId === briefId);
   if (mine) log("order and delivery economics", mine);
+  if (run.status !== 0) {
+    log("stopped", `the purchase did not complete (buyer exit status ${run.status}); see "agent purchase" above`);
+    save();
+    process.exit(run.status ?? 1);
+  }
 }
 save();
