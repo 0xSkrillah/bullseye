@@ -1,0 +1,55 @@
+<!-- @dsCard group="Investigation" height=520 subtitle="One EvidenceItem, values table, LIVE and STALE" -->
+<style>html,body{margin:0;background:var(--canvas)}</style>
+<div class="be" style="padding:16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+  <aside class="be-drawer" role="dialog" aria-modal="true" aria-labelledby="d1t">
+    <div class="be-drawer-head">
+      <div>
+        <h3 class="be-drawer-title mono" id="d1t">EV-ONCHAIN-AFTER</h3>
+        <span class="mono" style="font-size:11px;color:var(--ink-secondary)">ONCHAIN_MULTIPLIER_AFTER · 3 of 5</span>
+      </div>
+      <span id="b1"></span>
+    </div>
+    <p style="margin:0;font-size:13px;line-height:18px">On-chain multiplier read at block 12 884 102, 6 s after the activation block.</p>
+    <dl class="be-kv">
+      <dt>Observed</dt><dd><time datetime="2026-09-18T09:41:14Z">2026-09-18 09:41:14Z</time></dd>
+      <dt>Stale after</dt><dd><time datetime="2026-09-18T10:41:14Z">2026-09-18 10:41:14Z</time></dd>
+      <dt>Source</dt><dd>xlayer.rpc · eth_call multiplier()</dd>
+      <dt>Fetched</dt><dd>09:41:14Z</dd>
+      <dt>sha256</dt><dd title="9f2c1e…full hash in title">9f2c1e0a…b77d</dd>
+    </dl>
+    <div class="be-excerpt"><span class="be-excerpt-label">Values · machine-checkable</span>multiplier      1.004871
+block           12884102
+blockTimestamp  2026-09-18T09:41:08Z
+token           0x6b1d…9a20</div>
+    <div class="be-drawer-actions">
+      <button class="be-btn" type="button">Open source ↗</button>
+      <button class="be-btn" type="button">Close</button>
+    </div>
+  </aside>
+
+  <aside class="be-drawer" role="dialog" aria-modal="true" aria-labelledby="d2t" style="width:320px">
+    <div class="be-drawer-head">
+      <div>
+        <h3 class="be-drawer-title mono" id="d2t">EV-PRICE</h3>
+        <span class="mono" style="font-size:11px;color:var(--ink-secondary)">REFERENCE_PRICE · 5 of 5</span>
+      </div>
+      <span id="b2"></span>
+    </div>
+    <p style="margin:0;font-size:13px;line-height:18px;color:var(--invalid)">Past staleAfter since 09:52:00Z. Cannot support publication.</p>
+    <dl class="be-kv">
+      <dt>Observed</dt><dd>08:10:02Z</dd>
+      <dt>Stale after</dt><dd>09:52:00Z</dd>
+      <dt>Source</dt><dd>api.xstocks.com/prices</dd>
+      <dt>Note</dt><dd style="font-family:var(--font-sans);color:var(--ink-secondary)">Source failed at 09:41Z; cache served.</dd>
+    </dl>
+    <div class="be-drawer-actions">
+      <button class="be-btn" type="button">Open source ↗</button>
+      <button class="be-btn" type="button">Close</button>
+    </div>
+  </aside>
+</div>
+<script>
+  var B = window.Bullseye;
+  document.getElementById('b1').innerHTML = B.badge('LIVE');
+  document.getElementById('b2').innerHTML = B.badge('CACHED') + ' ' + B.badge('STALE');
+</script>

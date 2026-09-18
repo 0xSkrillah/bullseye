@@ -1,0 +1,52 @@
+<!-- @dsCard group="Signal" height=520 page subtitle="Hero: noisy events enter, Bullseye locks one, it expands into a Brief" -->
+<style>
+  html,body{margin:0;background:var(--canvas)}
+  .hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;align-items:center;padding:24px}
+  .hero-copy{display:grid;gap:12px;max-width:440px}
+  .hero h1{margin:0;font-size:40px;line-height:44px;font-weight:500;letter-spacing:-.01em;display:flex;align-items:center;gap:12px}
+  .mark{width:16px;height:16px;border-radius:999px;border:1px solid var(--ink);position:relative;flex:none}
+  .mark::after{content:"";position:absolute;inset:4px;border-radius:999px;background:var(--ink)}
+  .hero p{margin:0;color:var(--ink-secondary)}
+  .hero-stage{display:flex;gap:8px;flex-wrap:wrap}
+  .hero-stage span{font-size:11px;line-height:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+  .hero-stage span.on{color:var(--ink)}
+  .brief-pop{position:absolute;width:300px;background:var(--canvas-overlay);border:1px solid var(--line-strong);border-radius:var(--radius-md);box-shadow:var(--shadow-overlay);padding:16px;display:grid;gap:8px;opacity:0;transform:scale(.92);transition:opacity 280ms ease-out,transform 280ms ease-out}
+  .brief-pop.show{opacity:1;transform:none}
+  @media (prefers-reduced-motion: reduce){.brief-pop{transition:none}}
+  @media (max-width:760px){.hero{grid-template-columns:1fr}.hero-copy{max-width:none}}
+</style>
+<div class="be hero">
+  <div class="hero-copy">
+    <span class="be-stage">Signal → Investigate → Verified intelligence → Purchase → Delivery</span>
+    <h1><span class="mark" aria-hidden="true"></span>Bullseye</h1>
+    <p>Autonomous intelligence for tokenised markets. Bullseye watches the noise, locks onto the event that matters, investigates it within a budget, and sells the verified Brief.</p>
+    <div class="hero-stage" id="stages"><span class="on">Signal</span><span>Investigate</span><span>Verified intelligence</span><span>Purchase</span><span>Delivery</span></div>
+    <div id="count" class="mono" style="font-size:11px;color:var(--ink-secondary)">Listening…</div>
+  </div>
+  <div style="position:relative">
+    <div id="radar"></div>
+    <div class="brief-pop" id="pop" role="status">
+      <span class="be-stage">Locked · Corporate action · rebase</span>
+      <strong style="font-size:15px;line-height:20px">Dividend rebase applied: multiplier 1.000000 → 1.004871</strong>
+      <span class="mono" style="font-size:13px;color:var(--ink-secondary)">KOx · Detected 09:41:07Z</span>
+      <div id="popb"></div>
+      <span style="font-size:13px;color:var(--ink-secondary)">Investigation starting · budget $0.25</span>
+    </div>
+  </div>
+</div>
+<script>
+  var B = window.Bullseye;
+  var count = document.getElementById('count'), n = 0;
+  var obs = new MutationObserver(function(){ n = document.querySelectorAll('#radar .noise').length; count.textContent = n + ' events · 15 min · 0 locked'; });
+  var el = B.radar(document.getElementById('radar'), { size: 360, noise: 36, lockAfterMs: 900, onLock: function (t) {
+    obs.disconnect();
+    count.textContent = (n) + ' events · 15 min · 1 locked';
+    var pop = document.getElementById('pop');
+    pop.style.left = Math.min(t.x + 40, 360 - 300) + 'px';
+    pop.style.top = Math.max(t.y - 40, 8) + 'px';
+    document.getElementById('popb').innerHTML = B.badge('LIVE');
+    setTimeout(function () { pop.classList.add('show'); }, 340);
+    var st = document.querySelectorAll('#stages span'); st[1].classList.add('on');
+  }});
+  obs.observe(el.querySelector('.events'), { childList: true });
+</script>

@@ -1,0 +1,34 @@
+<!-- @dsCard group="Brief" height=330 subtitle="Unknowns · Conflicts with checks · empty" -->
+<style>html,body{margin:0;background:var(--canvas)}</style>
+<div class="be" style="padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+  <section class="be-unknowns" aria-labelledby="u1">
+    <div class="be-unknowns-head">
+      <h3 class="be-unknowns-title" id="u1">Unknowns</h3>
+      <span class="mono" style="font-size:11px;color:var(--uncertain)">3 open</span>
+    </div>
+    <ol>
+      <li><span class="g" aria-hidden="true">?</span><span>Whether the withholding-tax rate in the issuer record (15%) was applied to all holders or only non-US holders.</span></li>
+      <li><span class="g" aria-hidden="true">?</span><span>Net cash flow per unit: the record gives a gross figure and no net figure.</span><span class="s">EV-CA-RECORD</span></li>
+      <li><span class="g" aria-hidden="true">?</span><span>Proof-of-reserves attestation for the post-rebase supply has not been published yet.</span></li>
+    </ol>
+  </section>
+
+  <section class="be-unknowns" aria-labelledby="u2">
+    <div class="be-unknowns-head">
+      <h3 class="be-unknowns-title" id="u2">Conflicts</h3>
+      <span class="mono" style="font-size:11px;color:var(--invalid)">1 · 4 PASS · 1 UNKNOWN</span>
+    </div>
+    <ol>
+      <li class="is-conflict"><span class="g" aria-hidden="true">✕</span><span><span class="mono">CHK-MULTIPLIER-MATCH</span> · Issuer record says 1.004871; cached reference price implies 1.004900 (rounding in source, 4 dp).</span><span class="s">FAIL</span></li>
+      <li><span class="g" aria-hidden="true">?</span><span><span class="mono">CHK-SUPPLY-CONSTANT</span> · Supply read returned null; cannot confirm supply unchanged across the rebase.</span><span class="s">UNKNOWN</span></li>
+    </ol>
+  </section>
+
+  <section class="be-unknowns" aria-labelledby="u3" style="grid-column:1 / -1">
+    <div class="be-unknowns-head">
+      <h3 class="be-unknowns-title" id="u3">Conflicts</h3>
+      <span class="mono" style="font-size:11px;color:var(--verified)">0</span>
+    </div>
+    <p class="empty" style="margin:0">No conflicts. 5 consistency checks passed.</p>
+  </section>
+</div>

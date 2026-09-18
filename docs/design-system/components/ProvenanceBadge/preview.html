@@ -1,0 +1,19 @@
+<!-- @dsCard group="Signal" height=170 subtitle="Four DataModes, two derived tags, check verdicts" -->
+<style>html,body{margin:0;background:var(--canvas)}</style>
+<div class="be" style="padding:16px;display:grid;gap:16px">
+  <div id="row" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;line-height:20px;color:var(--ink-secondary);align-items:center">
+    <span><span class="mono" style="color:var(--ink)">$3.00</span> <span id="t1"></span> <span>Not revenue.</span></span>
+    <span><span class="mono" style="color:var(--ink)">EV-PRICE</span> <span id="t3"></span></span>
+    <span><span class="mono" style="color:var(--ink)">Brief brf_9c0e…41aa</span> <span id="t2"></span></span>
+  </div>
+  <div id="verdicts" class="mono" style="display:flex;gap:16px;font-size:13px"></div>
+</div>
+<script>
+  var B = window.Bullseye;
+  document.getElementById('row').innerHTML = ['LIVE','CACHED','HISTORICAL','FIXTURE','STALE','TESTNET'].map(function(k){return B.badge(k)}).join('');
+  document.getElementById('t1').innerHTML = B.badge('TESTNET');
+  document.getElementById('t2').innerHTML = B.badge('FIXTURE', {title:'Weakest input was FIXTURE; the whole Brief is FIXTURE.'});
+  document.getElementById('t3').innerHTML = B.badge('STALE', {title:'Stale since 09:52:00Z. Blocks publication.'});
+  document.getElementById('verdicts').innerHTML = ['PASS','UNKNOWN','FAIL','RUNNING'].map(B.verdict).join('');
+</script>

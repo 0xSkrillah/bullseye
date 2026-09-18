@@ -1,0 +1,42 @@
+<!-- @dsCard group="Console" height=520 subtitle="PUBLISH · REJECT · compact chips" -->
+<style>html,body{margin:0;background:var(--canvas)}</style>
+<div class="be" style="padding:16px;display:grid;gap:16px">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <span class="be-stage">Compact</span>
+    <span class="be-gate-chip is-publish">✓ PUBLISH · 11/11</span>
+    <span class="be-gate-chip is-reject">✕ REJECT · 9/11</span>
+    <span class="be-gate-chip">◐ GATE RUNNING</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+    <section class="be-gate is-passed" id="g1"></section>
+    <section class="be-gate is-rejected" id="g2"></section>
+  </div>
+</div>
+<script>
+  var esc = window.Bullseye.esc;
+  var RULES = ['SCHEMA','INVESTIGATION_COMPLETED','MANDATORY_EVIDENCE_PRESENT','EVIDENCE_FRESH','EVIDENCE_MODE_ALLOWED','CLAIMS_CITE_KNOWN_EVIDENCE','QUANTITIES_RESOLVE_TO_EVIDENCE','NUMBERS_IN_TEXT_ARE_EVIDENCED','NO_INVESTMENT_ADVICE','FAILED_CHECKS_DISCLOSED','CONFIDENCE_WITHIN_CAP'];
+  function gate(el, g, next) {
+    var pass = g.findings.filter(function(f){return f.passed}).length;
+    var order = g.decision === 'REJECT' ? g.findings.slice().sort(function(a,b){return (a.passed?1:0)-(b.passed?1:0)}) : g.findings;
+    el.innerHTML =
+      '<div class="be-gate-head"><span class="g mono" aria-hidden="true">' + (g.decision==='PUBLISH'?'✓':'✕') + '</span>' +
+      '<h3 class="be-gate-title">' + (g.decision==='PUBLISH'?'Published':'Not published') + '</h3>' +
+      '<span class="be-gate-sub">' + esc(g.gateVersion) + ' · ' + esc(g.evaluatedAt) + ' · cap ' + esc(g.confidenceCap) + '</span></div>' +
+      '<ul>' + order.map(function(f){
+        return '<li><span class="g ' + (f.passed?'v-pass':'v-fail') + '" aria-hidden="true">' + (f.passed?'✓':'✕') + '</span><span><span class="mono">' + esc(f.rule) + '</span>' + (f.detail ? ' <span class="why">· ' + esc(f.detail) + '</span>' : '') + '</span></li>';
+      }).join('') + '</ul>' +
+      '<div class="be-gate-next">' + pass + ' of ' + g.findings.length + ' rules passed. ' + esc(next) + '</div>';
+  }
+  gate(document.getElementById('g1'), {
+    decision:'PUBLISH', gateVersion:'gate v1', evaluatedAt:'09:41:47Z', confidenceCap:'HIGH',
+    findings: RULES.map(function(r){ return { rule:r, passed:true, detail: r==='EVIDENCE_FRESH' ? '5 items, oldest 09:41:08Z' : r==='EVIDENCE_MODE_ALLOWED' ? 'LIVE, HISTORICAL, CACHED' : '' }; })
+  }, 'Brief brf_9c0e…41aa available for purchase.');
+  gate(document.getElementById('g2'), {
+    decision:'REJECT', gateVersion:'gate v1', evaluatedAt:'09:52:49Z', confidenceCap:'LOW',
+    findings: RULES.map(function(r){
+      if (r==='EVIDENCE_FRESH') return { rule:r, passed:false, detail:'EV-PRICE stale since 09:52:00Z' };
+      if (r==='NUMBERS_IN_TEXT_ARE_EVIDENCED') return { rule:r, passed:false, detail:"'0.49%' has no evidence value" };
+      return { rule:r, passed:true, detail:'' };
+    })
+  }, 'Held. Not published. Nothing charged.');
+</script>

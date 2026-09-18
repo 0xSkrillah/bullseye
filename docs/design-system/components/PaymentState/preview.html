@@ -1,0 +1,58 @@
+<!-- @dsCard group="Purchase" height=560 subtitle="Ladder with event trail · PAYMENT_UNKNOWN · PAYMENT_FAILED" -->
+<style>html,body{margin:0;background:var(--canvas)}</style>
+<div class="be" style="padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+  <section class="be-panel be-pay" role="status" aria-live="polite" style="padding:16px">
+    <span class="be-stage">Order · ord_c2e7…88f1 · DELIVERED</span>
+    <div class="be-pay-steps" aria-hidden="true"><span class="done"></span><span class="done"></span><span class="ok"></span><span class="done"></span><span class="ok"></span></div>
+    <div id="l1" style="display:grid;gap:8px"></div>
+    <ul class="be-pay-events" id="ev1"></ul>
+  </section>
+
+  <section class="be-panel be-pay" role="status" aria-live="polite" style="padding:16px">
+    <span class="be-stage">Order · ord_c2e7…88f1 · PAYMENT_UNKNOWN</span>
+    <div class="be-pay-steps" aria-hidden="true"><span class="done"></span><span class="warn"></span><span></span><span></span><span></span></div>
+    <div id="l2" style="display:grid;gap:8px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="be-btn" type="button">Reconcile from chain</button></div>
+    <ul class="be-pay-events" id="ev2"></ul>
+  </section>
+
+  <section class="be-panel be-pay" role="status" style="padding:16px">
+    <span class="be-stage">Order · ord_11b9…03aa · PAYMENT_FAILED</span>
+    <div class="be-pay-steps" aria-hidden="true"><span class="done"></span><span class="bad"></span><span></span><span></span><span></span></div>
+    <div id="l3" style="display:grid;gap:8px"></div>
+  </section>
+</div>
+<script>
+  var B = window.Bullseye, esc = B.esc;
+  var G = { QUOTED:'○', PAYMENT_PENDING:'◐', PAYMENT_UNKNOWN:'?', RECONCILIATION_REQUIRED:'⟳', PAYMENT_FAILED:'✕', PAID:'✓', DELIVERING:'→', DELIVERY_FAILED:'✕', DELIVERED:'✓' };
+  function line(st, txt, pulse) {
+    return '<div class="be-pay-line be-pay-' + st.toLowerCase() + '">' +
+      '<span class="name' + (pulse ? ' be-pulse' : '') + '" aria-hidden="true">' + G[st] + '</span>' +
+      '<span><span class="name">' + esc(st) + '</span><br><span class="txt">' + txt + '</span></span></div>';
+  }
+  document.getElementById('l1').innerHTML = [
+    line('QUOTED', 'quo_5d8e21a0c37f19b4 · <b>$3.00</b> · ' + B.badge('TESTNET')),
+    line('PAYMENT_PENDING', 'Authorization received <time datetime="2026-09-18T09:44:02Z">09:44:02Z</time> · paymentKey 2c9a…f0e1'),
+    line('PAID', '<time datetime="2026-09-18T09:44:47Z">09:44:47Z</time> · tx <b>0x8b1d…77e0</b> · chain-verified at block <b>4 182 990</b> · facilitator: settled'),
+    line('DELIVERING', 'Brief brf_9c0e2b7f1a3341aa · attempt 1'),
+    line('DELIVERED', '<time datetime="2026-09-18T09:44:48Z">09:44:48Z</time> · sha256 matches quote terms · <a href="#" style="color:var(--ink-secondary)">Explorer ↗</a>')
+  ].join('');
+  document.getElementById('ev1').innerHTML = [
+    ['09:43:50Z','—','QUOTED','quote issued'],['09:44:02Z','QUOTED','PAYMENT_PENDING','authorization received'],
+    ['09:44:47Z','PAYMENT_PENDING','PAID','chain read confirmed transfer'],['09:44:47Z','PAID','DELIVERING','delivery started'],['09:44:48Z','DELIVERING','DELIVERED','content hash verified by buyer']
+  ].map(function(e){return '<li>'+e[0]+' · '+e[1]+' → <b>'+e[2]+'</b> · '+e[3]+'</li>'}).join('');
+
+  document.getElementById('l2').innerHTML = [
+    line('QUOTED', 'quo_5d8e21a0c37f19b4 · <b>$3.00</b> · ' + B.badge('TESTNET')),
+    line('PAYMENT_PENDING', 'Authorization received 09:44:02Z · paymentKey 2c9a…f0e1'),
+    line('PAYMENT_UNKNOWN', 'No answer from facilitator after 90 s. Neither success nor failure. Bullseye will not deliver until the chain confirms. <b>A retry cannot charge you twice.</b>', true)
+  ].join('');
+  document.getElementById('ev2').innerHTML = [
+    ['09:43:50Z','—','QUOTED','quote issued'],['09:44:02Z','QUOTED','PAYMENT_PENDING','authorization received'],['09:45:32Z','PAYMENT_PENDING','PAYMENT_UNKNOWN','facilitator timeout 90 s']
+  ].map(function(e){return '<li>'+e[0]+' · '+e[1]+' → <b>'+e[2]+'</b> · '+e[3]+'</li>'}).join('');
+
+  document.getElementById('l3').innerHTML = [
+    line('QUOTED', 'quo_0be4…71c2 · <b>$3.00</b> · ' + B.badge('TESTNET')),
+    line('PAYMENT_FAILED', 'Payment failed: facilitator rejected authorization (insufficient allowance). <b>Nothing delivered. Nothing charged.</b>')
+  ].join('');
+</script>

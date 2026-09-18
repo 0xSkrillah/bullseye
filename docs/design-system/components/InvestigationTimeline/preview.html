@@ -1,0 +1,55 @@
+<!-- @dsCard group="Investigation" height=560 subtitle="Budget bar, entries by type, STOPPED variant" -->
+<style>html,body{margin:0;background:var(--canvas)}</style>
+<div class="be" style="padding:16px;display:grid;gap:12px;max-width:720px">
+  <div>
+    <span class="be-stage">Investigation · inv_7a21…c0de · KOx</span>
+  </div>
+  <div class="be-budget" aria-label="Research budget">
+    <div>Cost<b>$0.0142 / $0.25</b><i><span style="width:6%"></span></i></div>
+    <div>Model calls<b>2 / 6</b><i><span style="width:33%"></span></i></div>
+    <div>Tool calls<b>7 / 12</b><i><span style="width:58%"></span></i></div>
+    <div>Latency<b>41 s / 90 s</b><i><span style="width:46%"></span></i></div>
+  </div>
+  <ol class="be-timeline" id="tl"></ol>
+  <div class="be-tl-foot"><span>14 entries</span><span>2 model calls</span><span>7 tool calls</span><span>41 s</span><span>$0.0142 measured</span></div>
+
+  <span class="be-stage" style="margin-top:8px">Variant · stopped by budget</span>
+  <ol class="be-timeline" id="tl2"></ol>
+</div>
+<script>
+  var B = window.Bullseye, esc = B.esc;
+  var G = { STARTED:'○', MODEL_CALL:'◐', TOOL_CALL:'→', EVIDENCE:'✓', CHECKS:'✓', GATE:'✓', STOPPED:'✕', PUBLISHED:'✓', REJECTED:'✕' };
+  function row(e) {
+    var tone = e.running ? 'is-running' : (e.type==='STOPPED'||e.type==='REJECTED'||!e.ok) ? 'is-bad' : (e.type==='STARTED'||e.type==='TOOL_CALL') ? 'is-neutral' : 'is-ok';
+    var g = e.running ? '◐' : (!e.ok && e.type!=='STOPPED' && e.type!=='REJECTED') ? '✕' : G[e.type];
+    return '<li><button class="be-tl-row ' + tone + (e.stale ? ' is-stale' : '') + '" type="button">' +
+      '<span class="be-tl-glyph" aria-hidden="true">' + g + '</span>' +
+      '<span class="be-tl-tool" title="' + esc(e.label) + '">' + esc(e.label) + '</span>' +
+      '<span class="be-tl-result">' + (e.detail || '') + '</span>' +
+      '<span>' + (e.badge ? B.badge(e.badge) : '') + '</span>' +
+      '<time class="be-tl-time" datetime="2026-09-18T' + e.at + '">' + e.at + '</time>' +
+    '</button></li>';
+  }
+  var entries = [
+    {type:'STARTED', ok:true, label:'STARTED', detail:'Budget $0.25 · 6 model calls · 12 tool calls · 90 s', at:'09:41:07Z'},
+    {type:'TOOL_CALL', ok:true, label:'xstocks.corporateActions', detail:'1 record · <b>CA-2026-0918-KO v2</b>', at:'09:41:08Z'},
+    {type:'EVIDENCE', ok:true, label:'EV-CA-RECORD', detail:'CORPORATE_ACTION_RECORD · stale after 10:41Z', badge:'LIVE', at:'09:41:08Z'},
+    {type:'TOOL_CALL', ok:true, label:'xlayer.multiplier', detail:'block 12 884 090 · <b>1.000000</b>', at:'09:41:11Z'},
+    {type:'EVIDENCE', ok:true, label:'EV-ONCHAIN-BEFORE', detail:'ONCHAIN_MULTIPLIER_BEFORE', badge:'HISTORICAL', at:'09:41:11Z'},
+    {type:'TOOL_CALL', ok:true, label:'xlayer.multiplier', detail:'block 12 884 102 · <b>1.004871</b>', at:'09:41:14Z'},
+    {type:'EVIDENCE', ok:true, label:'EV-ONCHAIN-AFTER', detail:'ONCHAIN_MULTIPLIER_AFTER', badge:'LIVE', at:'09:41:14Z'},
+    {type:'TOOL_CALL', ok:true, label:'xstocks.price', detail:'reference price · source failed, cache served', at:'09:41:19Z'},
+    {type:'EVIDENCE', ok:true, label:'EV-PRICE', detail:'REFERENCE_PRICE · cached 08:10Z', badge:'CACHED', at:'09:41:19Z'},
+    {type:'MODEL_CALL', ok:true, label:'claude synthesis 1/2', detail:'1 842 in · 611 out tokens · 3.1 s · <b>$0.0091</b>', at:'09:41:24Z'},
+    {type:'CHECKS', ok:true, label:'5 checks', detail:'4 PASS · 1 UNKNOWN · 0 FAIL', at:'09:41:31Z'},
+    {type:'GATE', ok:true, label:'Publication gate v1', detail:'11 rules · <b>PUBLISH</b> · confidence cap HIGH', at:'09:41:47Z'},
+    {type:'PUBLISHED', ok:true, label:'brf_9c0e2b7f1a3341aa', detail:'Brief published', at:'09:41:48Z'}
+  ];
+  document.getElementById('tl').innerHTML = entries.map(row).join('');
+  document.getElementById('tl2').innerHTML = [
+    {type:'TOOL_CALL', ok:true, label:'xstocks.proofOfReserves', detail:'timeout 8 s', at:'09:52:40Z'},
+    {type:'EVIDENCE', ok:false, label:'EV-PRICE', detail:'REFERENCE_PRICE · past staleAfter 09:52:00Z', badge:'STALE', stale:true, at:'09:52:41Z'},
+    {type:'MODEL_CALL', ok:true, running:true, label:'claude synthesis 2/2', detail:'Running…', at:'09:52:44Z'},
+    {type:'STOPPED', ok:false, label:'STOPPED', detail:'<b>BUDGET_TOOL_CALLS_EXCEEDED</b> · 12 of 12 tool calls used', at:'09:52:49Z'}
+  ].map(row).join('');
+</script>

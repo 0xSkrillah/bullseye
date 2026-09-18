@@ -1,0 +1,41 @@
+<!-- @dsCard group="Purchase" height=480 subtitle="Immutable quote · expired" -->
+<style>html,body{margin:0;background:var(--canvas)}</style>
+<div class="be" style="padding:16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+  <section class="be-paywall" role="dialog" aria-labelledby="pw1">
+    <span class="be-stage" id="pw1">Immutable quote</span>
+    <div class="be-price">
+      <span class="numeral">$3.00</span>
+      <span id="tag1"></span>
+    </div>
+    <dl class="be-kv" style="grid-template-columns:88px 1fr">
+      <dt>Amount</dt><dd>3000000 · USDC (6 dp)</dd>
+      <dt>Network</dt><dd>eip155:1952 · X Layer testnet</dd>
+      <dt>Pay to</dt><dd title="0x4a7f…full address in title">0x4a7f2c…e91b</dd>
+      <dt>Scheme</dt><dd>exact · OKX_X402_TESTNET</dd>
+      <dt>Brief</dt><dd>brf_9c0e2b7f1a3341aa · sha256 7d31…0c4e</dd>
+      <dt>Terms</dt><dd>quo_5d8e21a0c37f19b4 · sha256 a91f…62d7</dd>
+    </dl>
+    <span class="be-quote-meta">Issued <time datetime="2026-09-18T09:43:50Z">09:43:50Z</time> · expires <time datetime="2026-09-18T09:59:00Z">09:59:00Z</time> (14:37)</span>
+    <p>Pay once to unlock the full Brief. These terms are frozen and hashed; they cannot change after you approve. If payment cannot be confirmed, nothing is delivered and a retry cannot charge you twice.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="be-btn be-btn-primary" type="button" aria-label="Pay 3 dollars via OKX x402 on X Layer testnet">Pay $3.00 via OKX x402</button>
+      <button class="be-btn" type="button">View evidence first</button>
+    </div>
+  </section>
+
+  <section class="be-paywall is-expired" role="dialog" aria-labelledby="pw2" style="width:320px">
+    <span class="be-stage" id="pw2">Immutable quote</span>
+    <div class="be-price">
+      <span class="numeral">$3.00</span>
+      <span id="tag2"></span>
+    </div>
+    <span class="be-quote-meta">quo_5d8e21a0c37f19b4 · expired at <time datetime="2026-09-18T09:59:00Z">09:59:00Z</time></span>
+    <p>Quote expired before payment. Nothing was charged. A new quote will carry a new id and its own hash.</p>
+    <div><button class="be-btn" type="button">Request new quote</button></div>
+  </section>
+</div>
+<script>
+  var B = window.Bullseye;
+  document.getElementById('tag1').innerHTML = B.badge('TESTNET');
+  document.getElementById('tag2').innerHTML = B.badge('TESTNET');
+</script>

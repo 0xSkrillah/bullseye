@@ -1,0 +1,44 @@
+<!-- @dsCard group="Console" height=560 subtitle="Price · measured usage · measured costs · estimated costs · estimated contribution" -->
+<style>html,body{margin:0;background:var(--canvas)}</style>
+<div class="be" style="padding:16px;max-width:420px">
+  <section class="be-receipt" aria-labelledby="r1">
+    <div class="be-receipt-head">
+      <h3 class="be-receipt-title" id="r1">Receipt · ord_c2e7…88f1 · brf_9c0e…41aa</h3>
+      <span class="be-stamp">✓ PAID 09:44:47Z</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center" id="rail"></div>
+    <table>
+      <tbody>
+        <tr class="section"><td colspan="2">Price</td></tr>
+        <tr class="total"><td>Price paid <span class="fn">· Not revenue (testnet).</span></td><td>$3.00</td></tr>
+
+        <tr class="section"><td colspan="2">Measured usage</td></tr>
+        <tr><td class="sub">Model calls</td><td>2</td></tr>
+        <tr><td class="sub">Tool calls</td><td>7</td></tr>
+        <tr><td class="sub">Input tokens</td><td>3 611</td></tr>
+        <tr><td class="sub">Output tokens</td><td>1 204</td></tr>
+        <tr><td class="sub">Investigation latency</td><td>41.2 s</td></tr>
+        <tr><td class="sub">Usage is fixture</td><td>no</td></tr>
+
+        <tr class="section"><td colspan="2">Measured costs</td></tr>
+        <tr><td class="sub">Claude synthesis <span class="fn">· MEASURED_USAGE_AT_LIST_PRICE</span></td><td>$0.0142</td></tr>
+        <tr><td class="sub">xStocks API <span class="fn">· NO_MARGINAL_PRICE</span></td><td>$0.0000</td></tr>
+        <tr><td class="sub">X Layer RPC <span class="fn">· NO_MARGINAL_PRICE</span></td><td>$0.0000</td></tr>
+        <tr class="total"><td>Measured total</td><td>$0.0142</td></tr>
+
+        <tr class="section"><td colspan="2">Estimated costs</td></tr>
+        <tr class="estimate"><td class="sub" style="color:var(--uncertain)">Payment fee reserve <span class="fn">· estimated · planning allowance</span></td><td>≈ $0.15</td></tr>
+        <tr class="estimate"><td class="sub" style="color:var(--uncertain)">Rework reserve <span class="fn">· estimated · planning allowance</span></td><td>≈ $0.20</td></tr>
+        <tr class="estimate total"><td>Estimated total</td><td>≈ $0.35</td></tr>
+
+        <tr class="section"><td colspan="2">Estimated contribution</td></tr>
+        <tr class="estimate total"><td>Contribution <span class="fn">· estimated</span></td><td class="numeral" style="font-size:18px;white-space:nowrap">≈ $2.64</td></tr>
+        <tr><td colspan="2" class="fn" style="border:0;padding-top:4px">Price − measured − estimated. Excludes labour, hosting, acquisition, overhead, tax. Not profit. Not revenue: rail is OKX_X402_TESTNET.</td></tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+<script>
+  var B = window.Bullseye;
+  document.getElementById('rail').innerHTML = '<span class="mono" style="font-size:11px;color:var(--ink-secondary)">OKX_X402_TESTNET · eip155:1952</span>' + B.badge('TESTNET');
+</script>

@@ -1,0 +1,23 @@
+<!-- @dsCard group="Brief" height=300 subtitle="HIGH · MEDIUM · LOW · capped · withdrawn · large" -->
+<style>html,body{margin:0;background:var(--canvas)}</style>
+<div class="be" style="padding:16px;display:grid;gap:20px">
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px">
+    <div id="c1"></div>
+    <div id="c2"></div>
+    <div id="c3"></div>
+    <div id="c4"></div>
+  </div>
+  <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap">
+    <div id="c5"></div>
+    <div id="c6"></div>
+  </div>
+</div>
+<script>
+  var B = window.Bullseye;
+  B.confidence(document.getElementById('c1'), { level:'HIGH', rationale:'Issuer record and on-chain multiplier agree to six decimals; activation block confirmed by an independent read.' });
+  B.confidence(document.getElementById('c2'), { level:'MEDIUM', rationale:'Reference price is CACHED; on-chain facts agree.' });
+  B.confidence(document.getElementById('c3'), { level:'LOW', rationale:'Only the issuer record is available; no on-chain confirmation yet.' });
+  B.confidence(document.getElementById('c4'), { level:'HIGH', cap:'MEDIUM', capDetail:'EVIDENCE_MODE_ALLOWED — EV-PRICE is CACHED', rationale:'Model rated HIGH.' });
+  B.confidence(document.getElementById('c5'), { level:'HIGH', large:true, rationale:'Brief header size, 96px.' });
+  B.confidence(document.getElementById('c6'), { level:'LOW', withdrawn:true, rationale:'Gate decision REJECT. Not published.' });
+</script>

@@ -14,3 +14,6 @@ playwright-report/
 *.log
 .DS_Store
 .claude/
+
+# design tool manifest; not needed by the app
+docs/design-system/design-system.json

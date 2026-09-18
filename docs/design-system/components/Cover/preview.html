@@ -1,0 +1,40 @@
+<!-- @dsCard height=288 -->
+<style>
+  html,body{margin:0;background:var(--canvas)}
+  .cover{position:relative;width:960px;height:288px;background:var(--canvas);font-family:var(--font-sans);overflow:hidden}
+  .cover svg{position:absolute;inset:0}
+  .field{fill:var(--radar-grid)}
+  .verified{fill:var(--verified)}
+  .uncertain{fill:var(--uncertain)}
+  .invalid{fill:var(--invalid)}
+  .fixture{fill:var(--fixture)}
+  .ring{fill:none;stroke:var(--ink);stroke-width:1}
+  .core{fill:var(--ink)}
+  .tile{rx:6px}
+  .text{position:absolute;left:24px;bottom:24px;width:440px;display:grid;gap:8px}
+  .text h1{margin:0;color:var(--ink);font-size:90px;line-height:.92;font-weight:500;letter-spacing:-.01em}
+  .text p{margin:0;color:var(--ink-secondary);font-size:13px;line-height:18px}
+</style>
+<div class="cover">
+  <svg viewBox="0 0 960 288" width="960" height="288" aria-hidden="true">
+    <!--
+      blocks: radar-grid 256×288 (the field, bleeding top and bottom) · verified 224×144 (bleeding top and right) · uncertain 128×128 · invalid 80×48 · fixture 80×64 — all rx radius-md
+      arrangement: one tall slab at x=480 with a modular grid of satellites to its right, 16px (space-4) gutters, bleeding off the top and right edges
+      pattern: the literal motif — Bullseye's target: three concentric rings from radius-full and the size-dot centre in ink, cut into the field slab; chosen because the mark and the radar field are the one shape the product is named for
+      scales: gutters space-4; block sides multiples of space-8/space-12 (256 = 8×32, 224 = 7×32, 128, 80, 48, 64); corners radius-md; ring radii 96/64/32 (space-12 multiples); centre dot size-dot
+    -->
+    <rect class="field tile" x="480" y="-8" width="256" height="304"/>
+    <rect class="verified tile" x="752" y="-8" width="224" height="152"/>
+    <rect class="uncertain tile" x="752" y="160" width="128" height="128"/>
+    <rect class="invalid tile" x="896" y="160" width="80" height="48"/>
+    <rect class="fixture tile" x="896" y="224" width="80" height="64"/>
+    <circle class="ring" cx="608" cy="144" r="96"/>
+    <circle class="ring" cx="608" cy="144" r="64"/>
+    <circle class="ring" cx="608" cy="144" r="32"/>
+    <circle class="core" cx="608" cy="144" r="4"/>
+  </svg>
+  <div class="text">
+    <h1>Bullseye</h1>
+    <p>Autonomous intelligence for tokenised markets.</p>
+  </div>
+</div>

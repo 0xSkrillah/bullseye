@@ -1,0 +1,52 @@
+<!-- @dsCard group="Signal" height=460 subtitle="Locked · default · noise" -->
+<style>html,body{margin:0;background:var(--canvas)}</style>
+<div class="be" style="padding:16px;display:grid;gap:12px;max-width:420px">
+  <span class="be-stage">Feed · 38 events · 15 min · 1 locked</span>
+
+  <article class="be-card is-locked" aria-selected="true" tabindex="0">
+    <div class="be-card-head">
+      <span class="be-stage">Corporate action · rebase</span>
+      <span class="be-locked-mark">▸ LOCKED</span>
+    </div>
+    <h3 class="be-card-title">Dividend rebase applied: multiplier 1.000000 → 1.004871</h3>
+    <div class="be-card-meta">
+      <span class="mono">KOx · Coca-Cola Co. (xStock) · X Layer</span>
+      <span class="mono">Detected <time datetime="2026-09-18T09:41:07Z">09:41:07Z</time> · Observed <time datetime="2026-09-18T09:40:52Z">09:40:52Z</time></span>
+    </div>
+    <p class="be-card-reason" style="margin:0">multiplier changed +0.4871% against a 30-day median of 0%</p>
+    <div class="be-card-meta"><span class="mono" style="font-size:11px">CA-2026-0918-KO v2 · DIVIDEND · APPLIED · sig_3f9a1c22b7e04d18</span></div>
+    <div class="be-card-meta" id="p1"></div>
+  </article>
+
+  <article class="be-card" tabindex="0">
+    <div class="be-card-head">
+      <span class="be-stage">Corporate action · rebase</span>
+    </div>
+    <h3 class="be-card-title">Rebase scheduled: multiplier 1.000000 → 1.002210</h3>
+    <div class="be-card-meta">
+      <span class="mono">PEPx · PepsiCo Inc. (xStock) · X Layer</span>
+      <span class="mono">Detected <time datetime="2026-09-18T09:39:30Z">09:39:30Z</time> · Observed <time datetime="2026-09-18T09:39:12Z">09:39:12Z</time></span>
+    </div>
+    <p class="be-card-reason" style="margin:0">scheduled change +0.2210% not yet visible on-chain</p>
+    <div class="be-card-meta" id="p2"></div>
+  </article>
+
+  <article class="be-card is-noise" tabindex="0">
+    <div class="be-card-head">
+      <span class="be-stage">Corporate action · rebase</span>
+      <span class="mono" style="font-size:11px">Not investigated</span>
+    </div>
+    <h3 class="be-card-title">Multiplier unchanged after scheduled record date</h3>
+    <div class="be-card-meta">
+      <span class="mono">JNJx · Johnson &amp; Johnson (xStock) · X Layer</span>
+      <span class="mono">Detected <time datetime="2026-09-18T09:38:02Z">09:38:02Z</time></span>
+    </div>
+    <div class="be-card-meta" id="p3"></div>
+  </article>
+</div>
+<script>
+  var B = window.Bullseye;
+  document.getElementById('p1').innerHTML = B.badge('LIVE');
+  document.getElementById('p2').innerHTML = B.badge('CACHED');
+  document.getElementById('p3').innerHTML = B.badge('FIXTURE');
+</script>
