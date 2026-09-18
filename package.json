@@ -1,0 +1,33 @@
+{
+  "name": "bullseye",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Autonomous intelligence desk for tokenised markets",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "concurrently -n api,web -c green,cyan \"npm run dev -w @bullseye/api\" \"npm run dev -w @bullseye/web\"",
+    "dev:api": "npm run dev -w @bullseye/api",
+    "dev:web": "npm run dev -w @bullseye/web",
+    "build": "npm run build -w @bullseye/web",
+    "start": "npm run start -w @bullseye/api",
+    "typecheck": "tsc -p apps/api && tsc -p apps/web",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "spike": "tsx scripts/spike.ts",
+    "detect": "tsx scripts/detect.ts",
+    "buy": "tsx scripts/buy-brief.ts",
+    "verify-payment": "tsx scripts/verify-payment.ts",
+    "demo": "tsx scripts/run-demo.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.13.4",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.23.13",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
+  }
+}
