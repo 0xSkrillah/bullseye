@@ -1,0 +1,183 @@
+{
+  "ranAt": "2026-09-18T19:21:55.768Z",
+  "node": "v26.7.0",
+  "sdk": {
+    "@okxweb3/x402-core": "0.1.0",
+    "@okxweb3/x402-evm": "0.2.1",
+    "@okxweb3/x402-express": "0.1.1",
+    "@okxweb3/x402-fetch": "0.1.0"
+  },
+  "steps": [
+    {
+      "step": "xstocks: corporate-action history fetched and schema-validated",
+      "status": "PASS",
+      "detail": {
+        "url": "https://api.xstocks.fi/api/v2/public/corporate-actions/history?pageSize=50&sortBy=createdTimeUtc&sortOrder=desc",
+        "sha256": "7937c8135f76e6e5983ec4bda347e0440616415e0b99a99f9c9fe2f391cd074f",
+        "actions": 50,
+        "rebaseCandidates": 50,
+        "signalsOnXLayer": [
+          {
+            "id": "sig_24ecf336903c1da1",
+            "headline": "QSRx rebased +0.665166% (CashDividend)",
+            "observedAt": "2026-09-18T00:30:00.000Z",
+            "token": "0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046"
+          },
+          {
+            "id": "sig_2a3628bd141344e0",
+            "headline": "VGKx rebased +0.174197% (CashDividend)",
+            "observedAt": "2026-09-18T00:30:00.000Z",
+            "token": "0x9337a8f11f777cdaa310b5682b09b44ed8bdcbad"
+          },
+          {
+            "id": "sig_2c317c25deb8c350",
+            "headline": "OMCx rebased +0.712468% (CashDividend)",
+            "observedAt": "2026-09-18T00:30:00.000Z",
+            "token": "0x648face8da5b4803ea902e74b5a41389a1d995ea"
+          },
+          {
+            "id": "sig_785dd21340ea7ac6",
+            "headline": "IFFx rebased +0.329761% (CashDividend)",
+            "observedAt": "2026-09-18T00:30:00.000Z",
+            "token": "0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5"
+          },
+          {
+            "id": "sig_98d0bed6cc31a245",
+            "headline": "VTx rebased +0.17955% (CashDividend)",
+            "observedAt": "2026-09-18T00:30:00.000Z",
+            "token": "0x6d5edeebbc6a4099eb8bb289eb3b80d799f7b28c"
+          },
+          {
+            "id": "sig_d0e86a4cb7a1763c",
+            "headline": "SATAx rebased +0.051615% (CashDividend)",
+            "observedAt": "2026-09-18T00:30:00.000Z",
+            "token": "0x7c7445a40926152b8d24abdb9020e219d3d3380a"
+          },
+          {
+            "id": "sig_0fe7dbc32828fd7c",
+            "headline": "SATAx rebased +0.051595% (CashDividend)",
+            "observedAt": "2026-09-17T00:30:00.000Z",
+            "token": "0x7c7445a40926152b8d24abdb9020e219d3d3380a"
+          },
+          {
+            "id": "sig_4e3bfa6a46a0db72",
+            "headline": "SATAx rebased +0.0516% (CashDividend)",
+            "observedAt": "2026-09-16T00:30:00.000Z",
+            "token": "0x7c7445a40926152b8d24abdb9020e219d3d3380a"
+          },
+          {
+            "id": "sig_7fc6bf06322a8adc",
+            "headline": "SATAx rebased +0.051595% (CashDividend)",
+            "observedAt": "2026-09-15T00:30:00.000Z",
+            "token": "0x7c7445a40926152b8d24abdb9020e219d3d3380a"
+          }
+        ]
+      }
+    },
+    {
+      "step": "xlayer: connected to mainnet RPC",
+      "status": "PASS",
+      "detail": {
+        "rpc": "https://rpc.xlayer.tech",
+        "chainId": 196,
+        "blockNumber": 70990254,
+        "blockTimestamp": "2026-09-18T19:21:30.000Z"
+      }
+    },
+    {
+      "step": "xlayer: on-chain multiplier() brackets the issuer-reported rebase",
+      "status": "PASS",
+      "detail": {
+        "signal": "sig_24ecf336903c1da1",
+        "issuer": {
+          "old": "1",
+          "new": "1.0066516577977895",
+          "effective": "2026-09-18T00:30:00.000Z"
+        },
+        "before": {
+          "chainId": 196,
+          "tokenAddress": "0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046",
+          "blockNumber": 70922304,
+          "blockTimestamp": "2026-09-18T00:29:00.000Z",
+          "multiplierRaw": "1000000000000000000",
+          "multiplier": "1"
+        },
+        "after": {
+          "chainId": 196,
+          "tokenAddress": "0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046",
+          "blockNumber": 70922424,
+          "blockTimestamp": "2026-09-18T00:31:00.000Z",
+          "multiplierRaw": "1006651657797789500",
+          "multiplier": "1.0066516577977895"
+        }
+      }
+    },
+    {
+      "step": "okx: mock merchant returns an x402 v2 challenge on X Layer testnet",
+      "status": "PASS",
+      "detail": {
+        "httpStatus": 402,
+        "paymentRequiredHeaderPresent": false,
+        "challenge": {
+          "x402Version": 2,
+          "accepts": [
+            {
+              "scheme": "exact",
+              "network": "eip155:1952",
+              "asset": "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d",
+              "payTo": "0x3509655ad99effc7f3f74205482b1cb337ca08f7",
+              "extra": {
+                "name": "USDC_TEST",
+                "version": "1"
+              },
+              "maxAmountRequired": "10000",
+              "resource": "/api/v1/pay/mock-merchant/resource",
+              "mimeType": "application/json",
+              "maxTimeoutSeconds": 60
+            },
+            {
+              "scheme": "aggr_deferred",
+              "network": "eip155:1952",
+              "asset": "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d",
+              "payTo": "0x3509655ad99effc7f3f74205482b1cb337ca08f7",
+              "extra": {
+                "name": "USDC_TEST",
+                "version": "1"
+              },
+              "maxAmountRequired": "10000",
+              "resource": "/api/v1/pay/mock-merchant/resource",
+              "mimeType": "application/json",
+              "maxTimeoutSeconds": 60
+            }
+          ]
+        },
+        "eip712": {
+          "advertised": {
+            "name": "USDC_TEST",
+            "version": "1"
+          },
+          "advertisedDomainSeparator": "0x9d05c77bc3f9b001315150753622e0ecf5941ea24980eda9283fd8eb2dcd7bd0",
+          "onchainDomainSeparator": "0x7513e76c6d38c7986bcfe857d0e0772d5050d9db65ef5a941d1e15859baef959",
+          "match": false
+        }
+      }
+    },
+    {
+      "step": "okx: buyer completes a test payment against the mock merchant",
+      "status": "BLOCKED",
+      "detail": "BUYER_PRIVATE_KEY is not set; a faucet-funded X Layer testnet wallet is required"
+    },
+    {
+      "step": "okx: Bullseye seller rail initialises against the OKX facilitator",
+      "status": "BLOCKED",
+      "detail": {
+        "rail": "OKX_X402_TESTNET",
+        "network": "eip155:1952",
+        "ready": false,
+        "detail": "PAY_TO_ADDRESS is not set",
+        "payTo": null,
+        "isTestnet": true
+      }
+    }
+  ]
+}
