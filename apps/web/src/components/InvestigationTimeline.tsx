@@ -49,6 +49,9 @@ export function InvestigationTimeline({ view, usage, budget, now, evidence, onOp
   const endMs = view.finishedAt ? Date.parse(view.finishedAt) : nowMs;
   const elapsedMs = Math.max(0, endMs - Date.parse(view.startedAt));
   const fixtureCost = usage.costBasis === "FIXTURE";
+  // the bar tracks what the governor counts against the ceiling; the word "measured" is kept for measured spend only
+  const counted = usage.budgetSpentUsd ?? usage.measuredModelCostUsd;
+  const upperBound = usage.upperBoundModelCostUsd ?? 0;
   const byId = new Map((evidence ?? []).map((e) => [e.id, e]));
 
   return (
@@ -57,7 +60,14 @@ export function InvestigationTimeline({ view, usage, budget, now, evidence, onOp
         <div style={view.stopReason === "BUDGET_COST_EXCEEDED" ? hit : undefined}>
           Cost
           <b>
-            <Money usd={usage.measuredModelCostUsd} basis="MEASURED" /> / <Money usd={budget.maxVariableCostUsd} basis="MEASURED" decimals={2} />
+            <Money usd={upperBound > 0 ? counted - upperBound : counted} basis="MEASURED" />
+            {upperBound > 0 && (
+              <>
+                {" + "}
+                <Money usd={upperBound} basis="ESTIMATED" />
+              </>
+            )}{" "}
+            / <Money usd={budget.maxVariableCostUsd} basis="MEASURED" decimals={2} />
             {fixtureCost && (
               <>
                 {" "}
@@ -66,7 +76,7 @@ export function InvestigationTimeline({ view, usage, budget, now, evidence, onOp
             )}
           </b>
           <i>
-            <span style={{ width: share(usage.measuredModelCostUsd, budget.maxVariableCostUsd) }} />
+            <span style={{ width: share(counted, budget.maxVariableCostUsd) }} />
           </i>
         </div>
         <div style={view.stopReason === "BUDGET_MODEL_CALLS_EXCEEDED" ? hit : undefined}>
@@ -156,6 +166,12 @@ export function InvestigationTimeline({ view, usage, budget, now, evidence, onOp
         <span>
           <Money usd={usage.measuredModelCostUsd} basis="MEASURED" /> {fixtureCost ? "· fixture" : "measured"}
         </span>
+        {upperBound > 0 && (
+          <span>
+            <Money usd={upperBound} basis="ESTIMATED" /> upper bound at price cap
+          </span>
+        )}
+        {(usage.routedModels?.length ?? 0) > 0 && <span className="mono-sm">routed to {usage.routedModels!.join(", ")}</span>}
       </div>
     </div>
   );

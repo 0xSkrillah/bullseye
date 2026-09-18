@@ -6,7 +6,8 @@ import { XLayerAdapter } from "./adapters/xlayer.js";
 import { buildFixtureResponses, FIXTURE_CLOCK } from "./adapters/fixtures.js";
 import { SignalService } from "./signals/signalService.js";
 import { InvestigationService } from "./research/investigator.js";
-import { AnthropicProvider, type SynthesisProvider } from "./research/model.js";
+import type { SynthesisProvider } from "./research/model.js";
+import { createLiveProvider } from "./research/provider.js";
 import { FixtureProvider, type FixtureBehaviour } from "./research/fixtureModel.js";
 import { BriefStore } from "./briefs.js";
 import { OrderLedger } from "./commerce/orderLedger.js";
@@ -54,7 +55,7 @@ export function buildContainer(config: Config, overrides: ContainerOverrides = {
   let cachedProvider: SynthesisProvider | null = null;
   const provider = (): SynthesisProvider => {
     if (config.SYNTHESIS_PROVIDER === "fixture") return new FixtureProvider(fixtureBehaviour);
-    cachedProvider ??= new AnthropicProvider(config.BULLSEYE_MODEL, config.ANTHROPIC_API_KEY);
+    cachedProvider ??= createLiveProvider(config);
     return cachedProvider;
   };
 
@@ -98,6 +99,10 @@ export function buildContainer(config: Config, overrides: ContainerOverrides = {
     priceUsd: config.BRIEF_PRICE_USD,
     quoteTtlSeconds: config.QUOTE_TTL_SECONDS,
     getBrief: (id) => briefs.get(id),
+    withdrawnReason: (brief) => {
+      const sup = signals.supersession(brief.signal.id);
+      return sup ? `the issuer ${sup.reason === "CANCELLED" ? "cancelled" : "replaced"} corporate action ${brief.signal.facts.corporateActionId} v${brief.signal.facts.corporateActionVersion} with v${sup.byVersion}${sup.notes ? ` (${sup.notes})` : ""}; noted ${sup.notedAt}` : null;
+    },
   });
 
   return {
@@ -117,7 +122,13 @@ export function buildContainer(config: Config, overrides: ContainerOverrides = {
     synthesisStatus: () => {
       try {
         const info = provider().info;
-        return { provider: info.provider, model: info.model, ready: true, detail: info.mode === "FIXTURE" ? "test double; Briefs are labelled FIXTURE" : "configured" };
+        const detail =
+          info.mode === "FIXTURE"
+            ? "test double; Briefs are labelled FIXTURE"
+            : config.SYNTHESIS_PROVIDER === "openrouter"
+              ? `cost tier ${config.OPENROUTER_COST_TIER}; price cap $${config.OPENROUTER_MAX_PRICE_PROMPT}/$${config.OPENROUTER_MAX_PRICE_COMPLETION} per million tokens in/out`
+              : "configured";
+        return { provider: info.provider, model: info.model, ready: true, detail };
       } catch (err) {
         return { provider: config.SYNTHESIS_PROVIDER, model: config.BULLSEYE_MODEL, ready: false, detail: err instanceof Error ? err.message : String(err) };
       }

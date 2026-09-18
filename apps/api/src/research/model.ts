@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Synthesis } from "@bullseye/domain";
 import type { ToolSpec } from "../evidence/toolbox.js";
-import type { TokenUsage } from "./governor.js";
+import type { CostBasis } from "@bullseye/domain";
+import { RATE_CARD, type ModelRates, type TokenUsage } from "./governor.js";
 
 export interface ToolCall {
   id: string;
@@ -26,6 +27,8 @@ export interface SessionInit {
   task: string;
   tools: ToolSpec[];
   maxOutputTokens: number;
+  /** milliseconds left in the investigation's latency budget; a provider must not wait longer than this */
+  remainingMs?: () => number;
 }
 
 /** A single investigation's conversation with a model. The investigator decides whether each step may run. */
@@ -36,20 +39,42 @@ export interface ModelSession {
   synthesise(instruction: string, schema: Record<string, unknown>): Promise<ModelTurn>;
 }
 
+export interface ProviderPricing {
+  /** rates the governor uses to bound the NEXT call before it is made */
+  worstCaseRates: ModelRates;
+  /** how a call is priced when the provider does not report what it charged */
+  basisWhenNotBilled: CostBasis;
+}
+
 export interface SynthesisProvider {
   readonly info: Synthesis;
+  readonly pricing: ProviderPricing;
   /** throws ModelUnavailableError when the provider cannot be used */
   start(init: SessionInit): ModelSession;
 }
 
 export class ModelUnavailableError extends Error {}
 
+/** A model call that failed after it may have been processed. `usage` is what it cost, or a ceiling when that is unknown. */
+export class ModelCallError extends Error {
+  constructor(
+    message: string,
+    readonly usage: TokenUsage,
+  ) {
+    super(message);
+  }
+}
+
 export class AnthropicProvider implements SynthesisProvider {
   readonly info: Synthesis;
+  readonly pricing: ProviderPricing;
   private readonly client: Anthropic;
 
   constructor(model: string, apiKey: string | undefined) {
     if (!apiKey) throw new ModelUnavailableError("ANTHROPIC_API_KEY is not set");
+    const rates = RATE_CARD[model];
+    if (!rates) throw new ModelUnavailableError(`no list price on the rate card for model ${model}; refusing to run an unpriced investigation`);
+    this.pricing = { worstCaseRates: rates, basisWhenNotBilled: "MEASURED_USAGE_AT_LIST_PRICE" };
     this.info = { provider: "anthropic", model, mode: "LIVE" };
     this.client = new Anthropic({ apiKey, maxRetries: 2, timeout: 120_000 });
   }

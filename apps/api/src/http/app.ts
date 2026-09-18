@@ -53,7 +53,7 @@ export function createApp(c: Container) {
   app.get("/api/signals", (_req, res) => {
     const signals = c.signals.list().map((signal) => {
       const inv = c.investigations.latestForSignal(signal.id);
-      return { signal, investigation: inv ? { id: inv.id, status: inv.status, stopReason: inv.stopReason, briefId: inv.briefId } : null };
+      return { signal, superseded: c.signals.supersession(signal.id), investigation: inv ? { id: inv.id, status: inv.status, stopReason: inv.stopReason, briefId: inv.briefId } : null };
     });
     res.json({ dataMode: c.transport.primaryMode, signals });
   });
@@ -75,14 +75,23 @@ export function createApp(c: Container) {
     const view = c.investigations.view(req.params.id);
     if (!view) return res.status(404).json({ error: "investigation_not_found" });
     const usage = c.investigations.usage(view.id);
+    const models = usage.filter((u) => u.kind === "MODEL_CALL");
+    const sum = (rows: typeof usage) => Math.round(rows.reduce((t, u) => t + u.costUsd, 0) * 1e6) / 1e6;
     res.json({
       investigation: view,
       budget: c.config.budget,
       usage: {
-        modelCalls: usage.filter((u) => u.kind === "MODEL_CALL").length,
+        modelCalls: models.length,
         toolCalls: usage.filter((u) => u.kind === "TOOL_CALL").length,
-        measuredModelCostUsd: Math.round(usage.reduce((s, u) => s + u.costUsd, 0) * 1e6) / 1e6,
-        costBasis: usage.find((u) => u.kind === "MODEL_CALL")?.costBasis ?? null,
+        /** only what a provider reported: billed amounts, or reported tokens at list price */
+        measuredModelCostUsd: sum(models.filter((u) => u.costBasis.startsWith("MEASURED"))),
+        /** calls whose charge is unknown, carried at the price cap */
+        upperBoundModelCostUsd: sum(models.filter((u) => u.costBasis === "UPPER_BOUND_AT_PRICE_CAP")),
+        /** what the budget governor has counted against the ceiling: every basis */
+        budgetSpentUsd: sum(models),
+        costBases: [...new Set(models.map((u) => u.costBasis))],
+        costBasis: models[0]?.costBasis ?? null,
+        routedModels: [...new Set(models.map((u) => u.model).filter((m): m is string => m !== null))].sort(),
       },
     });
   });
@@ -94,7 +103,7 @@ export function createApp(c: Container) {
   app.get("/api/briefs/:id/preview", (req, res) => {
     const brief = c.briefs.get(req.params.id);
     if (!brief) return res.status(404).json({ error: "brief_not_found" });
-    res.json({ preview: toPreview(brief), signal: brief.signal, priceUsd: c.config.BRIEF_PRICE_USD, rail: c.rail.status(), resource: `${c.config.PUBLIC_BASE_URL}/api/v1/briefs/${brief.id}` });
+    res.json({ preview: toPreview(brief), signal: brief.signal, withdrawn: c.signals.supersession(brief.signal.id), priceUsd: c.config.BRIEF_PRICE_USD, rail: c.rail.status(), resource: `${c.config.PUBLIC_BASE_URL}/api/v1/briefs/${brief.id}` });
   });
 
   app.post("/api/briefs/:id/quotes", async (req, res) => {
@@ -111,7 +120,10 @@ export function createApp(c: Container) {
       seller: "Bullseye",
       payment: { protocol: "x402", version: 2, rail: c.rail.status() },
       priceUsd: c.config.BRIEF_PRICE_USD,
-      items: c.briefs.list().map((b) => ({ ...toPreview(b), resource: `${c.config.PUBLIC_BASE_URL}/api/v1/briefs/${b.id}`, method: "GET" })),
+      items: c.briefs
+        .list()
+        .filter((b) => c.signals.supersession(b.signal.id) === null)
+        .map((b) => ({ ...toPreview(b), resource: `${c.config.PUBLIC_BASE_URL}/api/v1/briefs/${b.id}`, method: "GET" })),
     });
   });
 

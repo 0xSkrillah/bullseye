@@ -10,6 +10,6 @@ const synthesis = container.synthesisStatus();
 createApp(container).listen(config.PORT, () => {
   console.log(`bullseye api listening on :${config.PORT}`);
   console.log(`  data source   ${container.transport.primaryMode}`);
-  console.log(`  synthesis     ${synthesis.provider}/${synthesis.model} ${synthesis.ready ? "ready" : `NOT READY (${synthesis.detail})`}`);
+  console.log(`  synthesis     ${synthesis.model} via ${synthesis.provider} ${synthesis.ready ? `ready (${synthesis.detail})` : `NOT READY (${synthesis.detail})`}`);
   console.log(`  payment rail  ${rail.rail} on ${rail.network} ${rail.ready ? "ready" : `NOT READY (${rail.detail})`}`);
 });

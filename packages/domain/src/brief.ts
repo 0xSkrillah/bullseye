@@ -68,6 +68,8 @@ export const Synthesis = z.object({
   provider: z.string(),
   model: z.string(),
   mode: z.enum(["LIVE", "FIXTURE"]),
+  /** when `model` is a router, the models it actually chose for this investigation */
+  routedModels: z.array(z.string()).optional(),
 });
 export type Synthesis = z.infer<typeof Synthesis>;
 

@@ -23,8 +23,8 @@ import type { XStocksAdapter } from "../adapters/xstocks.js";
 import { runConsistencyChecks } from "../evidence/checks.js";
 import { EvidenceToolbox, TOOL_SPECS } from "../evidence/toolbox.js";
 import { evaluatePublication } from "../gate/publicationGate.js";
-import { BudgetGovernor, priceUsage, RATE_CARD, type ModelRates, type TokenUsage } from "./governor.js";
-import { ModelUnavailableError, type ModelTurn, type SynthesisProvider, type ToolResult } from "./model.js";
+import { BudgetGovernor, priceUsage, type TokenUsage } from "./governor.js";
+import { ModelCallError, ModelUnavailableError, type ModelTurn, type ProviderPricing, type SynthesisProvider, type ToolResult } from "./model.js";
 import { BRIEF_DRAFT_JSON_SCHEMA, revisionPrompt, synthesisPrompt, SYSTEM_PROMPT, taskPrompt } from "./prompts.js";
 
 export interface InvestigatorDeps {
@@ -40,9 +40,6 @@ export interface InvestigatorDeps {
   allowFixturePublication: boolean;
   maxRevisions?: number;
 }
-
-/** Rates for providers that are not on the rate card (the fixture double) so that budget logic still runs. */
-const FALLBACK_RATES: ModelRates = { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 };
 
 class Stop extends Error {
   constructor(
@@ -138,6 +135,7 @@ export class InvestigationService {
       governor?.record(rec);
     };
 
+    const routed = new Set<string>();
     let stopReason: StopReason = "COMPLETED";
     let stopDetail = "";
     let draft: unknown = null;
@@ -159,13 +157,11 @@ export class InvestigationService {
       } catch (err) {
         throw new Stop("MODEL_UNAVAILABLE", err instanceof Error ? err.message : String(err));
       }
-      const rates = RATE_CARD[provider.info.model] ?? (provider.info.mode === "FIXTURE" ? FALLBACK_RATES : null);
-      if (!rates) throw new Stop("MODEL_UNAVAILABLE", `no list price on the rate card for model ${provider.info.model}; refusing to run an unpriced investigation`);
-      governor = new BudgetGovernor(deps.budget, rates);
+      const pricing = provider.pricing;
+      governor = new BudgetGovernor(deps.budget, pricing.worstCaseRates);
       const gov = governor;
-      const fixtureModel = provider.info.mode === "FIXTURE";
 
-      const session = provider.start({ system: SYSTEM_PROMPT, task: taskPrompt(signal, deps.budget), tools: TOOL_SPECS, maxOutputTokens: deps.budget.maxOutputTokensPerCall });
+      const session = provider.start({ system: SYSTEM_PROMPT, task: taskPrompt(signal, deps.budget), tools: TOOL_SPECS, maxOutputTokens: deps.budget.maxOutputTokensPerCall, remainingMs: () => gov.remainingMs() });
 
       const modelCall = async (label: string, fn: () => Promise<ModelTurn>): Promise<ModelTurn> => {
         const denied = gov.beforeModelCall();
@@ -173,13 +169,18 @@ export class InvestigationService {
         const startedAt = new Date();
         try {
           const turn = await fn();
-          recordUsage(modelUsage(label, startedAt, turn.usage, rates, fixtureModel, true, null));
-          timeline("MODEL_CALL", label, true, `${turn.usage.inputTokens} in / ${turn.usage.outputTokens} out tokens`);
+          const rec = modelUsage(label, startedAt, turn.usage, pricing, true, null);
+          recordUsage(rec);
+          if (rec.model) routed.add(rec.model);
+          timeline("MODEL_CALL", label, true, `${rec.model ? `${rec.model} · ` : ""}${describeTokens(turn.usage)} · $${rec.costUsd.toFixed(4)} ${rec.costBasis}`);
           return turn;
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          recordUsage(modelUsage(label, startedAt, { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }, rates, fixtureModel, false, message));
-          timeline("MODEL_CALL", label, false, message);
+          // a call that may have been processed is costed even though it failed; one that never ran costs nothing
+          const spent = err instanceof ModelCallError ? err.usage : null;
+          const rec = spent ? modelUsage(label, startedAt, spent, pricing, false, message) : { ...modelUsage(label, startedAt, { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }, pricing, false, message), costBasis: "NO_MARGINAL_PRICE" as const };
+          recordUsage(rec);
+          timeline("MODEL_CALL", label, false, spent ? `${message} · carried at $${rec.costUsd.toFixed(4)} ${rec.costBasis}` : message);
           if (err instanceof ModelUnavailableError) throw new Stop("MODEL_UNAVAILABLE", message);
           throw err;
         }
@@ -218,6 +219,7 @@ export class InvestigationService {
       timeline("CHECKS", `${checks.filter((c) => c.status === "PASS").length} passed, ${checks.filter((c) => c.status === "FAIL").length} failed, ${checks.filter((c) => c.status === "UNKNOWN").length} unknown`, true, checks.map((c) => `${c.id}: ${c.status}`).join("; "));
 
       const maxRevisions = deps.maxRevisions ?? 1;
+      // the writer is handed the evidence exactly as the gate holds it: latest item per id, nothing else
       let instruction = synthesisPrompt(toolbox.all(), checks);
       for (let attempt = 0; ; attempt++) {
         const turn = await modelCall(attempt === 0 ? "write brief" : "revise brief after gate rejection", () => session.synthesise(instruction, BRIEF_DRAFT_JSON_SCHEMA));
@@ -274,7 +276,7 @@ export class InvestigationService {
       investigationId: id,
       publishedAt: finishedAt,
       dataMode: provider.info.mode === "FIXTURE" ? ("FIXTURE" as const) : weakestMode([signal.provenance.mode, ...evidence.map((e) => e.provenance.mode)]),
-      synthesis: provider.info,
+      synthesis: routed.size > 0 && !routed.has(provider.info.model) ? { ...provider.info, routedModels: [...routed].sort() } : provider.info,
       signal,
       draft: BriefDraft.parse(draft),
       evidence,
@@ -301,18 +303,28 @@ export class InvestigationService {
   }
 }
 
-function modelUsage(name: string, startedAt: Date, u: TokenUsage, rates: ModelRates, fixture: boolean, ok: boolean, error: string | null): Omit<UsageRecord, "investigationId" | "seq"> {
+/** the whole prompt, with the part that was served from or written to a cache named rather than hidden */
+function describeTokens(u: TokenUsage): string {
+  const prompt = u.inputTokens + u.cacheReadTokens + u.cacheWriteTokens;
+  const cache = [u.cacheReadTokens > 0 ? `${u.cacheReadTokens} cached` : "", u.cacheWriteTokens > 0 ? `${u.cacheWriteTokens} cache-written` : ""].filter(Boolean).join(", ");
+  return `${prompt} in${cache ? ` (${cache})` : ""} / ${u.outputTokens} out tokens`;
+}
+
+function modelUsage(name: string, startedAt: Date, u: TokenUsage, pricing: ProviderPricing, ok: boolean, error: string | null): Omit<UsageRecord, "investigationId" | "seq"> {
+  const billed = typeof u.billedCostUsd === "number";
   return {
     kind: "MODEL_CALL",
     name,
+    model: u.model ?? null,
     startedAt: startedAt.toISOString(),
     latencyMs: Date.now() - startedAt.getTime(),
     inputTokens: u.inputTokens,
     outputTokens: u.outputTokens,
     cacheReadTokens: u.cacheReadTokens,
     cacheWriteTokens: u.cacheWriteTokens,
-    costUsd: priceUsage(rates, u),
-    costBasis: fixture ? "FIXTURE" : "MEASURED_USAGE_AT_LIST_PRICE",
+    // what the provider charged beats anything computed from tokens
+    costUsd: billed ? Math.round(u.billedCostUsd! * 1e6) / 1e6 : priceUsage(pricing.worstCaseRates, u),
+    costBasis: billed ? "MEASURED_PROVIDER_BILLED" : pricing.basisWhenNotBilled,
     ok,
     error,
   };
@@ -322,6 +334,7 @@ function toolUsage(name: string, startedAt: Date, ok: boolean, error: string | n
   return {
     kind: "TOOL_CALL",
     name,
+    model: null,
     startedAt: startedAt.toISOString(),
     latencyMs: Date.now() - startedAt.getTime(),
     inputTokens: null,

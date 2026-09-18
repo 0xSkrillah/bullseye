@@ -21,10 +21,17 @@ const Env = z.object({
   RECORDING_DIR: z.string().default("./artifacts/recorded/xstocks-2026-09-18"),
 
   // investigator
+  /** openrouter | anthropic | fixture. The fixture synthesiser is a test double and is labelled as such on every Brief. */
+  SYNTHESIS_PROVIDER: z.enum(["openrouter", "anthropic", "fixture"]).default("openrouter"),
+  /** defaults to openrouter/auto for openrouter and claude-opus-5 for anthropic */
+  BULLSEYE_MODEL: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(),
+  /** Auto Router cost tier: low | medium | high | xhigh | max */
+  OPENROUTER_COST_TIER: z.enum(["low", "medium", "high", "xhigh", "max"]).default("medium"),
+  /** hard price caps sent as provider.max_price, USD per million tokens; they are also the governor's worst case */
+  OPENROUTER_MAX_PRICE_PROMPT: z.coerce.number().positive().default(3),
+  OPENROUTER_MAX_PRICE_COMPLETION: z.coerce.number().positive().default(15),
   ANTHROPIC_API_KEY: z.string().optional(),
-  BULLSEYE_MODEL: z.string().default("claude-opus-5"),
-  /** anthropic | fixture. The fixture synthesiser is a test double and is labelled as such on every Brief. */
-  SYNTHESIS_PROVIDER: z.enum(["anthropic", "fixture"]).default("anthropic"),
   BUDGET_MAX_COST_USD: z.coerce.number().positive().default(0.6),
   BUDGET_MAX_MODEL_CALLS: z.coerce.number().int().positive().default(6),
   BUDGET_MAX_TOOL_CALLS: z.coerce.number().int().positive().default(14),
@@ -59,12 +66,15 @@ const Env = z.object({
     .transform((v) => v === "true"),
 });
 
-export type Config = z.infer<typeof Env> & { budget: ResearchBudget };
+export type Config = Omit<z.infer<typeof Env>, "BULLSEYE_MODEL"> & { BULLSEYE_MODEL: string; budget: ResearchBudget };
+
+const DEFAULT_MODEL = { openrouter: "openrouter/auto", anthropic: "claude-opus-5", fixture: "deterministic-template" } as const;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = Env.parse(env);
   return {
     ...parsed,
+    BULLSEYE_MODEL: parsed.BULLSEYE_MODEL?.trim() || DEFAULT_MODEL[parsed.SYNTHESIS_PROVIDER],
     DB_PATH: fromRoot(parsed.DB_PATH),
     RECORDING_DIR: fromRoot(parsed.RECORDING_DIR),
     budget: {

@@ -1,5 +1,5 @@
 import type { BriefDraft, EvidenceItem, Synthesis } from "@bullseye/domain";
-import type { ModelSession, ModelTurn, SynthesisProvider, ToolCall, ToolResult } from "./model.js";
+import type { ModelSession, ModelTurn, ProviderPricing, SynthesisProvider, ToolCall, ToolResult } from "./model.js";
 
 /**
  * Deterministic test double for the synthesis model. It exists so the pipeline
@@ -26,6 +26,8 @@ const SYNTHETIC_USAGE = { inputTokens: 2_000, outputTokens: 600, cacheReadTokens
 
 export class FixtureProvider implements SynthesisProvider {
   readonly info: Synthesis = { provider: "fixture", model: "deterministic-template", mode: "FIXTURE" };
+  /** synthetic rates so that budget arithmetic can be exercised; nothing here is a real cost */
+  readonly pricing: ProviderPricing = { worstCaseRates: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 }, basisWhenNotBilled: "FIXTURE" };
 
   constructor(private readonly behaviour: FixtureBehaviour = "good") {}
 

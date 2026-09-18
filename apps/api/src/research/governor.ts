@@ -20,6 +20,10 @@ export interface TokenUsage {
   outputTokens: number;
   cacheReadTokens: number;
   cacheWriteTokens: number;
+  /** what the provider says it charged for the call, when it says so */
+  billedCostUsd?: number | null;
+  /** the model that answered, when a router chose it */
+  model?: string | null;
 }
 
 export function priceUsage(rates: ModelRates, u: TokenUsage): number {
@@ -76,6 +80,10 @@ export class BudgetGovernor {
     } else {
       this.toolCalls++;
     }
+  }
+
+  remainingMs(): number {
+    return Math.max(0, this.budget.maxLatencyMs - (this.clock() - this.startedAt));
   }
 
   totals(): { modelCalls: number; toolCalls: number; spentUsd: number; elapsedMs: number } {

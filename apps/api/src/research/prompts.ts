@@ -48,13 +48,16 @@ export function synthesisPrompt(evidence: EvidenceItem[], checks: ConsistencyChe
   const modes = [...new Set(evidence.map((e) => e.provenance.mode))].join(", ");
   return `Evidence collected: ${evidence.map((e) => e.id).join(", ")}. Data modes present: ${modes}.
 
+These are the evidence items as the publication gate holds them. Where a tool was called more than once, only the item below counts; use no value that is not in it.
+${JSON.stringify(evidence)}
+
 Consistency checks computed by the desk from that evidence:
 ${checkLines}
 
 Write the brief now as JSON matching the schema.
 - Every check with status FAIL must appear in "conflicts" with its checkId and a plain description of the disagreement. If no check failed, "conflicts" is an empty array.
 - Checks with status UNKNOWN belong in "unknowns".
-- Confidence: HIGH only when every check passed and all mandatory evidence is LIVE; MEDIUM when some evidence is CACHED or HISTORICAL or a non-core check failed; LOW when an on-chain check failed or is unknown.
+- Confidence: HIGH only when every check passed and all mandatory evidence is LIVE; MEDIUM when some evidence is CACHED or HISTORICAL or a non-core check failed; LOW when CHK-ACTION-STILL-CURRENT or any of the three on-chain checks failed or is unknown.
 - Keep it tight: 2-4 claims per section, one or two sentences each.`;
 }
 

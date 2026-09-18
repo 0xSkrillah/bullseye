@@ -20,9 +20,11 @@ export function buildReceipt(order: Order, usage: UsageRecord[], model: string, 
   const modelCalls = usage.filter((u) => u.kind === "MODEL_CALL");
   const toolCalls = usage.filter((u) => u.kind === "TOOL_CALL");
   const usageIsFixture = modelCalls.some((u) => u.costBasis === "FIXTURE");
+  const sumWhere = (basis: UsageRecord["costBasis"]) => usd(modelCalls.filter((u) => u.costBasis === basis).reduce((s, u) => s + u.costUsd, 0));
+  const countWhere = (basis: UsageRecord["costBasis"]) => modelCalls.filter((u) => u.costBasis === basis).length;
+  const routedTo = [...new Set(modelCalls.map((u) => u.model).filter((m): m is string => m !== null))].sort();
   const inputTokens = modelCalls.reduce((s, u) => s + (u.inputTokens ?? 0) + (u.cacheReadTokens ?? 0) + (u.cacheWriteTokens ?? 0), 0);
   const outputTokens = modelCalls.reduce((s, u) => s + (u.outputTokens ?? 0), 0);
-  const modelCost = usd(modelCalls.reduce((s, u) => s + u.costUsd, 0));
   const first = usage[0];
   const last = usage[usage.length - 1];
   const latency = first && last ? Date.parse(last.startedAt) + last.latencyMs - Date.parse(first.startedAt) : 0;
@@ -30,12 +32,26 @@ export function buildReceipt(order: Order, usage: UsageRecord[], model: string, 
   const measuredCosts: CostLine[] = usageIsFixture
     ? []
     : [
-        {
-          label: "Model usage",
-          amountUsd: modelCost,
-          basis: "MEASURED",
-          detail: `${modelCalls.length} calls to ${model}; ${inputTokens} input and ${outputTokens} output tokens as reported by the provider, priced at list rates as of ${RATE_CARD_AS_OF}. Not an invoice.`,
-        },
+        ...(countWhere("MEASURED_PROVIDER_BILLED") > 0
+          ? [
+              {
+                label: "Model usage, as billed",
+                amountUsd: sumWhere("MEASURED_PROVIDER_BILLED"),
+                basis: "MEASURED" as const,
+                detail: `${countWhere("MEASURED_PROVIDER_BILLED")} calls to ${model}${routedTo.length > 0 ? `, routed to ${routedTo.join(", ")}` : ""}; the amount the provider reported charging for each call.`,
+              },
+            ]
+          : []),
+        ...(countWhere("MEASURED_USAGE_AT_LIST_PRICE") > 0
+          ? [
+              {
+                label: "Model usage",
+                amountUsd: sumWhere("MEASURED_USAGE_AT_LIST_PRICE"),
+                basis: "MEASURED" as const,
+                detail: `${countWhere("MEASURED_USAGE_AT_LIST_PRICE")} calls to ${model}; ${inputTokens} input and ${outputTokens} output tokens as reported by the provider, priced at list rates as of ${RATE_CARD_AS_OF}. Not an invoice.`,
+              },
+            ]
+          : []),
         {
           label: "Data and chain reads",
           amountUsd: 0,
@@ -49,6 +65,17 @@ export function buildReceipt(order: Order, usage: UsageRecord[], model: string, 
     { label: "Rework reserve", amountUsd: allowances.reworkReserveUsd, basis: "ESTIMATED", detail: "Planning allowance for rejected drafts and re-investigation." },
     { label: "Data and tooling allowance", amountUsd: allowances.dataToolAllowanceUsd, basis: "ESTIMATED", detail: "Planning allowance for paid data or RPC capacity that the public endpoints used today do not charge for." },
     ...(usageIsFixture ? [{ label: "Model usage", amountUsd: 0, basis: "ESTIMATED" as const, detail: "The synthesis model was a test double; no model cost was measured for this Brief." }] : []),
+    // a call the provider did not price is carried at the configured price cap: a ceiling, so it is an estimate
+    ...(countWhere("UPPER_BOUND_AT_PRICE_CAP") > 0
+      ? [
+          {
+            label: "Model usage, upper bound",
+            amountUsd: sumWhere("UPPER_BOUND_AT_PRICE_CAP"),
+            basis: "ESTIMATED" as const,
+            detail: `${countWhere("UPPER_BOUND_AT_PRICE_CAP")} calls for which the provider reported no charge; carried at the configured price cap.`,
+          },
+        ]
+      : []),
   ];
 
   const measuredTotalUsd = usd(measuredCosts.reduce((s, c) => s + c.amountUsd, 0));

@@ -10,8 +10,12 @@ export const ResearchBudget = z.object({
 export type ResearchBudget = z.infer<typeof ResearchBudget>;
 
 export const CostBasis = z.enum([
+  /** the amount the provider reports it charged for this call */
+  "MEASURED_PROVIDER_BILLED",
   /** provider-reported token usage multiplied by the published list price */
   "MEASURED_USAGE_AT_LIST_PRICE",
+  /** provider-reported token usage multiplied by the configured price cap: a ceiling, not a measurement */
+  "UPPER_BOUND_AT_PRICE_CAP",
   /** the call has no marginal price (public API, public RPC); only count and latency are measured */
   "NO_MARGINAL_PRICE",
   /** produced by a test double; not a real cost */
@@ -24,6 +28,8 @@ export const UsageRecord = z.object({
   seq: z.number().int(),
   kind: z.enum(["MODEL_CALL", "TOOL_CALL"]),
   name: z.string(),
+  /** the model that actually served a MODEL_CALL; differs from the requested id when a router chose it */
+  model: z.string().nullable().default(null),
   startedAt: z.string().datetime(),
   latencyMs: z.number().int().nonnegative(),
   inputTokens: z.number().int().nonnegative().nullable(),
