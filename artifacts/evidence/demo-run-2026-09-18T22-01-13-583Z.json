@@ -1,0 +1,381 @@
+[
+  {
+    "at": "2026-09-18T21:58:50.602Z",
+    "step": "health",
+    "data": {
+      "service": "bullseye",
+      "dataSource": {
+        "mode": "LIVE",
+        "asOf": "2026-09-18T21:58:50.595Z"
+      },
+      "synthesis": {
+        "provider": "openrouter",
+        "model": "openrouter/auto",
+        "ready": true,
+        "detail": "cost tier medium; price cap $3/$15 per million tokens in/out"
+      },
+      "paymentRail": {
+        "rail": "OKX_X402_TESTNET",
+        "network": "eip155:1952",
+        "ready": true,
+        "detail": "facilitator supports exact on eip155:1952",
+        "payTo": "0xa8bcd760a7c280c05090431c6afdf15df324d64a",
+        "isTestnet": true
+      },
+      "priceUsd": "3.00",
+      "budget": {
+        "maxVariableCostUsd": 0.6,
+        "maxModelCalls": 6,
+        "maxToolCalls": 14,
+        "maxLatencyMs": 180000,
+        "maxOutputTokensPerCall": 8000
+      },
+      "sdk": {
+        "@okxweb3/x402-core": "0.1.0",
+        "@okxweb3/x402-evm": "0.2.1",
+        "@okxweb3/x402-express": "0.1.1",
+        "@okxweb3/x402-fetch": "0.1.0"
+      }
+    }
+  },
+  {
+    "at": "2026-09-18T21:59:00.668Z",
+    "step": "detect",
+    "data": {
+      "scannedAt": "2026-09-18T21:58:50.605Z",
+      "actionsSeen": 50,
+      "signals": [
+        "sig_24ecf336903c1da1 LIVE QSRx rebased +0.665166% (CashDividend)",
+        "sig_2a3628bd141344e0 LIVE VGKx rebased +0.174197% (CashDividend)",
+        "sig_2c317c25deb8c350 LIVE OMCx rebased +0.712468% (CashDividend)",
+        "sig_785dd21340ea7ac6 LIVE IFFx rebased +0.329761% (CashDividend)",
+        "sig_98d0bed6cc31a245 LIVE VTx rebased +0.17955% (CashDividend)",
+        "sig_d0e86a4cb7a1763c LIVE SATAx rebased +0.051615% (CashDividend)",
+        "sig_0fe7dbc32828fd7c LIVE SATAx rebased +0.051595% (CashDividend)",
+        "sig_34c406db7722b909 LIVE VICIx rebased +1.312678% (CashDividend)",
+        "sig_60381af8149390ff LIVE HBANx rebased +0.685841% (CashDividend)",
+        "sig_a2f22a973ebadbd0 LIVE CRMx rebased +0.122934% (CashDividend)",
+        "sig_ba243236919cd35a LIVE BBYx rebased +0.726879% (CashDividend)",
+        "sig_f74788c69cbcd35d LIVE HPEx rebased +0.175988% (CashDividend)",
+        "sig_4e3bfa6a46a0db72 LIVE SATAx rebased +0.0516% (CashDividend)",
+        "sig_cdbf5733e4049d1a LIVE PRx rebased +0.45733% (CashDividend)",
+        "sig_7fc6bf06322a8adc LIVE SATAx rebased +0.051595% (CashDividend)"
+      ]
+    }
+  },
+  {
+    "at": "2026-09-18T21:59:00.668Z",
+    "step": "signal",
+    "data": {
+      "id": "sig_24ecf336903c1da1",
+      "category": "CORPORATE_ACTION_REBASE",
+      "asset": {
+        "symbol": "QSRx",
+        "name": "Restaurant Brands International xStock",
+        "isin": "CH1580497118",
+        "underlyingSymbol": "QSR",
+        "network": "XLayer",
+        "chainId": 196,
+        "tokenAddress": "0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046"
+      },
+      "observedAt": "2026-09-18T00:30:00.000Z",
+      "detectedAt": "2026-09-18T21:58:50.605Z",
+      "headline": "QSRx rebased +0.665166% (CashDividend)",
+      "reasonFlagged": "Issuer reported a CashDividend that moves the QSRx balance multiplier from 1 to 1.0066516577977895. Holder balances on X Layer change without Transfer events, so the change needs independent on-chain confirmation.",
+      "facts": {
+        "corporateActionId": "7b14c6dc-1532-4d64-908f-3c98b05efe94",
+        "corporateActionVersion": 2,
+        "caType": "CashDividend",
+        "status": "Initial",
+        "multiplierOld": "1",
+        "multiplierNew": "1.0066516577977895",
+        "changePct": 0.665166,
+        "grossCashflowUsd": "0.4875",
+        "netCashflowUsd": "0.4875",
+        "withholdingTaxRate": "0"
+      },
+      "sources": [
+        {
+          "mode": "LIVE",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/corporate-actions/history?pageSize=50&sortBy=createdTimeUtc&sortOrder=desc",
+          "fetchedAt": "2026-09-18T21:58:50.606Z",
+          "sha256": "8fae41aac14f57fe5983141e480bbf12c70353bab22558898fb1947c241e5e2a"
+        },
+        {
+          "mode": "LIVE",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx",
+          "fetchedAt": "2026-09-18T21:58:55.692Z",
+          "sha256": "b8f3f1679d528c6e7e893947e516b418fe226ed5eb663a57713a705e63987d63"
+        }
+      ],
+      "provenance": {
+        "mode": "LIVE",
+        "detector": "xstocks-rebase-on-xlayer",
+        "detectorVersion": "1.0.0",
+        "inputHash": "ccc0b59a8c7188066d67a1077b9f93fdbfd047de89534849fe57b0c44e14bdea"
+      }
+    }
+  },
+  {
+    "at": "2026-09-18T22:01:13.572Z",
+    "step": "investigation",
+    "data": {
+      "status": "PUBLISHED",
+      "stopReason": "COMPLETED",
+      "usage": {
+        "modelCalls": 4,
+        "toolCalls": 10,
+        "measuredModelCostUsd": 0.071725,
+        "upperBoundModelCostUsd": 0,
+        "budgetSpentUsd": 0.071725,
+        "costBases": [
+          "MEASURED_PROVIDER_BILLED"
+        ],
+        "costBasis": "MEASURED_PROVIDER_BILLED",
+        "routedModels": [
+          "deepseek/deepseek-v4-pro",
+          "openai/gpt-5.6-terra"
+        ]
+      },
+      "timeline": [
+        "ok  STARTED Investigating QSRx: QSRx rebased +0.665166% (CashDividend) — budget: $0.6 max variable cost, 6 model calls, 14 tool calls",
+        "ok  MODEL_CALL plan evidence collection — deepseek/deepseek-v4-pro · 1819 in / 782 out tokens · $0.0054 MEASURED_PROVIDER_BILLED",
+        "ok  TOOL_CALL get_corporate_action — {}",
+        "ok  EVIDENCE EV-CA · LIVE — Issuer corporate-action record 7b14c6dc-1532-4d64-908f-3c98b05efe94 v2 for QSRx: CashDividend, status Initial, multiplier 1 -> 1.0066516577977895, effective 2026-09-18T00:30:00.000Z.",
+        "ok  TOOL_CALL read_onchain_multiplier — {\"when\":\"before_effective\"}",
+        "ok  EVIDENCE EV-CHAIN-BEFORE · LIVE — multiplier() on X Layer at block 70922304 (2026-09-18T00:29:00.000Z, 60s before the issuer's effective time) returned 1.",
+        "ok  TOOL_CALL read_onchain_multiplier — {\"when\":\"after_effective\"}",
+        "ok  EVIDENCE EV-CHAIN-AFTER · LIVE — multiplier() on X Layer at block 70922424 (2026-09-18T00:31:00.000Z, 60s after the issuer's effective time) returned 1.0066516577977895.",
+        "ok  TOOL_CALL read_onchain_multiplier — {\"when\":\"latest\"}",
+        "ok  EVIDENCE EV-CHAIN-LATEST · LIVE — multiplier() on X Layer at head block 70999739 (2026-09-18T21:59:35.000Z) returned 1.0066516577977895.",
+        "ok  TOOL_CALL get_proof_of_reserves — {}",
+        "ok  EVIDENCE EV-POR · LIVE — Issuer proof-of-reserves at 2026-09-18T21:51:55.952Z: 3 QSR shares held against 0.432903322893486089 circulating QSRx.",
+        "ok  TOOL_CALL get_issuer_multiplier_state — {}",
+        "ok  EVIDENCE EV-MULT-API · LIVE — Issuer API reports current multiplier 1.0066516577977895 for the X Layer deployment; pending multiplier 0.",
+        "ok  TOOL_CALL find_onchain_activation — {}",
+        "ok  EVIDENCE EV-CHAIN-ACTIVATION · LIVE — multiplier() first returned 1.0066516577977895 at X Layer block 70922364 (2026-09-18T00:30:00.000Z); the previous block still returned 1.",
+        "ok  TOOL_CALL get_supply — {}",
+        "ok  EVIDENCE EV-SUPPLY · LIVE — Issuer reports total supply 814558.3231943906 and circulating supply 0.4329033180347051 across all chains; totalSupply() on X Layer is 79708.478347564988452547 at block 70999776.",
+        "ok  TOOL_CALL get_trading_status — {}",
+        "ok  EVIDENCE EV-STATUS · LIVE — Issuer trading status: market trading halted = false, atomic trading halted = false.",
+        "ok  TOOL_CALL get_reference_price — {}",
+        "ok  EVIDENCE EV-PRICE · LIVE — Issuer reference price for QSRx is 72.65 USD (current quote, not the ex-date price).",
+        "ok  MODEL_CALL plan evidence collection — deepseek/deepseek-v4-pro · 3936 in / 21 out tokens · $0.0066 MEASURED_PROVIDER_BILLED",
+        "ok  CHECKS 9 passed, 0 failed, 0 unknown — CHK-ACTION-STILL-CURRENT: PASS; CHK-BEFORE-MATCHES-OLD: PASS; CHK-AFTER-MATCHES-NEW: PASS; CHK-LATEST-MATCHES-NEW: PASS; CHK-API-STATE-MATCHES-CHAIN: PASS; CHK-RESERVES-COVER-SUPPLY: PASS; CHK-ACTIVATION-ON-SCHEDULE: PASS; CHK-REBASE-SIZE-PLAUSIBLE: PASS; CHK-TRADING-NOT-HALTED: PASS",
+        "ok  MODEL_CALL write brief — deepseek/deepseek-v4-pro · 4675 in / 4142 out tokens · $0.0225 MEASURED_PROVIDER_BILLED",
+        "ERR GATE Publication gate: REJECT (SCHEMA) — SCHEMA: headline: Required; whatHappened: Required; whyItMayMatter: Required; onchainObservations: Required; confidence: Expected object, received string; unknowns.0: Expected string, received object",
+        "ok  MODEL_CALL revise brief after gate rejection — openai/gpt-5.6-terra · 3 in / 1786 out tokens · $0.0372 MEASURED_PROVIDER_BILLED",
+        "ok  GATE Publication gate: PUBLISH",
+        "ok  PUBLISHED Published brf_a790c648a87d52dd — content hash a2062d65d7e88c01…"
+      ]
+    }
+  },
+  {
+    "at": "2026-09-18T22:01:13.572Z",
+    "step": "gate",
+    "data": {
+      "decision": "PUBLISH",
+      "evaluatedAt": "2026-09-18T22:01:12.416Z",
+      "gateVersion": "1.0.0",
+      "confidenceCap": "HIGH",
+      "findings": [
+        {
+          "rule": "INVESTIGATION_COMPLETED",
+          "passed": true,
+          "detail": "investigation stop reason: COMPLETED"
+        },
+        {
+          "rule": "SCHEMA",
+          "passed": true,
+          "detail": "draft matches BriefDraft"
+        },
+        {
+          "rule": "MANDATORY_EVIDENCE_PRESENT",
+          "passed": true,
+          "detail": "all mandatory evidence kinds collected"
+        },
+        {
+          "rule": "EVIDENCE_FRESH",
+          "passed": true,
+          "detail": "all evidence fresh as of 2026-09-18T22:01:12.416Z"
+        },
+        {
+          "rule": "EVIDENCE_MODE_ALLOWED",
+          "passed": true,
+          "detail": "no fixture data or fixture synthesis involved"
+        },
+        {
+          "rule": "CLAIMS_CITE_KNOWN_EVIDENCE",
+          "passed": true,
+          "detail": "7 claims cite collected evidence"
+        },
+        {
+          "rule": "QUANTITIES_RESOLVE_TO_EVIDENCE",
+          "passed": true,
+          "detail": "every declared quantity equals its evidence value"
+        },
+        {
+          "rule": "NUMBERS_IN_TEXT_ARE_EVIDENCED",
+          "passed": true,
+          "detail": "every number and timestamp in the text resolves to collected evidence"
+        },
+        {
+          "rule": "NO_INVESTMENT_ADVICE",
+          "passed": true,
+          "detail": "no advisory language found"
+        },
+        {
+          "rule": "FAILED_CHECKS_DISCLOSED",
+          "passed": true,
+          "detail": "no failed checks"
+        },
+        {
+          "rule": "CONFIDENCE_WITHIN_CAP",
+          "passed": true,
+          "detail": "draft claims HIGH; evidence and checks allow at most HIGH"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-09-18T22:01:13.575Z",
+    "step": "preview",
+    "data": {
+      "preview": {
+        "id": "brf_a790c648a87d52dd",
+        "headline": "QSRx cash-dividend multiplier update confirmed on X Layer",
+        "publishedAt": "2026-09-18T22:01:12.421Z",
+        "dataMode": "LIVE",
+        "synthesis": {
+          "provider": "openrouter",
+          "model": "openrouter/auto",
+          "mode": "LIVE",
+          "routedModels": [
+            "deepseek/deepseek-v4-pro",
+            "openai/gpt-5.6-terra"
+          ]
+        },
+        "signalId": "sig_24ecf336903c1da1",
+        "asset": "QSRx",
+        "confidence": "HIGH",
+        "evidenceCount": 10,
+        "evidenceKinds": [
+          "CORPORATE_ACTION_RECORD",
+          "ONCHAIN_MULTIPLIER_BEFORE",
+          "ONCHAIN_MULTIPLIER_AFTER",
+          "ONCHAIN_MULTIPLIER_LATEST",
+          "PROOF_OF_RESERVES",
+          "ISSUER_MULTIPLIER_STATE",
+          "ONCHAIN_ACTIVATION_BLOCK",
+          "SUPPLY",
+          "TRADING_STATUS",
+          "REFERENCE_PRICE"
+        ],
+        "unknownCount": 2,
+        "conflictCount": 0,
+        "contentHash": "a2062d65d7e88c01f018f95fde77e82698fede6cd21a8324f184e6914f09fa8f"
+      },
+      "signal": {
+        "id": "sig_24ecf336903c1da1",
+        "category": "CORPORATE_ACTION_REBASE",
+        "asset": {
+          "symbol": "QSRx",
+          "name": "Restaurant Brands International xStock",
+          "isin": "CH1580497118",
+          "underlyingSymbol": "QSR",
+          "network": "XLayer",
+          "chainId": 196,
+          "tokenAddress": "0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046"
+        },
+        "observedAt": "2026-09-18T00:30:00.000Z",
+        "detectedAt": "2026-09-18T21:58:50.605Z",
+        "headline": "QSRx rebased +0.665166% (CashDividend)",
+        "reasonFlagged": "Issuer reported a CashDividend that moves the QSRx balance multiplier from 1 to 1.0066516577977895. Holder balances on X Layer change without Transfer events, so the change needs independent on-chain confirmation.",
+        "facts": {
+          "corporateActionId": "7b14c6dc-1532-4d64-908f-3c98b05efe94",
+          "corporateActionVersion": 2,
+          "caType": "CashDividend",
+          "status": "Initial",
+          "multiplierOld": "1",
+          "multiplierNew": "1.0066516577977895",
+          "changePct": 0.665166,
+          "grossCashflowUsd": "0.4875",
+          "netCashflowUsd": "0.4875",
+          "withholdingTaxRate": "0"
+        },
+        "sources": [
+          {
+            "mode": "LIVE",
+            "source": "api.xstocks.fi",
+            "url": "https://api.xstocks.fi/api/v2/public/corporate-actions/history?pageSize=50&sortBy=createdTimeUtc&sortOrder=desc",
+            "fetchedAt": "2026-09-18T21:58:50.606Z",
+            "sha256": "8fae41aac14f57fe5983141e480bbf12c70353bab22558898fb1947c241e5e2a"
+          },
+          {
+            "mode": "LIVE",
+            "source": "api.xstocks.fi",
+            "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx",
+            "fetchedAt": "2026-09-18T21:58:55.692Z",
+            "sha256": "b8f3f1679d528c6e7e893947e516b418fe226ed5eb663a57713a705e63987d63"
+          }
+        ],
+        "provenance": {
+          "mode": "LIVE",
+          "detector": "xstocks-rebase-on-xlayer",
+          "detectorVersion": "1.0.0",
+          "inputHash": "ccc0b59a8c7188066d67a1077b9f93fdbfd047de89534849fe57b0c44e14bdea"
+        }
+      },
+      "withdrawn": null,
+      "priceUsd": "3.00",
+      "rail": {
+        "rail": "OKX_X402_TESTNET",
+        "network": "eip155:1952",
+        "ready": true,
+        "detail": "facilitator supports exact on eip155:1952",
+        "payTo": "0xa8bcd760a7c280c05090431c6afdf15df324d64a",
+        "isTestnet": true
+      },
+      "resource": "http://localhost:4402/api/v1/briefs/brf_a790c648a87d52dd"
+    }
+  },
+  {
+    "at": "2026-09-18T22:01:13.583Z",
+    "step": "unpaid request",
+    "data": {
+      "httpStatus": 402,
+      "paymentRequiredHeader": true,
+      "body": {
+        "x402Version": 2,
+        "resource": {
+          "url": "http://localhost:4402/api/v1/briefs/brf_a790c648a87d52dd",
+          "description": "Bullseye Brief brf_a790c648a87d52dd: QSRx rebased +0.665166% (CashDividend)",
+          "mimeType": "application/json"
+        },
+        "accepts": [
+          {
+            "scheme": "exact",
+            "network": "eip155:1952",
+            "asset": "0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c",
+            "amount": "3000000",
+            "payTo": "0xa8bcd760a7c280c05090431c6afdf15df324d64a",
+            "maxTimeoutSeconds": 300,
+            "extra": {
+              "name": "USD₮0",
+              "version": "1"
+            }
+          }
+        ],
+        "bullseye": {
+          "quoteId": "quo_7fde34706f1b7eba",
+          "termsHash": "3206cbaf4d2cb7813c7ea4690f4366b811990bd7828aa6607d8d6dbdde10e6df",
+          "priceUsd": "3.00",
+          "expiresAt": "2026-09-18T22:16:13.576Z",
+          "rail": "OKX_X402_TESTNET"
+        }
+      }
+    }
+  }
+]

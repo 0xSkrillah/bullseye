@@ -1,0 +1,99 @@
+{
+  "ranAt": "2026-09-18T21:04:42.798Z",
+  "node": "v26.7.0",
+  "sdk": {
+    "@okxweb3/x402-core": "0.1.0",
+    "@okxweb3/x402-evm": "0.2.1",
+    "@okxweb3/x402-express": "0.1.1",
+    "@okxweb3/x402-fetch": "0.1.0"
+  },
+  "steps": [
+    {
+      "step": "xstocks: corporate-action history fetched and schema-validated",
+      "status": "FAIL",
+      "detail": "Error: response for xstocks.ca-history.all[1] did not match the expected schema: Expected string, received null"
+    },
+    {
+      "step": "xlayer: connected to mainnet RPC",
+      "status": "PASS",
+      "detail": {
+        "rpc": "https://rpc.xlayer.tech",
+        "chainId": 196,
+        "blockNumber": 70996443,
+        "blockTimestamp": "2026-09-18T21:04:39.000Z"
+      }
+    },
+    {
+      "step": "xlayer: on-chain multiplier() brackets the issuer-reported rebase",
+      "status": "BLOCKED",
+      "detail": "no rebase on an X Layer deployment inside the last 96h"
+    },
+    {
+      "step": "okx: mock merchant returns an x402 v2 challenge on X Layer testnet",
+      "status": "PASS",
+      "detail": {
+        "httpStatus": 402,
+        "paymentRequiredHeaderPresent": false,
+        "challenge": {
+          "x402Version": 2,
+          "accepts": [
+            {
+              "scheme": "exact",
+              "network": "eip155:1952",
+              "asset": "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d",
+              "payTo": "0x3509655ad99effc7f3f74205482b1cb337ca08f7",
+              "extra": {
+                "name": "USDC_TEST",
+                "version": "1"
+              },
+              "maxAmountRequired": "10000",
+              "resource": "/api/v1/pay/mock-merchant/resource",
+              "mimeType": "application/json",
+              "maxTimeoutSeconds": 60
+            },
+            {
+              "scheme": "aggr_deferred",
+              "network": "eip155:1952",
+              "asset": "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d",
+              "payTo": "0x3509655ad99effc7f3f74205482b1cb337ca08f7",
+              "extra": {
+                "name": "USDC_TEST",
+                "version": "1"
+              },
+              "maxAmountRequired": "10000",
+              "resource": "/api/v1/pay/mock-merchant/resource",
+              "mimeType": "application/json",
+              "maxTimeoutSeconds": 60
+            }
+          ]
+        },
+        "eip712": {
+          "advertised": {
+            "name": "USDC_TEST",
+            "version": "1"
+          },
+          "advertisedDomainSeparator": "0x9d05c77bc3f9b001315150753622e0ecf5941ea24980eda9283fd8eb2dcd7bd0",
+          "onchainDomainSeparator": "0x7513e76c6d38c7986bcfe857d0e0772d5050d9db65ef5a941d1e15859baef959",
+          "match": false
+        }
+      }
+    },
+    {
+      "step": "okx: buyer completes a test payment against the mock merchant",
+      "status": "BLOCKED",
+      "detail": "run `npm run verify-payment -- --mock-merchant` to attempt it with the configured buyer"
+    },
+    {
+      "step": "okx: Bullseye seller rail initialises against the OKX facilitator",
+      "status": "PASS",
+      "detail": {
+        "rail": "OKX_X402_TESTNET",
+        "network": "eip155:1952",
+        "ready": true,
+        "detail": "facilitator supports exact on eip155:1952",
+        "payTo": "0xa8bcd760a7c280c05090431c6afdf15df324d64a",
+        "isTestnet": true
+      }
+    }
+  ]
+}

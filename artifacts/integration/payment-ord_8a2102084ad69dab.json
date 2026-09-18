@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-09-18T22:04:19.454Z",
+  "orderId": "ord_8a2102084ad69dab",
+  "network": "eip155:1952",
+  "txHash": "0xa2f4058c4a839f58e3dcdc574f2cd0090d76cffd0848d89cebd32d6cb723f28a",
+  "receiptStatus": "success",
+  "blockNumber": 41310183,
+  "quotedTransferFound": true,
+  "from": "0xc19E520dFE1A493961Fe7092F6017E1f2BDC50d6",
+  "verdict": "VERIFIED",
+  "note": "X Layer testnet: proves payment mechanics, not revenue"
+}

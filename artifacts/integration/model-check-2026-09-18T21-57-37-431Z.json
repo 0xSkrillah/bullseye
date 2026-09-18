@@ -1,0 +1,28 @@
+{
+  "ranAt": "2026-09-18T21:57:27.890Z",
+  "provider": "openrouter",
+  "requestedModel": "openrouter/auto",
+  "costTier": "medium",
+  "priceCapUsdPerMTok": {
+    "prompt": 3,
+    "completion": 15
+  },
+  "accountBefore": {
+    "usage": 0
+  },
+  "call": {
+    "outcome": "done",
+    "latencyMs": 5785,
+    "routedModel": "z-ai/glm-5.2",
+    "inputTokens": 27,
+    "outputTokens": 68,
+    "billedCostUsd": 0.0005055,
+    "text": "READY"
+  },
+  "accountAfter": {
+    "usage": 0
+  },
+  "accountUsageDeltaUsd": 0,
+  "problems": [],
+  "note": "account limit fields omitted from this artifact; usage is the key's cumulative spend in USD as reported by GET /api/v1/key. The ledger lagged the call by more than 3 s: a later read showed 0.07222918 after this call ($0.0005055) and one investigation ($0.071725)."
+}
