@@ -1,0 +1,39 @@
+{
+  "key": "xstocks.ca-history.QSRx",
+  "url": "https://api.xstocks.fi/api/v2/public/corporate-actions/history?pageSize=50&sortBy=createdTimeUtc&sortOrder=desc&symbol=QSRx",
+  "fetchedAt": "2026-09-18T19:27:30.732Z",
+  "sha256": "200cd8d5f5f05edc3b5872f78b1ce6c404be363069277edd939e1132c9d94ca6",
+  "body": {
+    "page": {
+      "currentPage": 1,
+      "pageSize": 50,
+      "totalPages": 1,
+      "totalNodes": 1,
+      "hasNextPage": false,
+      "hasPreviousPage": false
+    },
+    "nodes": [
+      {
+        "eventId": "7b14c6dc-1532-4d64-908f-3c98b05efe94",
+        "version": 2,
+        "xstockSymbol": "QSRx",
+        "spvSymbol": "QSR",
+        "caType": "CashDividend",
+        "effectiveTimeUtc": "2026-09-18T00:30:00.000Z",
+        "multiplierOld": "1",
+        "multiplierNew": "1.0066516577977895",
+        "grossCashflowUsd": "0.4875",
+        "netCashflowUsd": "0.4875",
+        "withholdingTaxRate": "0",
+        "fromUnits": null,
+        "toUnits": null,
+        "redemptionPriceUsd": null,
+        "notes": null,
+        "createdTimeUtc": "2026-09-17T20:12:09.875Z",
+        "status": "Initial",
+        "xstockIsin": "CH1580497118",
+        "spvIsin": "US76131D1037"
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "key": "xlayer.block-at.1789691460",
+  "url": "https://rpc.xlayer.tech",
+  "fetchedAt": "2026-09-18T19:28:37.210Z",
+  "sha256": "9082ae3cfe933d74134469f22300d1803dada8cb47d12925c6426c05f9cf8f39",
+  "body": {
+    "blockNumber": 70922424,
+    "blockTimestamp": "2026-09-18T00:31:00.000Z",
+    "rpcReads": 17
+  }
+}

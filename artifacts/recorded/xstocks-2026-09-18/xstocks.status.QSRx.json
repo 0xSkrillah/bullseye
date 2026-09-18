@@ -1,0 +1,11 @@
+{
+  "key": "xstocks.status.QSRx",
+  "url": "https://api.xstocks.fi/api/v2/public/system/status/QSRx",
+  "fetchedAt": "2026-09-18T19:28:23.350Z",
+  "sha256": "a3892dd7035eccfc9ed6710a537f1684e5f7e091e39259ef13ef18d47283f8e6",
+  "body": {
+    "symbol": "QSRx",
+    "isMarketTradingHalted": false,
+    "isAtomicTradingHalted": false
+  }
+}

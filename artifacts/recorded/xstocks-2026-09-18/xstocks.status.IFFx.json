@@ -1,0 +1,11 @@
+{
+  "key": "xstocks.status.IFFx",
+  "url": "https://api.xstocks.fi/api/v2/public/system/status/IFFx",
+  "fetchedAt": "2026-09-18T19:29:19.279Z",
+  "sha256": "43c17b38ce08e0f063698ba0855db3789055be218d9fe56493c97e374b3d940e",
+  "body": {
+    "symbol": "IFFx",
+    "isMarketTradingHalted": false,
+    "isAtomicTradingHalted": false
+  }
+}

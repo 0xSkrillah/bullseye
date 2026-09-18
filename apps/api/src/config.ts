@@ -1,5 +1,11 @@
+import { isAbsolute, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { ResearchBudget } from "@bullseye/domain";
+import type { ResearchBudget } from "@bullseye/domain";
+
+/** repository root; relative paths in the environment are resolved against it, not the process cwd */
+export const REPO_ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../..");
+const fromRoot = (p: string) => (p === ":memory:" || isAbsolute(p) ? p : resolve(REPO_ROOT, p));
 
 const Env = z.object({
   PORT: z.coerce.number().int().default(4402),
@@ -12,7 +18,7 @@ const Env = z.object({
   XLAYER_TESTNET_RPC_URL: z.string().url().default("https://testrpc.xlayer.tech"),
   /** live | recorded | fixture. "recorded" replays artifacts/recorded as HISTORICAL. */
   DATA_SOURCE: z.enum(["live", "recorded", "fixture"]).default("live"),
-  RECORDING_DIR: z.string().default("./artifacts/recorded/iffx-2026-09-18"),
+  RECORDING_DIR: z.string().default("./artifacts/recorded/xstocks-2026-09-18"),
 
   // investigator
   ANTHROPIC_API_KEY: z.string().optional(),
@@ -59,6 +65,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = Env.parse(env);
   return {
     ...parsed,
+    DB_PATH: fromRoot(parsed.DB_PATH),
+    RECORDING_DIR: fromRoot(parsed.RECORDING_DIR),
     budget: {
       maxVariableCostUsd: parsed.BUDGET_MAX_COST_USD,
       maxModelCalls: parsed.BUDGET_MAX_MODEL_CALLS,

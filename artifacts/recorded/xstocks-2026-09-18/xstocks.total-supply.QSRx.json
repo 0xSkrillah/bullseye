@@ -1,0 +1,9 @@
+{
+  "key": "xstocks.total-supply.QSRx",
+  "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx/total-supply",
+  "fetchedAt": "2026-09-18T19:28:23.583Z",
+  "sha256": "b82effccb1245adc258d88e9085d5660e26df53bbe0de44d57e2b954f68be43e",
+  "body": {
+    "value": 814558.3231943906
+  }
+}

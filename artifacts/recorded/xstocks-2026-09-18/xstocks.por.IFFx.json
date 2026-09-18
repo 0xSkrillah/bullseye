@@ -1,0 +1,19 @@
+{
+  "key": "xstocks.por.IFFx",
+  "url": "https://api.xstocks.fi/api/v2/public/proof-of-reserves/IFFx",
+  "fetchedAt": "2026-09-18T19:29:18.557Z",
+  "sha256": "a137b21030abb2dc457b1e7c18bb5cdd0b2c9d267723b249ad767e33fdcf0d69",
+  "body": {
+    "symbol": "IFFx",
+    "timestamp": "2026-09-18T19:25:22.350Z",
+    "sharesHeld": "5",
+    "circulatingSupply": "0.949587642861368799",
+    "holdings": [
+      {
+        "provider": "Alpaca",
+        "quantity": "5",
+        "symbol": "IFF"
+      }
+    ]
+  }
+}

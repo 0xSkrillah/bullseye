@@ -1,0 +1,21 @@
+{
+  "key": "xlayer.activation.0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5.70921464.70925964",
+  "url": "https://rpc.xlayer.tech",
+  "fetchedAt": "2026-09-18T19:29:08.367Z",
+  "sha256": "ff484d0c1f42a906ac5e60ecbd83ef96989daffb16d10fbb7b3a2f922bfd62d2",
+  "body": {
+    "chainId": 196,
+    "tokenAddress": "0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5",
+    "lastBlockWithOld": {
+      "blockNumber": 70922363,
+      "blockTimestamp": "2026-09-18T00:29:59.000Z",
+      "multiplier": "1"
+    },
+    "firstBlockWithNew": {
+      "blockNumber": 70922364,
+      "blockTimestamp": "2026-09-18T00:30:00.000Z",
+      "multiplier": "1.003297609233"
+    },
+    "rpcReads": 17
+  }
+}

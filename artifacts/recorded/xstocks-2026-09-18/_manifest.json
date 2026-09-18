@@ -1,0 +1,119 @@
+{
+  "capturedAt": "2026-09-18T19:27:25.580Z",
+  "sources": {
+    "xstocks": "https://api.xstocks.fi/api/v2",
+    "xlayerRpc": "https://rpc.xlayer.tech"
+  },
+  "detectorSignals": [
+    {
+      "id": "sig_24ecf336903c1da1",
+      "symbol": "QSRx",
+      "observedAt": "2026-09-18T00:30:00.000Z"
+    },
+    {
+      "id": "sig_2a3628bd141344e0",
+      "symbol": "VGKx",
+      "observedAt": "2026-09-18T00:30:00.000Z"
+    },
+    {
+      "id": "sig_2c317c25deb8c350",
+      "symbol": "OMCx",
+      "observedAt": "2026-09-18T00:30:00.000Z"
+    },
+    {
+      "id": "sig_785dd21340ea7ac6",
+      "symbol": "IFFx",
+      "observedAt": "2026-09-18T00:30:00.000Z"
+    },
+    {
+      "id": "sig_98d0bed6cc31a245",
+      "symbol": "VTx",
+      "observedAt": "2026-09-18T00:30:00.000Z"
+    },
+    {
+      "id": "sig_d0e86a4cb7a1763c",
+      "symbol": "SATAx",
+      "observedAt": "2026-09-18T00:30:00.000Z"
+    },
+    {
+      "id": "sig_0fe7dbc32828fd7c",
+      "symbol": "SATAx",
+      "observedAt": "2026-09-17T00:30:00.000Z"
+    },
+    {
+      "id": "sig_34c406db7722b909",
+      "symbol": "VICIx",
+      "observedAt": "2026-09-17T00:30:00.000Z"
+    },
+    {
+      "id": "sig_60381af8149390ff",
+      "symbol": "HBANx",
+      "observedAt": "2026-09-17T00:30:00.000Z"
+    },
+    {
+      "id": "sig_a2f22a973ebadbd0",
+      "symbol": "CRMx",
+      "observedAt": "2026-09-17T00:30:00.000Z"
+    },
+    {
+      "id": "sig_ba243236919cd35a",
+      "symbol": "BBYx",
+      "observedAt": "2026-09-17T00:30:00.000Z"
+    },
+    {
+      "id": "sig_f74788c69cbcd35d",
+      "symbol": "HPEx",
+      "observedAt": "2026-09-17T00:30:00.000Z"
+    },
+    {
+      "id": "sig_4e3bfa6a46a0db72",
+      "symbol": "SATAx",
+      "observedAt": "2026-09-16T00:30:00.000Z"
+    },
+    {
+      "id": "sig_cdbf5733e4049d1a",
+      "symbol": "PRx",
+      "observedAt": "2026-09-16T00:30:00.000Z"
+    },
+    {
+      "id": "sig_7fc6bf06322a8adc",
+      "symbol": "SATAx",
+      "observedAt": "2026-09-15T00:30:00.000Z"
+    }
+  ],
+  "investigable": [
+    {
+      "signalId": "sig_24ecf336903c1da1",
+      "symbol": "QSRx",
+      "evidence": [
+        "EV-CA",
+        "EV-MULT-API",
+        "EV-CHAIN-BEFORE",
+        "EV-CHAIN-AFTER",
+        "EV-CHAIN-LATEST",
+        "EV-CHAIN-ACTIVATION",
+        "EV-POR",
+        "EV-PRICE",
+        "EV-STATUS",
+        "EV-SUPPLY"
+      ]
+    },
+    {
+      "signalId": "sig_785dd21340ea7ac6",
+      "symbol": "IFFx",
+      "evidence": [
+        "EV-CA",
+        "EV-MULT-API",
+        "EV-CHAIN-BEFORE",
+        "EV-CHAIN-AFTER",
+        "EV-CHAIN-LATEST",
+        "EV-CHAIN-ACTIVATION",
+        "EV-POR",
+        "EV-PRICE",
+        "EV-STATUS",
+        "EV-SUPPLY"
+      ]
+    }
+  ],
+  "note": "Unmodified responses from the live sources named above, captured at capturedAt. Replayed by RecordedTransport and labelled HISTORICAL."
+}

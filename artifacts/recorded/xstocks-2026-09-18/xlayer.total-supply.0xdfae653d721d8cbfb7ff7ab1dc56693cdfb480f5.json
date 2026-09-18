@@ -1,0 +1,13 @@
+{
+  "key": "xlayer.total-supply.0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5",
+  "url": "https://rpc.xlayer.tech",
+  "fetchedAt": "2026-09-18T19:29:19.498Z",
+  "sha256": "68a9a883ef34a75b22158b8ca871c12882ef7bab7aaf893bc19bf0b5e42faa1f",
+  "body": {
+    "chainId": 196,
+    "tokenAddress": "0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5",
+    "blockNumber": 70990724,
+    "blockTimestamp": "2026-09-18T19:29:20.000Z",
+    "totalSupply": "79103.622278554533508281"
+  }
+}

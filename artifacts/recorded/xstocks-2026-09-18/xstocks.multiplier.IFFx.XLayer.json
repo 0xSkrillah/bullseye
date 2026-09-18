@@ -1,0 +1,12 @@
+{
+  "key": "xstocks.multiplier.IFFx.XLayer",
+  "url": "https://api.xstocks.fi/api/v2/public/assets/IFFx/multiplier?network=XLayer",
+  "fetchedAt": "2026-09-18T19:28:26.282Z",
+  "sha256": "509797e1450087ec7a6a1ca0d1f0b02e5851f64a211745977dfa5b0d276d49bb",
+  "body": {
+    "currentMultiplier": 1.003297609233,
+    "newMultiplier": 0,
+    "activationDateTime": 0,
+    "reason": null
+  }
+}

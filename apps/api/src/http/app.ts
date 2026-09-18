@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import express, { type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
 import type { Container } from "../container.js";
+import { REPO_ROOT } from "../config.js";
 import { toPreview } from "../briefs.js";
 import { buildReceipt } from "../economics/receipt.js";
 import { RailNotReadyError } from "../commerce/checkout.js";
@@ -163,7 +164,7 @@ export function createApp(c: Container) {
     });
   }
 
-  const webDist = resolve(process.cwd(), "../web/dist");
+  const webDist = resolve(REPO_ROOT, "apps/web/dist");
   if (existsSync(webDist)) {
     app.use(express.static(webDist));
     app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(resolve(webDist, "index.html")));

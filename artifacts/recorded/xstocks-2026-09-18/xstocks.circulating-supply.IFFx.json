@@ -1,0 +1,9 @@
+{
+  "key": "xstocks.circulating-supply.IFFx",
+  "url": "https://api.xstocks.fi/api/v2/public/assets/IFFx/circulating-supply",
+  "fetchedAt": "2026-09-18T19:29:19.498Z",
+  "sha256": "c3c8b76dc42022ab706b6c4032f292dd90a7b6f0c746214ab3fdc5239eee64a7",
+  "body": {
+    "value": 0.9495876416166648
+  }
+}

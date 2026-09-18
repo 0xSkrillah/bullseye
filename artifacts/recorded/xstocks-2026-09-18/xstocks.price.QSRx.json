@@ -1,0 +1,9 @@
+{
+  "key": "xstocks.price.QSRx",
+  "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx/price-data",
+  "fetchedAt": "2026-09-18T19:28:23.114Z",
+  "sha256": "bab612c67ac1633129ee03f73698153e5ce796481d4259a75e382409aa8dc79f",
+  "body": {
+    "quote": 72.75
+  }
+}

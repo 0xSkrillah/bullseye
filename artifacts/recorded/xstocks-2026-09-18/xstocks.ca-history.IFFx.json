@@ -1,0 +1,39 @@
+{
+  "key": "xstocks.ca-history.IFFx",
+  "url": "https://api.xstocks.fi/api/v2/public/corporate-actions/history?pageSize=50&sortBy=createdTimeUtc&sortOrder=desc&symbol=IFFx",
+  "fetchedAt": "2026-09-18T19:28:25.511Z",
+  "sha256": "c7a0640e442dea8e0141da83fe18b3c8db59e801c01c27f25f3fda3f9e9f7ffd",
+  "body": {
+    "page": {
+      "currentPage": 1,
+      "pageSize": 50,
+      "totalPages": 1,
+      "totalNodes": 1,
+      "hasNextPage": false,
+      "hasPreviousPage": false
+    },
+    "nodes": [
+      {
+        "eventId": "80ab63a3-b09e-4bf2-910d-171583785eaf",
+        "version": 2,
+        "xstockSymbol": "IFFx",
+        "spvSymbol": "IFF",
+        "caType": "CashDividend",
+        "effectiveTimeUtc": "2026-09-18T00:30:00.000Z",
+        "multiplierOld": "1",
+        "multiplierNew": "1.003297609233",
+        "grossCashflowUsd": "0.4",
+        "netCashflowUsd": "0.28",
+        "withholdingTaxRate": "0.3",
+        "fromUnits": null,
+        "toUnits": null,
+        "redemptionPriceUsd": null,
+        "notes": null,
+        "createdTimeUtc": "2026-09-17T20:22:24.985Z",
+        "status": "Initial",
+        "xstockIsin": "CH1580495633",
+        "spvIsin": "US4595061015"
+      }
+    ]
+  }
+}

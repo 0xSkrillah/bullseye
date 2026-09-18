@@ -43,7 +43,7 @@ describe("paid delivery over x402", () => {
     const paid = await request(app).get(path).set(headers);
     expect(paid.status).toBe(200);
     expect(paid.body).toMatchObject({ schema: "bullseye.delivery/v1", state: "DELIVERED", brief: { id: briefId }, payment: { rail: "FIXTURE", payer: buyer.account.address, chainVerified: false } });
-    expect(decodePaymentResponseHeader(paid.headers["payment-response"]).success).toBe(true);
+    expect(decodePaymentResponseHeader(paid.headers["payment-response"]!).success).toBe(true);
     expect(states(c, paid.body.orderId)).toEqual(["QUOTED", "PAYMENT_PENDING", "PAID", "DELIVERING", "DELIVERED"]);
   });
 

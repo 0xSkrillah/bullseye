@@ -1,0 +1,296 @@
+{
+  "key": "xstocks.asset.SATAx",
+  "url": "https://api.xstocks.fi/api/v2/public/assets/SATAx",
+  "fetchedAt": "2026-09-18T19:27:27.678Z",
+  "sha256": "3cc0b91b42c2b40a346277009592447fc8112b463f78e87d30279e04f950efaf",
+  "body": {
+    "id": "b5be8127-0d0b-457c-8c3d-8e02bc1b07ed",
+    "name": "Strive, Inc. Series A Preferred xStock",
+    "symbol": "SATAx",
+    "isin": "CH1564487317",
+    "underlyingSymbol": "SATA",
+    "underlyingIsin": "US8629452017",
+    "underlying": {
+      "symbol": "SATA",
+      "isin": "US8629452017",
+      "type": null,
+      "currency": "USD",
+      "listingCountry": "US"
+    },
+    "description": "Strive, Inc. Series A Preferred xStock",
+    "logo": "https://xstocks-metadata.backed.fi/logos/tokens/SATAx.png",
+    "isTradingHalted": false,
+    "trading": {
+      "currency": "USD",
+      "tradingHoursMode": "Regular",
+      "isTradingHalted": false,
+      "currentPeriod": "market",
+      "openNow": true,
+      "nextChangeAt": "2026-09-18T20:00:00.000Z",
+      "exchange": {
+        "mic": "XNAS",
+        "abbreviation": "NASDAQ",
+        "name": "Nasdaq Stock Market",
+        "timezone": "America/New_York"
+      },
+      "limitsPerPeriod": {
+        "market": {
+          "minOrderFiatValue": 1000,
+          "maxOrderFiatValue": 10000000
+        },
+        "extended": {
+          "minOrderFiatValue": 1000,
+          "maxOrderFiatValue": 0
+        },
+        "overnight": {
+          "minOrderFiatValue": 1000,
+          "maxOrderFiatValue": 0
+        },
+        "closed": {
+          "minOrderFiatValue": 1000,
+          "maxOrderFiatValue": 0
+        }
+      }
+    },
+    "deployments": [
+      {
+        "address": "EQACpO5AgrnmFIHJ3Ec5fkjoxRXdOdRV6oS_32Gh5MV7RmFf",
+        "network": "Ton",
+        "supportsAtomicSwaps": false,
+        "stablecoins": [
+          {
+            "symbol": "USDT",
+            "currency": "USD",
+            "network": "Ton",
+            "address": "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": false
+          }
+        ]
+      },
+      {
+        "address": "XsAxB3xLnt7xto5ChiSbVNHBoXcXzKuzS7FieiNYwtY",
+        "network": "Solana",
+        "supportsAtomicSwaps": true,
+        "stablecoins": [
+          {
+            "symbol": "USDC",
+            "currency": "USD",
+            "network": "Solana",
+            "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": true,
+            "solanaTokenProgram": "TokenProgram"
+          },
+          {
+            "symbol": "USDG",
+            "currency": "USD",
+            "network": "Solana",
+            "address": "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": true
+          }
+        ]
+      },
+      {
+        "address": "0x7c7445a40926152b8d24abdb9020e219d3d3380a",
+        "network": "Ink",
+        "wrapperAddressV2": "0x4329d7c2fa1de1c7218cd0c68587e2225c8c53fb",
+        "supportsAtomicSwaps": false,
+        "stablecoins": [
+          {
+            "symbol": "USDC",
+            "currency": "USD",
+            "network": "Ink",
+            "address": "0x2d270e6886d130d724215a266106e6832161eaed",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": false
+          }
+        ]
+      },
+      {
+        "address": "0x7c7445a40926152b8d24abdb9020e219d3d3380a",
+        "network": "Mantle",
+        "wrapperAddressV2": "0x4329d7c2fa1de1c7218cd0c68587e2225c8c53fb",
+        "supportsAtomicSwaps": false,
+        "stablecoins": [
+          {
+            "symbol": "USDC",
+            "currency": "USD",
+            "network": "Mantle",
+            "address": "0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": false
+          }
+        ]
+      },
+      {
+        "address": "0x7c7445a40926152b8d24abdb9020e219d3d3380a",
+        "network": "BinanceSmartChain",
+        "wrapperAddressV2": "0x4329d7c2fa1de1c7218cd0c68587e2225c8c53fb",
+        "supportsAtomicSwaps": false,
+        "stablecoins": [
+          {
+            "symbol": "USDC",
+            "currency": "USD",
+            "network": "BinanceSmartChain",
+            "address": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+            "decimals": 18,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": false
+          }
+        ]
+      },
+      {
+        "address": "0x7c7445a40926152b8d24abdb9020e219d3d3380a",
+        "network": "Arbitrum",
+        "wrapperAddressV2": "0x4329d7c2fa1de1c7218cd0c68587e2225c8c53fb",
+        "supportsAtomicSwaps": false,
+        "stablecoins": [
+          {
+            "symbol": "USDC",
+            "currency": "USD",
+            "network": "Arbitrum",
+            "address": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": false
+          }
+        ]
+      },
+      {
+        "address": "0x7c7445a40926152b8d24abdb9020e219d3d3380a",
+        "network": "HyperEVM",
+        "supportsAtomicSwaps": false,
+        "stablecoins": [
+          {
+            "symbol": "USDC",
+            "currency": "USD",
+            "network": "HyperEVM",
+            "address": "0xb88339cb7199b77e23db6e890353e22632ba630f",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": false
+          }
+        ]
+      },
+      {
+        "address": "0x7c7445a40926152b8d24abdb9020e219d3d3380a",
+        "network": "Optimism",
+        "wrapperAddressV2": "0x4329d7c2fa1de1c7218cd0c68587e2225c8c53fb",
+        "supportsAtomicSwaps": false,
+        "stablecoins": [
+          {
+            "symbol": "USDC",
+            "currency": "USD",
+            "network": "Optimism",
+            "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": false
+          }
+        ]
+      },
+      {
+        "address": "0x7c7445a40926152b8d24abdb9020e219d3d3380a",
+        "network": "XLayer",
+        "wrapperAddressV2": "0x4329d7c2fa1de1c7218cd0c68587e2225c8c53fb",
+        "supportsAtomicSwaps": true,
+        "stablecoins": [
+          {
+            "symbol": "USDG",
+            "currency": "USD",
+            "network": "XLayer",
+            "address": "0x4ae46a509f6b1d9056937ba4500cb143933d2dc8",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": true
+          },
+          {
+            "symbol": "USDC",
+            "currency": "USD",
+            "network": "XLayer",
+            "address": "0xb6ceceab302e2e4948951ee7843fc24e92933061",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": true
+          }
+        ]
+      },
+      {
+        "address": "0x7c7445a40926152b8d24abdb9020e219d3d3380a",
+        "network": "Ethereum",
+        "wrapperAddressV2": "0x4329d7C2Fa1De1c7218cd0c68587e2225C8C53fB",
+        "supportsAtomicSwaps": true,
+        "stablecoins": [
+          {
+            "symbol": "USDC",
+            "currency": "USD",
+            "network": "Ethereum",
+            "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": true
+          },
+          {
+            "symbol": "USDT",
+            "currency": "USD",
+            "network": "Ethereum",
+            "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": true
+          },
+          {
+            "symbol": "PYUSD",
+            "currency": "USD",
+            "network": "Ethereum",
+            "address": "0x6c3ea9036406852006290770bedfcaba0e23a0e8",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": true
+          },
+          {
+            "symbol": "EURC",
+            "currency": "EUR",
+            "network": "Ethereum",
+            "address": "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c",
+            "decimals": 6,
+            "issuance": false,
+            "redemption": false,
+            "supportsAtomicSwaps": true
+          },
+          {
+            "symbol": "USDG",
+            "currency": "USD",
+            "network": "Ethereum",
+            "address": "0xe343167631d89b6ffc58b88d6b7fb0228795491d",
+            "decimals": 6,
+            "issuance": true,
+            "redemption": true,
+            "supportsAtomicSwaps": true
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "key": "xstocks.circulating-supply.QSRx",
+  "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx/circulating-supply",
+  "fetchedAt": "2026-09-18T19:28:23.584Z",
+  "sha256": "3a110ea18e2b4b25eadb9e3bc0db95e5eeb77e82c746d2f55d1b38f29a85c052",
+  "body": {
+    "value": 0.4329033180347051
+  }
+}

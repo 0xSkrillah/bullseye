@@ -94,8 +94,15 @@ try {
   const exact = parsed.accepts.find((a) => a.scheme === "exact")!;
   const testnet = createPublicClient({ chain: xLayerTestnet, transport: http(config.XLAYER_TESTNET_RPC_URL) });
   const onchainSeparator = await testnet.readContract({ address: exact.asset as `0x${string}`, abi: parseAbi(["function DOMAIN_SEPARATOR() view returns (bytes32)"]), functionName: "DOMAIN_SEPARATOR" });
-  const types = { EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }] };
-  const advertised = hashDomain({ domain: { name: exact.extra.name, version: exact.extra.version, chainId: 1952, verifyingContract: exact.asset as `0x${string}` }, types });
+  const types = {
+    EIP712Domain: [
+      { name: "name", type: "string" },
+      { name: "version", type: "string" },
+      { name: "chainId", type: "uint256" },
+      { name: "verifyingContract", type: "address" },
+    ],
+  } as const;
+  const advertised = hashDomain({ domain: { name: exact.extra.name, version: exact.extra.version, chainId: 1952n, verifyingContract: exact.asset as `0x${string}` }, types });
   record("okx: mock merchant returns an x402 v2 challenge on X Layer testnet", res.status === 402 ? "PASS" : "FAIL", {
     httpStatus: res.status,
     paymentRequiredHeaderPresent: res.headers.has("payment-required"),
@@ -109,7 +116,7 @@ try {
 // 4. paying the mock merchant needs a funded buyer
 record(
   "okx: buyer completes a test payment against the mock merchant",
-  process.env.BUYER_PRIVATE_KEY ? "BLOCKED" : "BLOCKED",
+  "BLOCKED",
   process.env.BUYER_PRIVATE_KEY ? "run `npm run verify-payment -- --mock-merchant` to attempt it with the configured buyer" : "BUYER_PRIVATE_KEY is not set; a faucet-funded X Layer testnet wallet is required",
 );
 

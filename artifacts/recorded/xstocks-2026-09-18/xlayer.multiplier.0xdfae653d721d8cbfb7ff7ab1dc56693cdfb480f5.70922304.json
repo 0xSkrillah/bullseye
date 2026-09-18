@@ -1,0 +1,14 @@
+{
+  "key": "xlayer.multiplier.0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5.70922304",
+  "url": "https://rpc.xlayer.tech",
+  "fetchedAt": "2026-09-18T19:28:36.088Z",
+  "sha256": "d467ad38cbe9700a96f161bb31d5bc6507a065c886f02d15251b1a57352a6941",
+  "body": {
+    "chainId": 196,
+    "tokenAddress": "0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5",
+    "blockNumber": 70922304,
+    "blockTimestamp": "2026-09-18T00:29:00.000Z",
+    "multiplierRaw": "1000000000000000000",
+    "multiplier": "1"
+  }
+}

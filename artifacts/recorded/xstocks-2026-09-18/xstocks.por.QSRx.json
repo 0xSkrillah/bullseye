@@ -1,0 +1,19 @@
+{
+  "key": "xstocks.por.QSRx",
+  "url": "https://api.xstocks.fi/api/v2/public/proof-of-reserves/QSRx",
+  "fetchedAt": "2026-09-18T19:28:21.873Z",
+  "sha256": "ea61b6a2fcbff0cf19693d3cb91a5869c60568bfb9f6a56ebbc8fbd1bd9c1962",
+  "body": {
+    "symbol": "QSRx",
+    "timestamp": "2026-09-18T19:26:04.792Z",
+    "sharesHeld": "3",
+    "circulatingSupply": "0.432903322893486089",
+    "holdings": [
+      {
+        "provider": "Alpaca",
+        "quantity": "3",
+        "symbol": "QSR"
+      }
+    ]
+  }
+}

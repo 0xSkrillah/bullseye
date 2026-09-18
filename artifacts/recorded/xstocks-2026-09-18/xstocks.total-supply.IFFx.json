@@ -1,0 +1,9 @@
+{
+  "key": "xstocks.total-supply.IFFx",
+  "url": "https://api.xstocks.fi/api/v2/public/assets/IFFx/total-supply",
+  "fetchedAt": "2026-09-18T19:29:19.498Z",
+  "sha256": "ea4a976fe15cb8807ccde101c967f6bfb303006b4198a61f8ee7758d2b4370ec",
+  "body": {
+    "value": 796473.1979188217
+  }
+}

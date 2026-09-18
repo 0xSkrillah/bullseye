@@ -1,0 +1,9 @@
+{
+  "key": "xstocks.price.IFFx",
+  "url": "https://api.xstocks.fi/api/v2/public/assets/IFFx/price-data",
+  "fetchedAt": "2026-09-18T19:29:19.062Z",
+  "sha256": "f46f40967ddca7461727c3060aa8b3082c68d773f94934b8e514c370358ac88b",
+  "body": {
+    "quote": 82.785
+  }
+}

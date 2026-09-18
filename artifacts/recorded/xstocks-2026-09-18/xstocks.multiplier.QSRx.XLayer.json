@@ -1,0 +1,12 @@
+{
+  "key": "xstocks.multiplier.QSRx.XLayer",
+  "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx/multiplier?network=XLayer",
+  "fetchedAt": "2026-09-18T19:27:31.084Z",
+  "sha256": "341c6d5311689060111ce92a56e9f86dc1c0c7d77239248c89fefe46a0ca6635",
+  "body": {
+    "currentMultiplier": 1.0066516577977895,
+    "newMultiplier": 0,
+    "activationDateTime": 0,
+    "reason": null
+  }
+}
