@@ -9,6 +9,19 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { api, friendlyErrors } from "./lib.js";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { JOURNAL_DIR, type PurchaseEntry } from "./purchase-journal.js";
+
+/** the newest journal entry for this Brief at this seller, whatever its state */
+function findOpenOrDelivered(base: string, briefId: string): PurchaseEntry | null {
+  if (!existsSync(JOURNAL_DIR)) return null;
+  const entries = readdirSync(JOURNAL_DIR)
+    .filter((n) => n.endsWith(".json"))
+    .map((n) => JSON.parse(readFileSync(join(JOURNAL_DIR, n), "utf8")) as PurchaseEntry)
+    .filter((e) => e.briefId === briefId && e.base.replace(/\/+$/, "") === base.replace(/\/+$/, ""));
+  return entries.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
+}
 
 friendlyErrors();
 
@@ -75,9 +88,12 @@ log("unpaid request", { httpStatus: challenge.status, paymentRequiredHeader: cha
 if (buy) {
   const run = spawnSync(process.execPath, ["--import", "tsx", "scripts/buy-brief.ts", briefId, "--base", base], { encoding: "utf8" });
   log("agent purchase", `${run.stdout ?? ""}${run.stderr ?? ""}`.trim() || `buyer exited with status ${run.status}`);
-  const orders = await get("/api/orders");
-  const mine = orders.orders.find((o: any) => o.order.terms.briefId === briefId);
-  if (mine) log("order and delivery economics", mine);
+  // the buyer script wrote its order id and claim token to the purchase journal; the order is read with that token, as any buyer would
+  const bought = findOpenOrDelivered(base, briefId);
+  if (bought?.orderId) {
+    const mine = await api(base, `/api/orders/${bought.orderId}`, { headers: { "x-bullseye-claim": bought.claim } });
+    if (mine.ok) log("order and delivery economics", await mine.json());
+  }
   if (run.status !== 0) {
     log("stopped", `the purchase did not complete (buyer exit status ${run.status}); see "agent purchase" above`);
     save();

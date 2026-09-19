@@ -16,6 +16,7 @@ import { x402Client, x402HTTPClient } from "@okxweb3/x402-core/client";
 import { registerExactEvmScheme } from "@okxweb3/x402-evm/exact/client";
 import { xLayer, xLayerTestnet } from "../apps/api/src/adapters/xlayer.js";
 import { api, friendlyErrors, readPrivateKey, ScriptError } from "./lib.js";
+import { findByOrder, JOURNAL_DIR } from "./purchase-journal.js";
 
 friendlyErrors();
 
@@ -67,12 +68,19 @@ if (args.includes("--mock-merchant")) {
 const orderId = args.find((a) => /^ord_[0-9a-f]{16}$/.test(a));
 if (!orderId) {
   throw new ScriptError(
-    ["usage: npm run verify-payment -- <orderId> | --mock-merchant", "", "<orderId> is a real order id such as ord_96c880f882fe7647: `npm run buy` prints it, and GET /api/orders lists them."].join("\n"),
+    ["usage: npm run verify-payment -- <orderId> | --mock-merchant", "", "<orderId> is a real order id such as ord_96c880f882fe7647: `npm run buy` prints it. Run this from the checkout that made the purchase: an order is answered only to its buyer, and the claim token is in data/purchases/."].join("\n"),
     2,
   );
 }
 
-const found = (await (await api(base, `/api/orders/${orderId}`)).json()) as {
+// an order is answered to its buyer (or, on localhost, to the operator); the buyer's token is in the purchase journal and is never printed
+const held = findByOrder(JOURNAL_DIR, orderId);
+const asked = await api(base, `/api/orders/${orderId}`, held ? { headers: { "x-bullseye-claim": held.entry.claim } } : undefined);
+if (asked.status === 403) {
+  console.error(`order ${orderId} at ${base} is answered only to its buyer, and no purchase entry for it was found under ${JOURNAL_DIR}. Run this from the checkout that ran \`npm run buy\`.`);
+  process.exit(1);
+}
+const found = (await asked.json()) as {
   order?: { state: string; terms: { rail: string; network: string; asset: string; payTo: string; amount: string }; payment: { txHash: string | null; payer: string | null } | null };
 };
 if (!found.order) {
