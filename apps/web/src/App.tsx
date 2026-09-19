@@ -89,7 +89,7 @@ export function App() {
       <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>Not investigated yet. Starting an investigation is an operator action; the auto desk runs it on the public deployment.</span>
     </>
   ) : briefId && preview ? (
-    <BriefScreen preview={preview.preview} brief={delivered} quote={quote} now={now} paying={purchase.busy} purchaseOpen={purchaseIsOpen(purchase.record)} notice={notice} onRequestQuote={requestQuote} onPay={pay} onViewEvidence={() => setLockedId(lockedId)} />
+    <BriefScreen preview={preview.preview} signal={preview.signal} withdrawn={preview.withdrawn ?? null} gate={inv?.investigation.gate ?? null} brief={delivered} envelope={purchase.envelope} quote={quote} now={now} paying={purchase.busy} purchaseOpen={purchaseIsOpen(purchase.record)} notice={notice} onRequestQuote={requestQuote} onPay={pay} />
   ) : (
     <Investigation signal={locked.signal} data={inv} brief={delivered} now={now} />
   );

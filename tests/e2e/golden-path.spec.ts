@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { installTestWallet, SECOND_DEV_KEY } from "./wallet.js";
 
@@ -63,6 +64,15 @@ test("golden path: recorded event → investigation → gate → Brief → x402 
   await expect(page.locator('[data-kind="TESTNET"]:visible').first()).toBeVisible();
   await expect(page.getByTestId("gate-result").first()).toHaveAttribute("data-decision", "PUBLISH");
 
+  // before anyone pays: the gate's decision is already known, the times are kept apart, and the free side says what is being sold
+  await expect(page.getByTestId("gate-chip").first()).toHaveAttribute("data-decision", "PUBLISH");
+  await expect(page.getByTestId("event-times")).toContainText("Issuer effective time");
+  await expect(page.getByTestId("event-times")).toContainText("Sources last fetched");
+  await expect(page.getByTestId("paid-value")).toContainText("Did X Layer apply it?");
+  await expect(page.getByTestId("balance-illustration")).toContainText("Illustrative");
+  await page.getByRole("button", { name: "View evidence first" }).click();
+  await expect(page.getByTestId("evidence-index")).toContainText(/reserves/i);
+
   // the quote is fixed and hashed before the buyer approves it
   await page.getByRole("button", { name: "Request quote" }).click();
   await expect(page.getByTestId("paywall")).toBeVisible();
@@ -95,6 +105,24 @@ test("golden path: recorded event → investigation → gate → Brief → x402 
   await expect(page.locator(`[title="${envelope.brief.contentHash}"]`).first()).toBeVisible();
   expect(envelope.brief.evidence.every((e: { provenance: { mode: string } }) => e.provenance.mode === "HISTORICAL")).toBe(true);
   expect(envelope.brief.dataMode).toBe("FIXTURE"); // written by the test double, and labelled so
+
+  // every evidence id in a claim opens its source: URL, fetch time, hash and the value the claim used
+  await page.getByTestId("evidence-link").first().click();
+  const drawer = page.getByTestId("evidence-drawer");
+  await expect(drawer).toBeVisible();
+  await expect(drawer).toContainText(/sha256/i);
+  await page.keyboard.press("Escape");
+  await expect(drawer).toHaveCount(0);
+
+  // the download is the delivery the seller sent, and carries no claim token or signature
+  const downloading = page.waitForEvent("download");
+  await page.getByTestId("download-json").click();
+  const file = await downloading;
+  expect(file.suggestedFilename()).toBe(`bullseye-${envelope.brief.id}-${envelope.orderId}.json`);
+  const saved = JSON.parse(readFileSync(await file.path(), "utf8"));
+  expect(saved.brief.contentHash).toBe(envelope.brief.contentHash);
+  expect(saved.quote.termsHash).toBe(termsHash);
+  expect(JSON.stringify(saved)).not.toMatch(/bullseye-claim|payment-signature|paymentSignature/i);
 
   // economics: not revenue, estimates labelled as estimates, nothing measured claimed for a test double
   await expect(page.getByTestId("receipt-revenue-note")).toContainText(/not revenue/i);
