@@ -174,13 +174,16 @@ export interface NumberToken {
 
 const blank = (m: string) => " ".repeat(m.length);
 const ISO_STAMP = /\b\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z?)?\b/g;
-const TIME_OF_DAY = /\b\d{1,2}:\d{2}(:\d{2})?\b/g;
+// the seconds, a fraction and a trailing Z belong to the time: left behind they would read as stray figures
+const TIME_OF_DAY = /\b\d{1,2}:\d{2}(:\d{2}(\.\d+)?)?Z?(?!\w)/g;
+// a minus sign is a hyphen-minus, U+2212, or a hyphen or dash that typography puts in its place (U+2010 to U+2013, U+FE63, U+FF0D)
+const SIGNED = /^[-−‐‑‒–﹣－]/;
 // a figure starts where no word or decimal point runs into it, or directly after a currency code ("USD10")
-const NUMBER = /(?:(?<![\w.])|(?<=\busd))[-−]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+)/gi;
+const NUMBER = /(?:(?<![\w.])|(?<=\busd))[-−‐‑‒–﹣－]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+)/gi;
 
 function markerAt(before: string, after: string): { marker: SurfaceMarker; signBeforeCurrency: boolean } {
   const found = new Set<SurfaceMarker>();
-  const currency = /([-−]\s?)?(?:US\$|\$|\bUSD)\s?$/i.exec(before);
+  const currency = /([-−‐‑‒–﹣－]\s?)?(?:US\$|\$|\bUSD)\s?$/i.exec(before);
   if (currency || /^\s?(?:USD|US\s+dollars?|dollars?)\b/i.test(after)) found.add("USD");
   if (/^\s?(?:%|(?:percent|per\s+cent|pct|percentage\s+points?)\b)/i.test(after)) found.add("PERCENT");
   if (/^\s?(?:bps|bp|basis\s+points?)\b/i.test(after)) found.add("BPS");
@@ -211,12 +214,12 @@ export function extractNumberTokens(text: string): { numbers: NumberToken[]; tim
   const numbers: NumberToken[] = [];
   for (const m of scrubbed.matchAll(NUMBER)) {
     const raw = m[0];
-    const plain = raw.replace(/^[-−]/, "").replace(/,/g, "");
+    const plain = raw.replace(SIGNED, "").replace(/,/g, "");
     const magnitude = Number(plain);
     if (!Number.isFinite(magnitude)) continue;
     const [whole = "", fraction = ""] = plain.split(".");
     const { marker, signBeforeCurrency } = markerAt(text.slice(0, m.index), text.slice(m.index + raw.length));
-    const negative = /^[-−]/.test(raw) || signBeforeCurrency;
+    const negative = SIGNED.test(raw) || signBeforeCurrency;
     numbers.push({ raw, value: negative ? -magnitude : magnitude, decimals: fraction.length, index: m.index, marker, negative, digits: `${whole || "0"}${fraction}` });
   }
   // a digit the pattern above stepped over ("1.2.3") must not pass by being invisible
@@ -265,21 +268,47 @@ function sentenceWords(text: string, index: number): { words: Word[]; at: number
 }
 
 const DIRECTION_WINDOW = 6;
-const NEGATIVE_WORDS = new Set(["before", "earlier", "prior", "ahead", "decrease", "decreased", "decline", "declined", "fell", "fall", "drop", "dropped", "lower", "reduction", "reduced", "down", "negative", "deficit", "shortfall"]);
-const POSITIVE_WORDS = new Set(["after", "later", "increase", "increased", "rose", "rise", "higher", "gain", "up", "positive", "surplus"]);
+/**
+ * Words of time say which side of an instant an offset or lag lies on; words of size say which way a
+ * change or a surplus goes. Each kind is read only against its own kind of value: "the prior
+ * multiplier" says nothing about a percentage, "a lower block" nothing about an offset. "up" and
+ * "down" are left out as too common as particles ("down to the record").
+ */
+export const DIRECTION_WORDS = {
+  TIME: { negative: ["before", "earlier", "prior", "ahead"], positive: ["after", "later"] },
+  SIZE: {
+    negative: ["decrease", "decreased", "decline", "declined", "fell", "fall", "drop", "dropped", "lower", "reduction", "reduced", "negative", "deficit", "shortfall"],
+    positive: ["increase", "increased", "rose", "rise", "higher", "gain", "positive", "surplus"],
+  },
+} as const;
+
+const directionKind = (unit: UnitClass): keyof typeof DIRECTION_WORDS => (unit === "SECONDS" ? "TIME" : "SIZE");
+const quoted = (words: readonly string[]) => words.map((w) => `"${w}"`).join(", ");
+
+/** Generated from the word lists the gate reads, so the writing prompt cannot drift from them. One line, no figures. */
+export function directionGuide(): string {
+  const { TIME, SIZE } = DIRECTION_WORDS;
+  return `Direction words within six words of a signed figure, in the same sentence, are read as its sign, and the nearer word decides. For an offset or lag in seconds: ${quoted(TIME.negative)} say negative and ${quoted(TIME.positive)} say positive. For a percentage change or a share surplus: ${quoted(SIZE.negative)} say negative and ${quoted(SIZE.positive)} say positive. Keep the words that say negative away from a positive value, and the words that say positive away from a negative one.`;
+}
 
 interface Direction {
   negative: number | null;
   positive: number | null;
+  /** the nearest word of each kind that was read, for the rejection reason */
+  negativeWord: string | null;
+  positiveWord: string | null;
 }
 
-function directionNear(words: Word[], at: number): Direction {
-  const d: Direction = { negative: null, positive: null };
+const NO_DIRECTION: Direction = { negative: null, positive: null, negativeWord: null, positiveWord: null };
+
+function directionNear(words: Word[], at: number, unit: UnitClass): Direction {
+  const d: Direction = { ...NO_DIRECTION };
+  const { negative, positive } = DIRECTION_WORDS[directionKind(unit)];
   for (let i = Math.max(0, at - DIRECTION_WINDOW); i <= Math.min(words.length - 1, at + DIRECTION_WINDOW); i++) {
     const distance = Math.abs(i - at);
     for (const p of words[i]!.parts) {
-      if (NEGATIVE_WORDS.has(p) && (d.negative === null || distance < d.negative)) d.negative = distance;
-      if (POSITIVE_WORDS.has(p) && (d.positive === null || distance < d.positive)) d.positive = distance;
+      if ((negative as readonly string[]).includes(p) && (d.negative === null || distance < d.negative)) [d.negative, d.negativeWord] = [distance, p];
+      if ((positive as readonly string[]).includes(p) && (d.positive === null || distance < d.positive)) [d.positive, d.positiveWord] = [distance, p];
     }
   }
   return d;
@@ -344,9 +373,13 @@ const STATUS_WORDS = new Map<string, CheckStatus>([
 const COUNT_WINDOW = 4;
 /** a figure followed by one of these belongs to what came before it, not to a count noun further on */
 const WINDOW_STOPS = new Set([
-  ...["in", "at", "on", "from", "by", "per", "for", "with", "to", "than", "and", "or", "but"],
+  // not "of": "5 of 5 checks passed" counts checks twice
+  ...["in", "at", "on", "from", "by", "per", "for", "with", "to", "than", "and", "or", "but", "across", "until", "while", "when", "as", "is", "was"],
   ...(Object.entries(UNIT_SYNONYMS) as [UnitClass, readonly string[]][]).flatMap(([unit, names]) => (unit === "COUNT" ? [] : names.filter((n) => !n.includes(" ")))),
 ]);
+
+/** "version", "block", "chain": a figure directly after one of these is that value, whatever noun follows */
+const NAMES_A_VALUE = new Set((Object.entries(CONTEXT_WORDS) as [UnitClass, readonly string[]][]).flatMap(([unit, names]) => (unit === "COUNT" ? [] : names)));
 
 const nounOf = (w: Word) => w.parts.map((p) => COUNT_NOUNS.get(p)).find((n) => n !== undefined);
 const statusOf = (w: Word) => w.parts.map((p) => STATUS_WORDS.get(p)).find((s) => s !== undefined);
@@ -354,6 +387,9 @@ const statusOf = (w: Word) => w.parts.map((p) => STATUS_WORDS.get(p)).find((s) =
 /** "5 of 5 consistency checks passed", "3 evidence items", "0 failed": the noun a whole number counts, if any */
 function countContext(words: Word[], at: number): { noun: CountNoun; status: CheckStatus | null } | null {
   if (endsClause(words[at]!)) return null;
+  // "version 2 of the record": the declared version, not a count of records
+  const before = at > 0 ? words[at - 1]! : null;
+  if (before && !endsClause(before) && before.parts.some((p) => NAMES_A_VALUE.has(p))) return null;
   let status: CheckStatus | null = null;
   for (let k = 1; k <= COUNT_WINDOW && at + k < words.length; k++) {
     const w = words[at + k]!;
@@ -444,7 +480,8 @@ type Outcome = "NONE" | "UNIT" | "CONTEXT" | "SIGN" | "COARSE" | "BOUND";
 const OUTCOME_RANK: Record<Outcome, number> = { NONE: 0, UNIT: 1, CONTEXT: 2, SIGN: 3, COARSE: 4, BOUND: 5 };
 
 interface Surroundings {
-  direction: Direction;
+  /** by unit, because which words count depends on what the value measures */
+  direction: (unit: UnitClass) => Direction;
   /** set for free text, where a bare figure needs a word beside it that says what it measures */
   needsContext: ((unit: UnitClass) => boolean) | null;
 }
@@ -458,7 +495,7 @@ function bind(token: NumberToken, c: Candidate, around: Surroundings): Outcome {
       ? "UNIT"
       : token.marker === "NONE" && around.needsContext && !around.needsContext(c.spec.unit)
         ? "CONTEXT"
-        : !signFits(token, c.value, c.spec, around.direction)
+        : !signFits(token, c.value, c.spec, around.direction(c.spec.unit))
           ? "SIGN"
           : tooCoarse(token, c.spec, how)
             ? "COARSE"
@@ -470,9 +507,10 @@ function bind(token: NumberToken, c: Candidate, around: Surroundings): Outcome {
 
 const WRITTEN_AS: Record<SurfaceMarker, string> = { NONE: "a bare number", PERCENT: "a percentage", USD: "a USD amount", BPS: "basis points", SCALED: "a scaled figure", UNREADABLE: "an unreadable figure" };
 
-function reasonFor(outcome: Outcome, token: NumberToken, c: Candidate | null, inClaim: boolean): string {
+function reasonFor(outcome: Outcome, token: NumberToken, c: Candidate | null, inClaim: boolean, around: Surroundings): string {
   if (!c || outcome === "NONE") return inClaim ? "no declared quantity of this claim has this value; declare it in quantities or remove it" : "no evidence value equals it; remove it or use an evidence value";
   const unit = c.spec.unit;
+  const direction = around.direction(unit);
   switch (outcome) {
     case "UNIT":
       return unit === "PERCENT"
@@ -482,12 +520,15 @@ function reasonFor(outcome: Outcome, token: NumberToken, c: Candidate | null, in
           : `unit mismatch: ${c.label} is ${unit}, written as ${WRITTEN_AS[token.marker]}${c.spec.percentOk && token.marker !== "PERCENT" ? '; only its percentage form may carry "%"' : ""}`;
     case "CONTEXT":
       return `unit mismatch: ${c.label} is ${unit}, but no word beside the figure says so (for example "${CANONICAL_UNIT[unit]}")`;
-    case "SIGN":
+    case "SIGN": {
+      // the word that was read is named, so that the one revision can move or replace it
+      const said = (word: string | null) => (word ? `, but "${word}" near the figure says the opposite` : "");
       return c.value < 0
-        ? `sign mismatch: ${c.label} is ${c.value}; keep the minus sign${c.spec.signed ? ' or put "before", "earlier", "lower" or "fell" beside the figure' : ""}`
+        ? `sign mismatch: ${c.label} is ${c.value}${c.spec.signed ? said(direction.positiveWord) : ""}; keep the minus sign${c.spec.signed ? ` or put ${directionKind(unit) === "TIME" ? '"before" or "earlier"' : '"lower" or "fell"'} beside the figure` : ""}`
         : token.negative
           ? `sign mismatch: ${c.label} is ${c.value}, not negative`
-          : `sign mismatch: ${c.label} is ${c.value}, but the wording beside the figure says the opposite`;
+          : `sign mismatch: ${c.label} is ${c.value}${said(direction.negativeWord)}`;
+    }
     case "COARSE":
       return `precision too coarse: ${c.label} is ${c.value}; keep at least two significant digits${unit === "MULTIPLIER" ? " and do not round a changed multiplier to 1" : ""}`;
     default:
@@ -522,7 +563,8 @@ function stampIsEvidenced(written: string, stamps: string[]): boolean {
     return stamps.some((s) => stopsOnComponent(s, w));
   }
   if (written.includes("-")) return stamps.some((s) => s.slice(0, 10) === written);
-  const w = written.padStart(written.indexOf(":") === 1 ? written.length + 1 : written.length, "0");
+  const bare = written.replace(/Z$/, "");
+  const w = bare.padStart(bare.indexOf(":") === 1 ? bare.length + 1 : bare.length, "0");
   return stamps.some((s) => stopsOnComponent(s.slice(11), w));
 }
 
@@ -599,7 +641,7 @@ export function ungroundedFigures(input: GroundingInput): string[] {
           if (!allowed.includes(token.value)) fail(`not the derived count: the gate counts ${[...new Set(allowed)].join(" or ")} here`);
           continue;
         }
-        const around: Surroundings = { direction: at >= 0 ? directionNear(words, at) : { negative: null, positive: null }, needsContext: claim ? null : (unit) => at >= 0 && contextNear(words, at, unit) };
+        const around: Surroundings = { direction: (unit) => (at >= 0 ? directionNear(words, at, unit) : NO_DIRECTION), needsContext: claim ? null : (unit) => at >= 0 && contextNear(words, at, unit) };
         let best: Outcome = "NONE";
         let nearest: Candidate | null = null;
         for (const c of candidates) {
@@ -607,7 +649,7 @@ export function ungroundedFigures(input: GroundingInput): string[] {
           if (OUTCOME_RANK[outcome] > OUTCOME_RANK[best]) [best, nearest] = [outcome, c];
           if (best === "BOUND") break;
         }
-        if (best !== "BOUND") fail(reasonFor(best, token, nearest, claim !== null));
+        if (best !== "BOUND") fail(reasonFor(best, token, nearest, claim !== null, around));
       }
     }
     const stamps = evidenceStamps(stampItems);

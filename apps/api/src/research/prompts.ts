@@ -1,5 +1,8 @@
 import type { ConsistencyCheck, EvidenceItem, GateResult, ResearchBudget, SignalEvent } from "@bullseye/domain";
-import { unitGuide } from "../gate/numericGrounding.js";
+import { directionGuide, unitGuide } from "../gate/numericGrounding.js";
+
+/** said in both prompts: a declared value that runs into a count noun is judged as a count and rejected */
+const COUNT_NOUN_RULE = `A whole number followed within a few words by "check", "record", "source", "item" or "read" is read as a count, so do not let a declared value run into one of those words: put the word for what it measures first, or a comma after the figure.`;
 
 export const SYSTEM_PROMPT = `You are the research analyst on Bullseye, an intelligence desk covering tokenised real-world assets. A deterministic detector has flagged an event. Your job is to investigate it with the tools provided and then write a short, evidence-backed brief for analysts, integrators and software agents.
 
@@ -19,8 +22,9 @@ Writing numbers
 - Every claim lists the evidence ids it relies on. Every figure written in digits in a claim's text is also listed in that claim's quantities, with the evidence id, the key in that item's values map, the value copied from there and the unit for that key. A figure in a claim is accepted only against that claim's own quantities, and only from evidence that claim cites.
 - The headline, the confidence rationale, unknowns, limitations and conflict descriptions have no quantities. A figure there must equal an evidence value and stand beside the word for what it measures (multiplier, block, seconds, shares, tokens, ratio) or carry its unit sign. Prefer to keep figures in the claims.
 - A percentage is followed directly by "%". A US dollar amount is followed by "USD" or preceded by "$". A value that is neither carries no such sign.
-- Keep the sign of a negative value. An offset or lag that is negative may instead be written without the minus sign directly beside "before" or "earlier". Do not put "before", "earlier", "fell" or "lower" beside a positive value, or "after", "later", "rose" or "higher" beside a negative one.
-- A count of checks, evidence items, on-chain reads, unknowns, conflicts or limitations must be the real count.
+- Keep the sign of a negative value. An offset or lag that is negative may instead be written without the minus sign directly beside "before" or "earlier".
+- ${directionGuide()}
+- A count of checks, evidence items, on-chain reads, unknowns, conflicts or limitations must be the real count. ${COUNT_NOUN_RULE}
 - Do not spell out a figure that carries a unit; write the digits from evidence or leave the figure out. Avoid incidental numerals such as token decimals, the numbers of standards or proposals, list numbering and ordinals written with digits. Figures that appear only in a check's detail line, such as tolerances and gaps, are not evidence values.
 - Timestamps are written exactly as they appear in the evidence, or cut short at a whole component. A bare time of day must be the start of the time in an evidence timestamp.`;
 
@@ -80,7 +84,8 @@ const NUMBER_RULES = `Figures are checked by code, one by one:
 ${unitGuide()}
 - In the text a percentage is followed directly by "%", a US dollar amount is followed by "USD" or preceded by "$", and nothing else carries either sign.
 - Keep the sign. Round only to fewer decimals, keep at least two significant digits, and never round a changed multiplier to a whole number. A negative offset or lag may drop its minus sign only directly beside "before" or "earlier".
-- Counts of checks, evidence items, on-chain reads, unknowns, conflicts and limitations must be the real counts.
+- ${directionGuide()}
+- Counts of checks, evidence items, on-chain reads, unknowns, conflicts and limitations must be the real counts. ${COUNT_NOUN_RULE}
 - No spelled-out figures with a unit, and no incidental numerals: token decimals, numbers of standards or proposals, list numbering, tolerances quoted from a check's detail.
 - Timestamps exactly as in the cited evidence, or cut short at a whole component.`;
 

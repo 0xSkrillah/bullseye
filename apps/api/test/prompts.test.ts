@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GateResult } from "@bullseye/domain";
 import { BRIEF_DRAFT_JSON_SCHEMA, revisionPrompt, synthesisPrompt, SYSTEM_PROMPT } from "../src/research/prompts.js";
-import { CANONICAL_UNIT, VALUE_UNITS, unitAccepted, unitGuide } from "../src/gate/numericGrounding.js";
+import { CANONICAL_UNIT, DIRECTION_WORDS, VALUE_UNITS, unitAccepted, unitGuide } from "../src/gate/numericGrounding.js";
 
 type Schema = { properties?: Record<string, Schema>; items?: Schema; required?: string[] };
 
@@ -50,6 +50,22 @@ describe("the writing prompt", () => {
   it("tells the writer how figures are judged: declared, typed, signed, counted, not spelled out", () => {
     const prompt = synthesisPrompt([], []);
     for (const phrase of [`declared in that claim's "quantities"`, 'followed directly by "%"', '"USD"', "Keep the sign", "two significant digits", 'beside "before"', "real counts", "spelled-out", "incidental numerals"]) expect(prompt, phrase).toContain(phrase);
+  });
+
+  it("says which direction words are read near a signed figure, by kind of value, in both prompts and in a revision", () => {
+    for (const prompt of [synthesisPrompt([], []), SYSTEM_PROMPT, revisionPrompt(gate("NUMBERS_IN_TEXT_ARE_EVIDENCED"))]) {
+      expect(prompt).toContain("within six words of a signed figure");
+      const time = prompt.split("\n").find((l) => l.includes("offset or lag") && l.includes('"prior"'));
+      expect(time, "words of time").toBeDefined();
+      for (const word of [...DIRECTION_WORDS.TIME.negative, ...DIRECTION_WORDS.TIME.positive, ...DIRECTION_WORDS.SIZE.negative, ...DIRECTION_WORDS.SIZE.positive]) expect(time!, word).toContain(`"${word}"`);
+      expect(time!).toContain("percentage change or a share surplus");
+    }
+  });
+
+  it("warns that a whole number directly before a count noun is read as a count", () => {
+    const prompt = synthesisPrompt([], []);
+    for (const noun of ['"check"', '"record"', '"source"', '"item"', '"read"']) expect(prompt, noun).toContain(noun);
+    expect(prompt).toContain("is read as a count");
   });
 
   it("repeats the shape in a revision only when the rejection was about the shape", () => {

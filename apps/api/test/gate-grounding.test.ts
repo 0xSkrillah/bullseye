@@ -215,6 +215,46 @@ describe("numeric grounding through the full gate", () => {
       const both = { evidenceIds: ["EV-CHAIN-BEFORE", "EV-CHAIN-AFTER"], quantities: [q(e, "EV-CHAIN-BEFORE", "offsetSeconds", "seconds"), q(e, "EV-CHAIN-AFTER", "offsetSeconds", "seconds")] };
       expectPublished(withClaim({ text: "Reads were taken 60 seconds before and 60 seconds after the effective time.", ...both }));
     });
+
+    it("reads an en dash or a typographic hyphen before a figure as a minus sign", () => {
+      const e = evidence();
+      const change = [q(e, "EV-CA", "changePct", "%")];
+      // U+2013, U+2011, U+2010, U+2012, U+FE63, U+FF0D
+      for (const dash of ["–", "‑", "‐", "‒", "﹣", "－"]) {
+        expectUngrounded(withClaim({ text: `The multiplier changed by ${dash}0.33%.`, evidenceIds: ["EV-CA"], quantities: change }), `"${dash}0.33"`, "sign mismatch", "not negative");
+      }
+      expectUngrounded(withHeadline("IFFx multiplier –0.33% on X Layer"), 'headline: "–0.33"', "sign mismatch");
+      expectUngrounded(withClaim({ text: "The net cashflow per share is –$13.", evidenceIds: ["EV-CA"], quantities: [q(e, "EV-CA", "netCashflowUsd", "USD")] }), "sign mismatch");
+      // the honest negative, as a model's typography writes it
+      expectPublished(withClaim({ text: "The first read was taken at an offset of –60 seconds.", evidenceIds: ["EV-CHAIN-BEFORE"], quantities: [q(e, "EV-CHAIN-BEFORE", "offsetSeconds", "seconds")] }));
+      expectUngrounded(withClaim({ text: "The second read was taken at an offset of –60 seconds.", evidenceIds: ["EV-CHAIN-AFTER"], quantities: [q(e, "EV-CHAIN-AFTER", "offsetSeconds", "seconds")] }), '"–60"', "sign mismatch");
+      // a range is not a sign: the second figure of "A-B" stays unsigned
+      expect(extractNumberTokens("blocks 70922304–70922424").numbers.map((n) => n.value)).toEqual([70922304, 70922424]);
+    });
+
+    it("reads words of time only against seconds, and words of size only against a change or a surplus", () => {
+      const items = evidence({ "EV-CA": { changePct: 0.665166 }, "EV-POR": { surplusShares: 2.050412 } });
+      const only = (claim: Claim): GateInput => input({ draft: { ...draft(), whatHappened: [claim] }, evidence: items });
+      const change = [q(items, "EV-CA", "changePct", "%")];
+      expectPublished(only({ text: "The record reports a 0.665166% change from the prior multiplier of 1.", evidenceIds: ["EV-CA"], quantities: [...change, q(items, "EV-CA", "multiplierOld", "multiplier")] }));
+      expectPublished(only({ text: "The multiplier is 0.665166% above its prior value.", evidenceIds: ["EV-CA"], quantities: change }));
+      expectPublished(only({ text: "The change of 0.67% took effect ahead of the market open.", evidenceIds: ["EV-CA"], quantities: change }));
+      expectPublished(only({ text: "The multiplier moved by 0.67% relative to the multiplier before the effective time.", evidenceIds: ["EV-CA"], quantities: change }));
+      expectPublished(only({ text: "Reserves exceed supply by 2.05 shares, down to the custodian record.", evidenceIds: ["EV-POR"], quantities: [q(items, "EV-POR", "surplusShares", "shares")] }));
+      // a word of size still decides a change, whatever word of time stands nearer
+      expectUngrounded(only({ text: "The multiplier fell by a small amount, 0.67% after the record.", evidenceIds: ["EV-CA"], quantities: change }), '"0.67"', "sign mismatch");
+      // and a word of size says nothing about an offset
+      const e = evidence();
+      expectUngrounded(withClaim({ text: "The first read was taken at a lower block, 60 seconds off.", evidenceIds: ["EV-CHAIN-BEFORE"], quantities: [q(e, "EV-CHAIN-BEFORE", "offsetSeconds", "seconds")] }), '"60"', "sign mismatch");
+    });
+
+    it("names the direction word it read in a sign rejection", () => {
+      const items = evidence({ "EV-CA": { changePct: 13 } });
+      const only = (claim: Claim): GateInput => input({ draft: { ...draft(), whatHappened: [claim] }, evidence: items });
+      expectUngrounded(only({ text: "The multiplier moved 13%, a decline.", evidenceIds: ["EV-CA"], quantities: [q(items, "EV-CA", "changePct", "%")] }), "sign mismatch", 'EV-CA.changePct is 13, but "decline" near the figure says the opposite');
+      const e = evidence();
+      expectUngrounded(withClaim({ text: "The first read was taken 60 seconds after the effective time.", evidenceIds: ["EV-CHAIN-BEFORE"], quantities: [q(e, "EV-CHAIN-BEFORE", "offsetSeconds", "seconds")] }), 'EV-CHAIN-BEFORE.offsetSeconds is -60, but "after" near the figure says the opposite', '"before" or "earlier"');
+    });
   });
 
   describe("unit", () => {
@@ -335,6 +375,24 @@ describe("numeric grounding through the full gate", () => {
       expectPublished(withClaim({ text: "The activation search used 17 RPC reads.", evidenceIds: ["EV-CHAIN-ACTIVATION"], quantities: [q(items, "EV-CHAIN-ACTIVATION", "rpcReads", "reads")] }, items));
       expectUngrounded(withClaim({ text: "The activation search used 12 RPC reads.", evidenceIds: ["EV-CHAIN-ACTIVATION"], quantities: [q(items, "EV-CHAIN-ACTIVATION", "rpcReads", "reads")] }, items), '"12"');
     });
+
+    it("binds a figure that stands directly after its unit word to the declared value, never to a count", () => {
+      const items = [...evidence({ "EV-CA": { version: 2, newestVersion: 2 } }), activation()];
+      const version = { evidenceIds: ["EV-CA"], quantities: [q(items, "EV-CA", "version", "version")] };
+      expectPublished(withClaim({ text: "Version 2 of the record is the newest.", ...version }, items));
+      expectPublished(withClaim({ text: "Version 2 is the newest record.", ...version }, items));
+      // 1 is the number of items the claim cites and 6 the number collected; neither is the version
+      expectUngrounded(withClaim({ text: "Version 1 of the record is the newest.", ...version }, items), '"1"', "no declared quantity");
+      expectUngrounded(withClaim({ text: "Version 6 of the record is the newest.", ...version }, items), '"6"', "no declared quantity");
+      expectPublished(withClaim({ text: "Block 70922364 is the first record of the new multiplier.", evidenceIds: ["EV-CHAIN-ACTIVATION"], quantities: [q(items, "EV-CHAIN-ACTIVATION", "activationBlock", "block")] }, items));
+      expectPublished(withClaim({ text: "On chain 196 the reads agree with the issuer.", evidenceIds: ["EV-CHAIN-BEFORE"], quantities: [q(items, "EV-CHAIN-BEFORE", "chainId", "chain id")] }, items));
+    });
+
+    it("does not look for a count noun past a word that closes the figure's own phrase", () => {
+      const e = evidence();
+      expectPublished(withClaim({ text: "The contract returned 1 across all three reads.", evidenceIds: ["EV-CHAIN-BEFORE"], quantities: [q(e, "EV-CHAIN-BEFORE", "multiplier", "multiplier")] }));
+      expectPublished(withClaim({ text: "The multiplier was 1 until the record took effect.", evidenceIds: ["EV-CA", "EV-CHAIN-BEFORE"], quantities: [q(e, "EV-CA", "multiplierOld", "multiplier")] }));
+    });
   });
 
   describe("activation timing", () => {
@@ -351,6 +409,20 @@ describe("numeric grounding through the full gate", () => {
     it('rejects an invented time of day such as "00:45"', () => {
       expectUngrounded(withClaim({ text: "The contract switched at 00:45 UTC.", evidenceIds: ["EV-CA"], quantities: [] }), '"00:45"');
       expectUngrounded(withHeadline("IFFx multiplier change landed at 00:45 on X Layer"), 'headline: "00:45"');
+    });
+
+    it("reads a time of day with a trailing Z, or with a fraction, as one timestamp and not as stray figures", () => {
+      const none = { evidenceIds: ["EV-CA"], quantities: [] };
+      expectPublished(withClaim({ text: "The change took effect at 00:30:00Z.", ...none }));
+      expectPublished(withClaim({ text: "The change took effect at 00:30Z, as the issuer scheduled.", ...none }));
+      expectPublished(withClaim({ text: "The change took effect at 00:30:00.000Z.", ...none }));
+      expectPublished(withClaim({ text: "The change took effect on 2026-09-18 00:30:00Z.", ...none }));
+      expectPublished(withClaim({ text: "The head read was taken at 10:00:30Z.", evidenceIds: ["EV-CHAIN-LATEST"], quantities: [] }));
+      const r = evaluatePublication(withClaim({ text: "The contract switched at 00:45:00Z.", ...none }));
+      expect(failed(r)).toEqual(["NUMBERS_IN_TEXT_ARE_EVIDENCED"]);
+      expect(detail(r, "NUMBERS_IN_TEXT_ARE_EVIDENCED")).toBe('not grounded in evidence: whatHappened: "00:45:00Z" (timestamp is not in the cited evidence at the precision written)');
+      // a lag of 0 must not be what lets the seconds of a time through
+      expect(extractNumberTokens("at 22:00:13Z and 00:30Z").numbers).toEqual([]);
     });
 
     it('rejects a lag written as "45 seconds" when the evidence says 0', () => {
