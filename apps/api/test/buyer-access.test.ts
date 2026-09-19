@@ -189,9 +189,14 @@ describe("what anyone may know about sales", () => {
 
     const res = await request(app).get("/api/commerce/summary");
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ label: "AGGREGATE", countsAsRevenue: false, totals: { orders: 2, delivered: 1, byState: { DELIVERED: 1, PAYMENT_UNKNOWN: 1 } } });
+    expect(res.body).toMatchObject({ label: "AGGREGATE", countsAsRevenue: false, total: 2, byState: { DELIVERED: { count: 1, chainVerified: 0 }, PAYMENT_UNKNOWN: { count: 1, chainVerified: 0 } } });
     expect(res.body.note).toMatch(/not revenue/i);
-    expect(res.body.byBrief).toEqual([expect.objectContaining({ briefId, orders: 2, delivered: 1 })]);
+    expect(res.body.byBrief).toEqual([expect.objectContaining({ briefId, orders: 2, furthestState: "DELIVERED", count: 1 })]);
+    // the newest order's path, as states and times only; one order's cost lines are not a visitor's to read
+    expect(res.body.latest).toMatchObject({ state: "PAYMENT_UNKNOWN", chainVerified: false });
+    expect(res.body.latest.trail.map((e: { to: string }) => e.to)).toEqual(["QUOTED", "PAYMENT_PENDING", "PAYMENT_UNKNOWN"]);
+    expect(Object.keys(res.body.latest.trail[0]).sort()).toEqual(["at", "from", "to"]);
+    expect(res.body.latestReceipt).toBeNull();
 
     const text = JSON.stringify(res.body).toLowerCase();
     const order = c.ledger.get(paid.body.orderId)!;

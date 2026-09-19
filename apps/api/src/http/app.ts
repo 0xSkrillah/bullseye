@@ -318,29 +318,41 @@ export function createApp(c: Container) {
    * quote id, payer, transaction hash or amount paid by anyone in particular. Labelled, because a
    * count of testnet or fixture orders is not a sales figure.
    */
-  app.get("/api/commerce/summary", (_req, res) => {
+  app.get("/api/commerce/summary", (req, res) => {
     const rail = c.rail.status();
-    const byBrief = new Map<string, { briefId: string; symbol: string | null; orders: number; byState: Record<string, number>; delivered: number; chainVerified: number; newestState: string; newestStateAt: string }>();
-    const byState: Record<string, number> = {};
+    // how far along the path to delivery a state is; a failed payment is behind everything that may still deliver
+    const progress = ["PAYMENT_FAILED", "QUOTED", "PAYMENT_PENDING", "PAYMENT_UNKNOWN", "RECONCILIATION_REQUIRED", "PAID", "DELIVERY_FAILED", "DELIVERING", "DELIVERED"];
+    const verified = (o: { payment: { chainVerified: boolean } | null }) => o.payment?.chainVerified === true;
     const orders = c.ledger.list(500);
+    const byState: Record<string, { count: number; chainVerified: number }> = {};
+    const briefs = new Map<string, typeof orders>();
     for (const o of orders) {
-      byState[o.state] = (byState[o.state] ?? 0) + 1;
-      const row = byBrief.get(o.terms.briefId) ?? { briefId: o.terms.briefId, symbol: c.briefs.get(o.terms.briefId)?.signal.asset.symbol ?? null, orders: 0, byState: {}, delivered: 0, chainVerified: 0, newestState: o.state, newestStateAt: o.updatedAt };
-      row.orders += 1;
-      row.byState[o.state] = (row.byState[o.state] ?? 0) + 1;
-      if (o.state === "DELIVERED") row.delivered += 1;
-      if (o.payment?.chainVerified === true) row.chainVerified += 1;
-      if (o.updatedAt > row.newestStateAt) [row.newestState, row.newestStateAt] = [o.state, o.updatedAt];
-      byBrief.set(o.terms.briefId, row);
+      const cell = (byState[o.state] ??= { count: 0, chainVerified: 0 });
+      cell.count += 1;
+      if (verified(o)) cell.chainVerified += 1;
+      briefs.set(o.terms.briefId, [...(briefs.get(o.terms.briefId) ?? []), o]);
     }
+    const byBrief = [...briefs].map(([briefId, list]) => {
+      const furthestState = list.map((o) => o.state).sort((a, b) => progress.indexOf(b) - progress.indexOf(a))[0]!;
+      const there = list.filter((o) => o.state === furthestState);
+      return { briefId, symbol: c.briefs.get(briefId)?.signal.asset.symbol ?? null, orders: list.length, furthestState, count: there.length, chainVerified: there.filter(verified).length };
+    });
+    const newest = [...orders].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))[0] ?? null;
+    // one order's cost lines are the desk's records; the labelled totals for everyone are GET /api/desk/economics
+    const receipt = newest && audienceOf(req) === "DIAGNOSTIC" ? receiptFor(newest.id)?.receipt : null;
     res.json({
       label: "AGGREGATE",
       note: rail.rail === "OKX_X402_MAINNET" ? "Counts of orders by state. No buyer, order or payment identifiers." : "Counts of orders by state. No buyer, order or payment identifiers. These are test payments: not revenue, and not evidence of demand.",
       rail: rail.rail,
       isTestnet: rail.isTestnet,
       countsAsRevenue: rail.rail === "OKX_X402_MAINNET",
-      totals: { orders: orders.length, byState, delivered: byState.DELIVERED ?? 0, chainVerified: orders.filter((o) => o.payment?.chainVerified === true).length },
-      byBrief: [...byBrief.values()].sort((a, b) => (a.newestStateAt < b.newestStateAt ? 1 : -1)),
+      priceUsd: c.config.BRIEF_PRICE_USD,
+      total: orders.length,
+      byState,
+      byBrief,
+      /** the newest order's path through the states: times and states only, no reasons, no ids */
+      latest: newest ? { at: newest.updatedAt, state: newest.state, rail: newest.terms.rail, chainVerified: verified(newest), trail: newest.events.map((e) => ({ at: e.at, from: e.from, to: e.to })) } : null,
+      latestReceipt: receipt ? { rail: receipt.rail, countsAsRevenue: receipt.countsAsRevenue, priceUsd: receipt.priceUsd, measuredTotalUsd: receipt.measuredTotalUsd, estimatedTotalUsd: receipt.estimatedTotalUsd, estimatedContributionUsd: receipt.estimatedContributionUsd } : null,
     });
   });
 
