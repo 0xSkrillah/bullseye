@@ -38,6 +38,8 @@ function testWallet() {
 afterEach(() => {
   delete window.ethereum;
   delete window.bullseyeSigner;
+  // the signer keeps its authorization per quote in sessionStorage, which outlives the module reset below
+  sessionStorage.clear();
   vi.resetModules();
 });
 
@@ -59,6 +61,20 @@ describe("window.bullseyeSigner", () => {
     expect(authorization.to.toLowerCase()).toBe(terms.payTo.toLowerCase());
     expect(authorization.value).toBe(terms.amount);
     expect(signatures).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands back the authorization it holds for a quote, and asks the wallet again only once that one is dropped", async () => {
+    const { provider, signatures } = testWallet();
+    window.ethereum = provider;
+    await import("../signer");
+    const first = await window.bullseyeSigner!.sign(challengeFor(terms.amount), quote);
+    expect(await window.bullseyeSigner!.sign(challengeFor(terms.amount), quote)).toBe(first);
+    expect(signatures).toHaveBeenCalledTimes(1);
+
+    window.bullseyeSigner!.forget!(quote.id);
+    expect(sessionStorage.getItem(`bullseye.authorization.${quote.id}`)).toBeNull();
+    expect(await window.bullseyeSigner!.sign(challengeFor(terms.amount), quote)).not.toBe(first);
+    expect(signatures).toHaveBeenCalledTimes(2);
   });
 
   it("signs nothing when the challenge differs from the quote on screen", async () => {

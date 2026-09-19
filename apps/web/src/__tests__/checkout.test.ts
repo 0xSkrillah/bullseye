@@ -44,11 +44,16 @@ class FakeSeller implements CheckoutHttp {
     this.paidRequests += 1;
     let order = this.orders.get(signature);
     if (!order) {
-      if (this.mode === "insufficient") return this.reply(402, { error: "payment invalid: insufficient_funds" }, null, "challenge");
+      if (this.mode === "insufficient") {
+        // the real seller opens the order, bound to the claim sent, before it verifies: a failed verify leaves that order behind
+        this.orders.set(signature, { id: `ord_${String(this.orders.size + 1).padStart(16, "0")}`, claim, state: "PAYMENT_FAILED" });
+        return this.reply(402, { error: "payment invalid: insufficient_funds" }, null, "challenge");
+      }
       this.settles += 1;
       order = { id: `ord_${String(this.orders.size + 1).padStart(16, "0")}`, claim, state: this.mode === "unknown" ? "PAYMENT_UNKNOWN" : "PAID" };
       this.orders.set(signature, order);
     } else if (order.claim !== claim) return this.reply(403, { error: "claim_token_required" });
+    else if (order.state === "PAYMENT_FAILED") return this.reply(402, { error: "that authorization failed and cannot be reused" }, null, "challenge");
     if (this.dropNextReply) {
       this.dropNextReply = false;
       if (order.state === "PAID") order.state = "DELIVERED";
@@ -84,6 +89,21 @@ function wallet() {
   let n = 0;
   const signer: Signer = { sign: async () => `signature-${++n}` };
   return { signer, signatures: () => n };
+}
+
+/** signer.ts as the purchase sees it: one authorization per quote id, handed back until it is dropped */
+function holdingWallet() {
+  let n = 0;
+  const held = new Map<string, string>();
+  const signer: Signer = {
+    sign: async (_challenge, q) => {
+      const kept = held.get(q.id) ?? `signature-${++n}`;
+      held.set(q.id, kept);
+      return kept;
+    },
+    forget: (quoteId) => void held.delete(quoteId),
+  };
+  return { signer, signatures: () => n, holds: (quoteId: string) => held.has(quoteId) };
 }
 
 function memoryStorage() {
@@ -269,6 +289,46 @@ describe("a purchase that charges nothing says so", () => {
     expect(seller.settles).toBe(1);
   });
 
+  it("asks the wallet again on the same quote once the seller has said the first authorization failed", async () => {
+    const seller = new FakeSeller();
+    seller.mode = "insufficient";
+    const w = holdingWallet();
+    const c = desk(seller, browserStore(memoryStorage()), w.signer);
+    const out = await c.pay(quote());
+    expect(out.issue?.kind).toBe("INSUFFICIENT_FUNDS");
+    expect(out.record).toMatchObject({ status: "FAILED", paymentSignature: "signature-1" });
+
+    // the buyer tops up and presses Pay inside the quote's life: same quote id, new claim
+    seller.mode = "ok";
+    const retry = await c.pay(quote());
+    expect(retry.issue).toBeNull();
+    expect(retry.record).toMatchObject({ status: "DELIVERED", paymentSignature: "signature-2" });
+    expect(retry.record!.claim).not.toBe(out.record!.claim);
+    expect(w.signatures()).toBe(2);
+    expect(seller.settles).toBe(1);
+  });
+
+  it("keeps the held authorization in every status but FAILED", async () => {
+    const lost = new FakeSeller();
+    lost.dropNextReply = true;
+    const a = holdingWallet();
+    expect((await desk(lost, browserStore(memoryStorage()), a.signer).pay(quote())).record?.status).toBe("SUBMITTED");
+    expect(a.holds(quote().id)).toBe(true);
+
+    const unknown = new FakeSeller();
+    unknown.mode = "unknown";
+    const b = holdingWallet();
+    const c = desk(unknown, browserStore(memoryStorage()), b.signer);
+    expect((await c.pay(quote())).record?.status).toBe("UNKNOWN");
+    expect((await c.reconcile(BRIEF)).record?.status).toBe("UNKNOWN");
+    expect(b.holds(quote().id)).toBe(true);
+
+    const paid = new FakeSeller();
+    const d = holdingWallet();
+    expect((await desk(paid, browserStore(memoryStorage()), d.signer).pay(quote())).record?.status).toBe("DELIVERED");
+    expect(d.holds(quote().id)).toBe(true);
+  });
+
   it("does not show a delivery whose content hash is not the one that was quoted", async () => {
     const seller = new FakeSeller();
     seller.mode = "wrong_content";
@@ -276,6 +336,65 @@ describe("a purchase that charges nothing says so", () => {
     expect(out.issue?.kind).toBe("CONTENT_MISMATCH");
     expect(out.envelope).toBeNull();
     expect(out.record?.status).toBe("PAID");
+  });
+});
+
+describe("two tabs over one localStorage", () => {
+  it("a tab holding a stale declined purchase resumes the other tab's order instead of signing again", async () => {
+    const seller = new FakeSeller();
+    seller.mode = "unknown";
+    const storage = memoryStorage();
+    let declined = false;
+    let n = 0;
+    const signer: Signer = { sign: async () => { if (!declined) { declined = true; throw Object.assign(new Error("declined"), { name: "WalletError", code: "DECLINED" }); } return `signature-${++n}`; } };
+    const tabB = desk(seller, browserStore(storage), signer);
+    const tabA = desk(seller, browserStore(storage), signer);
+
+    expect((await tabB.pay(quote())).record?.status).toBe("INTENT");
+    const a = await tabA.pay(quote());
+    expect(a.record).toMatchObject({ status: "UNKNOWN", orderId: "ord_0000000000000001" });
+
+    const b = await tabB.pay(quote());
+    expect(n).toBe(1);
+    expect(seller.settles).toBe(1);
+    expect(b.record).toMatchObject({ status: "UNKNOWN", orderId: "ord_0000000000000001", claim: a.record!.claim });
+    expect(tabB.forget(BRIEF)).toBe(false);
+    expect(JSON.parse(storage.getItem(`bullseye.purchase.v1:${BRIEF}`)!)).toMatchObject({ orderId: "ord_0000000000000001", claim: a.record!.claim });
+  });
+
+  it("a tab holding a stale failed purchase does the same", async () => {
+    const seller = new FakeSeller();
+    seller.mode = "insufficient";
+    const storage = memoryStorage();
+    const w = wallet();
+    const tabB = desk(seller, browserStore(storage), w.signer);
+    const tabA = desk(seller, browserStore(storage), w.signer);
+
+    expect((await tabB.pay(quote())).record?.status).toBe("FAILED");
+    seller.mode = "ok";
+    const a = await tabA.pay(quote());
+    expect(a.record?.status).toBe("DELIVERED");
+
+    const b = await tabB.pay(quote());
+    expect(b.record).toMatchObject({ status: "DELIVERED", orderId: a.record!.orderId });
+    expect(w.signatures()).toBe(2);
+    expect(seller.settles).toBe(1);
+  });
+
+  it("keeps this page's copy when the write never reached storage, whatever storage still holds", async () => {
+    const seller = new FakeSeller();
+    seller.dropNextReply = true;
+    const w = wallet();
+    const inner = memoryStorage();
+    let writes = 0;
+    // the first write lands, every later one is refused: storage is left holding the unsigned INTENT
+    const storage = { ...inner, setItem: (k: string, v: string) => { if (++writes > 1) throw new DOMException("quota", "QuotaExceededError"); inner.setItem(k, v); } };
+    const c = desk(seller, browserStore(storage), w.signer);
+    expect((await c.pay(quote())).record?.status).toBe("SUBMITTED");
+    expect(JSON.parse(inner.getItem(`bullseye.purchase.v1:${BRIEF}`)!).status).toBe("INTENT");
+    expect((await c.pay(quote())).record?.status).toBe("DELIVERED");
+    expect(w.signatures()).toBe(1);
+    expect(seller.settles).toBe(1);
   });
 });
 

@@ -61,6 +61,15 @@ function install(): void {
       if (!held) remember(quote.id, signature, quote.terms.maxTimeoutSeconds);
       return signature;
     },
+    // a failed authorization stays bound to its order and claim at the seller; re-sent under a new claim it is refused for good
+    forget(quoteId) {
+      signedThisPage.delete(quoteId);
+      try {
+        sessionStorage.removeItem(KEY(quoteId));
+      } catch {
+        // storage unavailable: the page's own memory above was the only copy
+      }
+    },
   };
   window.bullseyeSigner = signer;
 }

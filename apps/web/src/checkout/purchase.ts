@@ -92,16 +92,21 @@ const KEY = (briefId: string) => `bullseye.purchase.v1:${briefId}`;
 /** localStorage when the browser allows it, this page's memory when it does not. Holds no private key. */
 export function browserStore(storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null = safeLocalStorage()): PurchaseStore {
   const memory = new Map<string, PurchaseRecord>();
+  /** Briefs whose last write did not reach storage: for these the page's copy is the newer one */
+  const memoryOnly = new Set<string>();
   return {
     get(briefId) {
-      const held = memory.get(briefId);
-      if (held) return held;
+      const held = memory.get(briefId) ?? null;
+      if (!storage || memoryOnly.has(briefId)) return held;
+      // storage is shared with every other tab, so it is read each time: a copy kept here may be older than a purchase made there
       try {
-        const raw = storage?.getItem(KEY(briefId));
+        const raw = storage.getItem(KEY(briefId));
         const parsed = raw ? (JSON.parse(raw) as PurchaseRecord) : null;
-        return parsed && parsed.v === 1 && parsed.briefId === briefId && typeof parsed.claim === "string" ? parsed : null;
+        if (!parsed || parsed.v !== 1 || parsed.briefId !== briefId || typeof parsed.claim !== "string") return held;
+        memory.set(briefId, parsed);
+        return parsed;
       } catch {
-        return null;
+        return held;
       }
     },
     put(record) {
@@ -109,13 +114,16 @@ export function browserStore(storage: Pick<Storage, "getItem" | "setItem" | "rem
       try {
         if (!storage) return false;
         storage.setItem(KEY(record.briefId), JSON.stringify(record));
+        memoryOnly.delete(record.briefId);
         return true;
       } catch {
+        memoryOnly.add(record.briefId);
         return false;
       }
     },
     remove(briefId) {
       memory.delete(briefId);
+      memoryOnly.delete(briefId);
       try {
         storage?.removeItem(KEY(briefId));
       } catch {
@@ -317,6 +325,8 @@ export class Checkout {
   private save(record: PurchaseRecord): PurchaseRecord {
     const next = { ...record, updatedAt: this.now().toISOString() };
     if (!this.deps.store.put(next)) this.durable = false;
+    // FAILED is the seller's word that this authorization paid for nothing and never will; only then may the wallet be asked for another
+    if (next.status === "FAILED") this.deps.signer()?.forget?.(next.quote.id);
     return next;
   }
 
