@@ -126,7 +126,7 @@ What the owner must do personally. Nobody else can, and nothing here has been do
 
 ## 3. Integration diagram
 
-Derived from `apps/api/src/commerce/checkout.ts` and `apps/api/src/http/app.ts` on this branch.
+Derived from `apps/api/src/commerce/checkout.ts` and `apps/api/src/http/app.ts` at `826820d`.
 
 ```
 BUYER                          BULLSEYE (seller)                      OKX facilitator      X Layer testnet
@@ -195,9 +195,8 @@ Two limits on this diagram:
 - The path through R1 ran once on the real testnet rail, against a local server (V20, V26). The
   rest is verified by tests on the fixture rail (V12, V27, V31). No payment has been made through
   the deployed address.
-- R2, and R3 for a buyer, exist on this branch. On `main`, which is what the deployment runs,
-  there is no `/api/orders/:id/delivery` route and reconcile is an operator route. They reach
-  buyers of the deployed service only after this branch is merged and deployed.
+- R2, and R3 for a buyer, have been on `main` and deployed since 19 September 2026 (CLAIM_LEDGER
+  V43). No buyer has used them on the deployed service.
 
 ---
 
@@ -410,16 +409,17 @@ spends something, contacts someone or publishes something, and must not start wi
 - [ ] **Finale date confirmed** (6 or 7 October) **before any travel is booked.** Owner. The kit
       and the terms page disagree. This file does not resolve it.
 - [ ] **Repository public.** Done in repo; owner re-checks. GitHub reported the repository as
-      PUBLIC when read on 19 September 2026. HANDOFF.md still says it was created private.
-- [ ] **Branch reviewed and merged to `main`.** Owner. The working branch is ahead of `main` and
-      has not been pushed. It holds the buyer recovery routes, the desk's reader separation, the
-      page copy that says what is sold, and the CI workflow.
-- [ ] **CI green on `main`.** Done in repo as a workflow (`.github/workflows/ci.yml`: typecheck,
-      unit tests and build on Node 22 and 24, browser tests; offline, no secrets). It is on the
-      branch only. No workflow run was listed for the repository on 19 September 2026. It counts
-      when a run on `main` is green, not before.
-- [ ] **Deployed service redeployed and health checked.** Owner. Railway deploys from `main`
-      when code changes. Then: `GET /api/health` shows data LIVE, synthesis ready, rail ready on
+      PUBLIC when read on 19 September 2026.
+- [x] **Fixes reviewed and merged to `main`.** Done on 19 September 2026 at the owner's
+      instruction: `826820d`, after a review by readers who had not written the fixes (CLAIM_LEDGER
+      V42). Owner: run `git pull` in the main checkout.
+- [x] **CI green on `main`.** The first run, on `826820d`, passed: Node 22, Node 24 and the
+      browser tests (V44). Re-check after any later push.
+- [x] **Deployed service redeployed and health checked.** Done on 19 September 2026: deployment
+      `9840ee30`, 19 read-only checks passed, the volume kept its three investigations and two
+      Briefs (V43; `artifacts/evidence/deployed-check-2026-09-19.json`). Owner re-checks on the
+      day of submission. Railway deploys from `main`
+      when code changes. To re-check: `GET /api/health` shows data LIVE, synthesis ready, rail ready on
       `eip155:1952` and `operatorRoutes: DISABLED` or `TOKEN_REQUIRED`; `GET /api/v1/catalog`
       lists a Brief; the self-test returns `402` with the header. Check that the volume kept its
       orders across the deploy.

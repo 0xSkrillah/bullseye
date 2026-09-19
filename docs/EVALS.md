@@ -4,7 +4,7 @@
 
 `npm test` (Vitest, no network, no keys) runs 250 API tests in 20 files under `apps/api/test/`
 (`npx vitest run`), then 59 web tests in 5 files (`npm run test:web`). Counts are from a run of
-both on the fixes branch on 19 September 2026; all passed.
+both at `826820d` on 19 September 2026; all passed. CI runs the same on every push (CLAIM_LEDGER V44).
 
 | Suite | What it proves |
 | --- | --- |
@@ -69,8 +69,8 @@ Gate 2.0.0 (`GATE_VERSION` in `apps/api/src/gate/publicationGate.ts`; the rule i
 `apps/api/src/gate/numericGrounding.ts`). The eleven `GateRule` values are unchanged. What changed
 is what `QUANTITIES_RESOLVE_TO_EVIDENCE`, `NUMBERS_IN_TEXT_ARE_EVIDENCED` and
 `FAILED_CHECKS_DISCLOSED` require. The gate is still a pure function: no check was handed to a
-model. It is on a branch that is not merged or deployed; `main`, which the public deployment is
-built from, still has gate 1.0.0.
+model. It has been on `main` and deployed since 19 September 2026. The Briefs published before
+that were judged by gate 1.0.0 and keep that result; no live draft has yet been judged by 2.0.0.
 
 The rule it replaces accepted any integer from 0 to 12 as prose, compared magnitudes so a sign
 could flip, tried a ×100 form of every value, and let a figure match any number anywhere in the

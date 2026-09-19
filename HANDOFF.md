@@ -8,9 +8,10 @@ State of the build on 18 September 2026 (build day 2 of 9). Submission closes 25
 An outside review of commit `1ae8e79` found three things that mattered: the browser could not
 finish or recover a purchase as the buyer's own, the read routes gave away buyers' orders and
 most of what a Brief sells, and the gate's number rule accepted figures with no evidence. All
-three were reproduced and fixed on a fixes branch. **That branch
-is not merged and not deployed**: a push to `main` deploys, and that is the owner's call. Until
-then the deployed service behaves as it did on 19 September (CLAIM_LEDGER V41).
+three were reproduced and fixed, reviewed before merging by readers who had not written the fixes
+(nine further findings, all fixed: CLAIM_LEDGER V42), and **merged to `main` as `826820d` and
+deployed on 19 September** at the owner's instruction (V43). The first CI run on that commit is
+green (V44). What the deployed service showed before the merge is kept in V41.
 
 What the branch adds, with the ledger row that says how each is verified:
 
@@ -21,16 +22,18 @@ What the branch adds, with the ledger row that says how each is verified:
 | Gate 2.0.0 (V36) | Figures bind to declared, typed quantities by unit, sign and rounding; counts are computed; no small-integer exemption; still eleven rules and still no model in the gate. |
 | Value and evidence | The Brief screen states the issuer's notice, what the desk checked, and the purchase, in that order; the gate's decision shows before purchase; evidence ids open the drawer; the delivery downloads as JSON; four clocks are kept apart and a late first detection is labelled retrospective. |
 | Economics (V38) | `GET /api/desk/economics`: each investigation counted once, rejected and unsold work included, revenue only for chain-verified mainnet orders. |
-| Proof (V39 to V41) | A restart test over a database file; a fresh-clone run of every suite; a CI workflow; a read-only snapshot of the deployed service. |
+| Proof (V39 to V44) | A restart test over a database file; a fresh-clone run of every suite; CI, green on its first run; a read-only snapshot of the deployed service before the merge and a 19-point read-only check of it after. |
 
-Tests on the branch, 19 September, Node 26.7.0: `npm run typecheck` clean; `npm test` API 250 in
+Tests at `826820d`, 19 September, Node 26.7.0: `npm run typecheck` clean; `npm test` API 250 in
 20 files, web 59 in 5; `npm run test:e2e` 7 browser tests (`PW_CHANNEL=msedge`); `npm run build`
 ok. The same from a fresh clone (V40). Baseline before the branch, at `84e4a22`: API 162 and 1
 skipped in 16 files, web 27 in 3, 3 browser tests.
 
 **What is proved where.** Everything above is proved offline: recorded data, fixture synthesiser,
-fixture rail, a stand-in wallet. On a real rail there is still exactly one settlement, by the
-agent buyer, against localhost (18 September). Nothing has been bought from the deployed address,
+fixture rail, a stand-in wallet. The deployed service has been read back and serves the new
+contract (V43), which is not the same as anyone buying from it. On a real rail there is still
+exactly one settlement, by the agent buyer, against localhost (18 September). Nothing has been
+bought from the deployed address,
 no browser purchase has used a wallet extension, and no live model draft has met gate 2.0.0. An
 unknown outcome cannot be forced on the real facilitator; if it does not recur by itself that
 case stays a fixture-rail demonstration and has to be labelled as one.
@@ -41,12 +44,13 @@ case stays a fixture-rail demonstration and has to be labelled as one.
    testnet x402 integration at a public URL satisfy "publish or integrate a working service
    through OKX AI", and is the finale on 6 October (terms page) or 7 October (builder kit)? Do not
    book travel until that is answered.
-2. Review and merge the branch. The Situation Room changes that move the wall to
-   `/api/commerce/summary` and `/api/desk/economics` belong in the same merge, or the wall loses
-   its order and cost panels when the public view ships.
-3. Decide whether the wall gets a `VIEWER_TOKEN` on Railway (read-only; without it the public wall
-   shows steps and counts, not on-chain figures or cost). This is a change to production
-   configuration and is the owner's to make.
+2. Done: merged and deployed (V43). Run `git pull` in the main checkout, which is behind
+   `origin/main` until then. The Situation Room is not on `main` yet; when it lands it has to read
+   `/api/commerce/summary` and `/api/desk/economics`, because `GET /api/orders` now answers `403`
+   to visitors.
+3. Decide whether the wall gets a `VIEWER_TOKEN` on Railway (read-only; without it a public wall
+   shows steps and counts, not on-chain figures or cost). None is set. This is a change to
+   production configuration and is the owner's to make.
 4. Approve a bounded testnet spend (each purchase is 3 test USD₮0; the buyer held 7) and run, from
    the main checkout where `.env` holds the buyer key: one agent purchase
    (`npm run buy -- latest --base https://bullseye-production-5d0c.up.railway.app`), then
@@ -86,10 +90,10 @@ measurement exists. Testnet payments are not revenue, and estimated contribution
 Still blocked: the mock-merchant test payment (CLAIM_LEDGER B1; SF-1: OKX's client SDK cannot
 parse the mock merchant's challenge). SF-2 is still untested end to end.
 
-Tests on `main`, all passing on 19 September: `npm test` (API 163 tests in 16 files, web 27 in
-3 files including the design system's five brand rules), `npm run test:e2e` (3 browser tests,
-offline configuration; `PW_CHANNEL=msedge` uses an installed browser; the fixes branch has more,
-see the section above), `npm run spike` (live checks; every
+Tests before the fixes, all passing on the morning of 19 September: `npm test` (API 163 tests in
+16 files, web 27 in 3 files including the design system's five brand rules), `npm run test:e2e`
+(3 browser tests, offline configuration; `PW_CHANNEL=msedge` uses an installed browser; today's
+totals are in the section above), `npm run spike` (live checks; every
 step PASS except the mock-merchant payment, which is BLOCKED). Offline fallback:
 `npm run start:offline`.
 Repository: https://github.com/0xSkrillah/bullseye. GitHub reported it as public on 19 September
@@ -199,9 +203,9 @@ what happened; do not relabel an offline run.
   reserves HISTORICAL for replayed recordings. One of the two should change.
 - `docs/design-system/design-system.json` is git-ignored because it records the tool it was made
   with. Everything else in that folder is committed as delivered.
-- The investigation timeline endpoint is unauthenticated and shows evidence summaries on `main`.
-  The fixes branch answers this: the public view keeps the steps and withholds what they found
-  (CLAIM_LEDGER V37). Open until that branch is deployed.
+- Closed on 19 September: the investigation timeline was unauthenticated and showed evidence
+  summaries. The public view now keeps the steps and withholds what they found (CLAIM_LEDGER V37,
+  read back from the deployment in V43).
 
 ## Web app: what is whose, and what is still open
 
@@ -211,7 +215,7 @@ to that scaffold's call sites. During integration `components/EconomicsReceipt.t
 `components/RadarField.tsx` from the scaffold were replaced; the versions here satisfy the
 scaffold's call sites and brand tests, and the design originals can be re-exported over them.
 
-Open items in the scaffold. Closed on the fixes branch: the "Gate running" chip on a published,
+Open items in the scaffold. Closed on 19 September: the "Gate running" chip on a published,
 unpurchased Brief; "View evidence first" doing nothing; a declined signature or a quote mismatch
 raising no banner; and delivery after a reconciled unknown payment needing a second press of Pay
 (the buyer's reconcile now collects the Brief, and the screen says what is happening). Still open:

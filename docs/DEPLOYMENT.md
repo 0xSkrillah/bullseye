@@ -80,8 +80,8 @@ machine.
 
 ## Operator routes
 
-This section and the next describe the code on the fixes branch (`HANDOFF.md` names it). That
-branch is not merged to `main` and is not deployed; the deployment above is built from `main`.
+This section and the next describe `main` as deployed since 19 September 2026 (`826820d`,
+Railway deployment `9840ee30`; CLAIM_LEDGER V43).
 
 `POST /api/signals/scan` and `POST /api/signals/:id/investigate` start work that spends model
 credit or calls third parties, and `GET /api/orders` lists every buyer's order with payer
@@ -104,11 +104,12 @@ so a `PUBLIC_BASE_URL` left at its localhost default cannot open these routes.
 Everything a buyer needs stays open: the catalogue, previews, quotes, the paid resource, and the
 buyer's own order by claim token. The desk's read routes stay open too, as a public projection.
 
-## What changes for visitors when this branch is deployed
+## What changed for visitors on 19 September 2026
 
-On `main`, which is what is deployed, `GET /api/orders` and `GET /api/orders/:id` answer anyone,
-and the investigation routes return evidence summaries, on-chain figures and per-run cost to
-anyone. On this branch:
+Until that day `GET /api/orders` and `GET /api/orders/:id` answered anyone, and the
+investigation routes returned evidence summaries, on-chain figures and per-run cost to anyone.
+Since then, as read back from the public address
+(`artifacts/evidence/deployed-check-2026-09-19.json`):
 
 - With neither `OPERATOR_TOKEN` nor `VIEWER_TOKEN` set, a public deployment serves the `PUBLIC`
   projection only: `GET /api/health` reports `diagnostics: "DISABLED"`. A visitor still sees that
@@ -146,7 +147,7 @@ secret, calls no model and can move no funds.
 | `test` | On Node 22.x and 24.x: `npm ci`, `npm run typecheck`, `npm test`, `npm run build`. |
 | `browser` | On Node 24.x: `npm ci`, `npx playwright install --with-deps chromium`, `npm run test:e2e`. Playwright traces are kept for 7 days when it fails. |
 
-The workflow is on the same unmerged branch. No run of it on GitHub is recorded here.
+The first run, on `826820d`, passed all three jobs (GitHub Actions run `35458243392`). One run.
 
 ## The auto desk
 

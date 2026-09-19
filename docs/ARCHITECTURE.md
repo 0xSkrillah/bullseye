@@ -423,10 +423,9 @@ a block number from that evidence, or the text of a claim, an unknown, a limitat
 confidence rationale.
 
 Status: the claim-token order routes, the browser and agent purchase records, and the
-projections in this section are on a branch that has not been merged to `main`, and are not
-deployed. The public deployment is built from `main`, where `GET /api/orders` and
-`GET /api/orders/:id` answer anyone, reconcile is an operator route, and the investigation routes
-return full detail. See `DEPLOYMENT.md`.
+projections in this section have been on `main` and deployed since 19 September 2026
+(CLAIM_LEDGER V43). Deployed is not exercised: nobody has bought from the deployed address. See
+`DEPLOYMENT.md`.
 
 SQLite through `node:sqlite`. Quotes are insert-only, `orders.quote_id` and `orders.terms_hash`
 are frozen, `order_events` is append-only; all three are enforced by triggers as well as by code.

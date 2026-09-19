@@ -1,0 +1,101 @@
+{
+  "what": "Read-only check of the public deployment after the fixes were merged: unauthenticated GET requests and one unpaid POST (the documented listing self-test). No payment, no signature, no operator route, no token.",
+  "base": "https://bullseye-production-5d0c.up.railway.app",
+  "checkedAt": "2026-09-19T17:31:32.773Z",
+  "commit": "826820d",
+  "deployment": "9840ee30-13e0-42ed-81cc-3839d244cae1",
+  "boundaries": [
+    "It shows that the deployed service serves the new read contract and still sells. It is not a purchase: nobody has bought from the deployed address.",
+    "An unknown-payment recovery, a browser purchase with a wallet extension and gate 2.0.0 judging a live draft have not happened on this deployment."
+  ],
+  "checks": [
+    {
+      "name": "health answers 200",
+      "ok": true
+    },
+    {
+      "name": "new code is live (health.diagnostics present)",
+      "ok": true,
+      "detail": "diagnostics=DISABLED operatorRoutes=DISABLED"
+    },
+    {
+      "name": "model and rail ready",
+      "ok": true,
+      "detail": "cost tier medium; price cap $3/$15 per million tokens in/out | facilitator supports exact on eip155:1952"
+    },
+    {
+      "name": "GET /api/orders is closed to visitors",
+      "ok": true,
+      "detail": "status 403"
+    },
+    {
+      "name": "an unknown order answers 403, not 404",
+      "ok": true,
+      "detail": "status 403"
+    },
+    {
+      "name": "delivery without a token answers 403",
+      "ok": true,
+      "detail": "status 403"
+    },
+    {
+      "name": "investigation list is the PUBLIC view",
+      "ok": true,
+      "detail": "audience=PUBLIC, runs=3"
+    },
+    {
+      "name": "old rows load (no 500 on rows written by the older code)",
+      "ok": true,
+      "detail": "3 runs"
+    },
+    {
+      "name": "usage carries no cost for a visitor",
+      "ok": true
+    },
+    {
+      "name": "published run: evidence and check details withheld",
+      "ok": true,
+      "detail": "26 timeline rows"
+    },
+    {
+      "name": "published run: steps still visible",
+      "ok": true
+    },
+    {
+      "name": "published run: chain figures withheld, issuer figures kept",
+      "ok": true
+    },
+    {
+      "name": "rejected run (nothing for sale): chain figures readable",
+      "ok": true
+    },
+    {
+      "name": "GET /api/commerce/summary",
+      "ok": true,
+      "detail": "total=0"
+    },
+    {
+      "name": "GET /api/desk/economics",
+      "ok": true,
+      "detail": "runs=3, measured=$0.169, revenue=$0"
+    },
+    {
+      "name": "public activity names no order or quote",
+      "ok": true
+    },
+    {
+      "name": "Briefs still on sale",
+      "ok": true,
+      "detail": "2 briefs"
+    },
+    {
+      "name": "listing self-test: 402 + PAYMENT-REQUIRED",
+      "ok": true,
+      "detail": "status 402, payTo 0xa8bcd760a7c280c05090431c6afdf15df324d64a"
+    },
+    {
+      "name": "the desk page is served",
+      "ok": true
+    }
+  ]
+}

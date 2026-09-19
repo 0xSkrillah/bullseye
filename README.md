@@ -18,7 +18,8 @@ tokenised stocks (xStocks).
 > on-chain. That is one investigation and one settlement. Testnet payments are not revenue, and
 > nothing here is evidence of demand. That purchase was made by the agent buyer against a server
 > on localhost; nobody has yet bought from the deployed address, and no purchase has been made
-> from a browser with a real wallet. The browser and recovery paths below are verified offline.
+> from a browser with a real wallet. The browser and recovery paths below are verified offline,
+> and the deployed service has been read back serving them (CLAIM_LEDGER V43); that is not a sale.
 
 ## What it does
 

@@ -61,10 +61,10 @@ none was reported, so the call is still costed.
 
 ## HTTP
 
-The routes below are the code on the fixes branch (`HANDOFF.md` names it). They are not merged
-to `main` and not deployed: on `main`, `GET /api/orders` and `GET /api/orders/:id` answer
-anyone, reconcile is an operator route, the investigation routes are not projected, and
-`GET /api/orders/:id/delivery`, `GET /api/commerce/summary` and `GET /api/desk/economics` do not
+The routes below are on `main` and deployed since 19 September 2026 (`826820d`; CLAIM_LEDGER
+V43). Before that commit `GET /api/orders` and `GET /api/orders/:id` answered anyone, reconcile
+was an operator route, the investigation routes were not projected, and
+`GET /api/orders/:id/delivery`, `GET /api/commerce/summary` and `GET /api/desk/economics` did not
 exist.
 
 Four kinds of caller (`ARCHITECTURE.md`, "Who may read what" and "Who an order is answered to"):

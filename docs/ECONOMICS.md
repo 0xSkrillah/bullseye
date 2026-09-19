@@ -111,9 +111,10 @@ Like a receipt, the contribution excludes labour, hosting, customer acquisition,
 and it is never presented as profit. Measured amounts, upper bounds and allowances stay in
 separate fields; they meet only in that last figure, which is labelled an estimate.
 
-The route reads the 500 newest investigations and the 500 newest orders. No figure from it is
-reported in this document: the code is on a branch that is not merged or deployed, and no live
-run has been made since the one below. `access-projections.test.ts` checks the arithmetic on
+The route reads the 500 newest investigations and the 500 newest orders. Read from the deployed
+service on 19 September 2026 it reported three investigations, measured research of $0.169, no
+orders and revenue of $0 (`artifacts/evidence/deployed-check-2026-09-19.json`): three runs of one
+desk on one day, of which one was rejected, not a cost per Brief. `access-projections.test.ts` checks the arithmetic on
 constructed runs and orders.
 
 `GET /api/commerce/summary` is the companion for sales: orders counted by state and by Brief,
