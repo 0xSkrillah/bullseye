@@ -65,6 +65,14 @@ describe("InvestigationTimeline", () => {
     fireEvent.click(rows[1]!);
     expect(onOpen).toHaveBeenCalledWith("EV-CA-RECORD");
   });
+
+  it("says a visitor's cost is withheld, and never draws the missing figure as zero", () => {
+    render(<InvestigationTimeline view={view} usage={{ modelCalls: 2, toolCalls: 7, costsWithheld: true }} budget={budget} now={new Date("2026-09-18T09:42:00Z")} />);
+    expect(screen.getByTestId("cost-withheld").textContent).toContain("withheld");
+    const text = screen.getByTestId("investigation").textContent ?? "";
+    expect(text).not.toMatch(/\$0\.0|measured/);
+    expect(text).toContain("2 / 6");
+  });
 });
 
 describe("EvidenceDrawer", () => {

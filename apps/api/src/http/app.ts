@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import express, { type NextFunction, type Request, type Response } from "express";
@@ -8,6 +8,8 @@ import { REPO_ROOT } from "../config.js";
 import { toPreview } from "../briefs.js";
 import { ACTIVITY_KINDS, recentActivity } from "./activity.js";
 import { buildReceipt } from "../economics/receipt.js";
+import { deskEconomics } from "../economics/deskEconomics.js";
+import { projectChain, projectInvestigation, projectUsage, type Audience } from "./projections.js";
 import { RailNotReadyError } from "../commerce/checkout.js";
 import { SDK_VERSIONS } from "../commerce/rail.js";
 import { SourceUnavailableError } from "../adapters/transport.js";
@@ -49,6 +51,19 @@ export function createApp(c: Container) {
     if (access === "TOKEN_REQUIRED") return res.status(401).json({ error: "operator_token_required" });
     next();
   };
+  /**
+   * Three readers. Anyone gets the public projection: the free preview. The operator, a holder of the
+   * viewer token, and a localhost development desk get diagnostics: evidence summaries, on-chain
+   * reads and per-run cost. The viewer token reads and can start nothing. A buyer is neither: a buyer
+   * reads one order with its claim token.
+   */
+  const audienceOf = (req: Request): Audience => {
+    if (operatorAccess(req) === "GRANTED") return "DIAGNOSTIC";
+    const viewer = c.config.VIEWER_TOKEN;
+    const given = /^Bearer (.+)$/i.exec(req.header("authorization") ?? "")?.[1] ?? "";
+    return viewer && timingSafeEqual(digest(given), digest(viewer)) ? "DIAGNOSTIC" : "PUBLIC";
+  };
+
   /**
    * One order belongs to one buyer. It is answered to whoever holds its claim token (sent as
    * X-Bullseye-Claim, never in the URL) and to the operator; to nobody else, whatever they know about it.
@@ -104,6 +119,8 @@ export function createApp(c: Container) {
       priceUsd: c.config.BRIEF_PRICE_USD,
       budget: c.config.budget,
       operatorRoutes: c.config.OPERATOR_TOKEN ? "TOKEN_REQUIRED" : isLocal ? "OPEN_ON_LOCALHOST" : "DISABLED",
+      /** evidence summaries, on-chain reads and per-run cost: who may read them here */
+      diagnostics: c.config.OPERATOR_TOKEN ? "TOKEN_REQUIRED" : isLocal ? "OPEN_ON_LOCALHOST" : c.config.VIEWER_TOKEN ? "TOKEN_REQUIRED" : "DISABLED",
       autoDesk: c.config.AUTO_DESK ? { enabled: true, intervalMinutes: c.config.AUTO_DESK_INTERVAL_MINUTES, maxInvestigationsPerDay: c.config.AUTO_DESK_MAX_INVESTIGATIONS_PER_DAY } : { enabled: false },
       sdk: SDK_VERSIONS,
     });
@@ -125,7 +142,8 @@ export function createApp(c: Container) {
   app.get("/api/signals/:id", (req, res) => {
     const signal = c.signals.get(req.params.id);
     if (!signal) return res.status(404).json({ error: "signal_not_found" });
-    res.json({ signal, investigation: c.investigations.latestForSignal(signal.id) });
+    const latest = c.investigations.latestForSignal(signal.id);
+    res.json({ signal, investigation: latest ? projectInvestigation(latest, audienceOf(req)) : null });
   });
 
   app.post("/api/signals/:id/investigate", operator, (req, res) => {
@@ -156,20 +174,24 @@ export function createApp(c: Container) {
 
   app.get("/api/investigations", (req, res) => {
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-    res.json({ investigations: c.investigations.list(limit).map((i) => ({ ...i, usage: usageSummary(i.id) })) });
+    const audience = audienceOf(req);
+    res.json({ audience, investigations: c.investigations.list(limit).map((i) => ({ ...i, usage: projectUsage(usageSummary(i.id), audience) })) });
   });
 
   app.get("/api/investigations/:id", (req, res) => {
     const view = c.investigations.view(String(req.params.id));
     if (!view) return res.status(404).json({ error: "investigation_not_found" });
+    const audience = audienceOf(req);
     // `budget` is today's configuration; `investigation.budgetAtStart` is what this run was held to
-    res.json({ investigation: view, budget: c.config.budget, usage: usageSummary(view.id) });
+    res.json({ audience, investigation: projectInvestigation(view, audience), budget: c.config.budget, usage: projectUsage(usageSummary(view.id), audience) });
   });
 
   /** the on-chain reads of a rebase investigation as numbers; `chain` is null until the first read exists */
   app.get("/api/investigations/:id/chain", (req, res) => {
-    if (!c.investigations.view(String(req.params.id))) return res.status(404).json({ error: "investigation_not_found" });
-    res.json({ chain: c.investigations.chain(String(req.params.id)) });
+    const view = c.investigations.view(String(req.params.id));
+    if (!view) return res.status(404).json({ error: "investigation_not_found" });
+    const audience = audienceOf(req);
+    res.json({ audience, chain: projectChain(c.investigations.chain(view.id), audience, view.briefId !== null) });
   });
 
   app.get("/api/desk/status", (_req, res) => {
@@ -192,7 +214,18 @@ export function createApp(c: Container) {
 
   app.get("/api/activity", (req, res) => {
     const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
-    res.json({ kinds: ACTIVITY_KINDS, events: recentActivity(c.db, limit) });
+    const events = recentActivity(c.db, limit);
+    if (audienceOf(req) === "DIAGNOSTIC") return res.json({ kinds: ACTIVITY_KINDS, events });
+    // a visitor's feed says that a quote was issued or an order moved, not which one: the same stand-in every time, so rows still group
+    const key = c.ledger.secret("public-activity-ref");
+    const standIn = (id: string) => `ref_${createHmac("sha256", key).update(id).digest("hex").slice(0, 16)}`;
+    res.json({ kinds: ACTIVITY_KINDS, events: events.map((e) => (e.kind === "QUOTE_ISSUED" || e.kind === "ORDER_STATE" ? { ...e, refId: standIn(e.refId) } : e)) });
+  });
+
+  /** what the desk has spent and taken, every investigation counted once; labelled, and free of any one buyer's or run's detail */
+  app.get("/api/desk/economics", (_req, res) => {
+    const runs = c.investigations.list(500).map((i) => ({ investigationId: i.id, status: i.status, briefId: i.briefId, usage: c.investigations.usage(i.id) }));
+    res.json({ ...deskEconomics(runs, c.ledger.list(500), allowances), rail: c.rail.status().rail, isTestnet: c.rail.status().isTestnet });
   });
 
   app.get("/api/briefs", (_req, res) => {

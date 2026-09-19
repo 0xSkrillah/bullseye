@@ -66,6 +66,11 @@ const Env = z.object({
    */
   OPERATOR_TOKEN: z.string().min(24).optional(),
   /**
+   * Bearer token that reads the desk's diagnostics (evidence summaries, on-chain reads, per-run cost)
+   * and can start nothing. It is what a wall display is given, so the operator's token never sits in a browser.
+   */
+  VIEWER_TOKEN: z.string().min(24).optional(),
+  /**
    * Header the hosting edge sets to the client's address and that a client cannot forge through it
    * (Railway: x-real-ip). Rate limits are keyed on it when set, and on the connection's address otherwise.
    */

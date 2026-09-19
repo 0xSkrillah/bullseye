@@ -95,7 +95,7 @@ describe("GET /api/investigations/:id/chain", () => {
   it("is null before any read exists and 404 for an unknown run", async () => {
     const { c, app, view } = await shop();
     c.db.prepare("DELETE FROM evidence WHERE investigation_id = ?").run(view.id);
-    expect((await request(app).get(`/api/investigations/${view.id}/chain`)).body).toEqual({ chain: null });
+    expect((await request(app).get(`/api/investigations/${view.id}/chain`)).body).toEqual({ audience: "DIAGNOSTIC", chain: null });
     expect((await request(app).get("/api/investigations/inv_0000000000000000/chain")).status).toBe(404);
   });
 });

@@ -49,8 +49,10 @@ export function InvestigationTimeline({ view, usage, budget, now, evidence, onOp
   const endMs = view.finishedAt ? Date.parse(view.finishedAt) : nowMs;
   const elapsedMs = Math.max(0, endMs - Date.parse(view.startedAt));
   const fixtureCost = usage.costBasis === "FIXTURE";
+  // a visitor's view carries the call counts and no cost: an absent figure is said to be withheld, never drawn as zero
+  const costKnown = usage.costsWithheld !== true && usage.measuredModelCostUsd !== undefined;
   // the bar tracks what the governor counts against the ceiling; the word "measured" is kept for measured spend only
-  const counted = usage.budgetSpentUsd ?? usage.measuredModelCostUsd;
+  const counted = usage.budgetSpentUsd ?? usage.measuredModelCostUsd ?? 0;
   const upperBound = usage.upperBoundModelCostUsd ?? 0;
   const byId = new Map((evidence ?? []).map((e) => [e.id, e]));
 
@@ -59,6 +61,11 @@ export function InvestigationTimeline({ view, usage, budget, now, evidence, onOp
       <div className="be-budget" aria-label="Research budget">
         <div style={view.stopReason === "BUDGET_COST_EXCEEDED" ? hit : undefined}>
           Cost
+          {!costKnown ? (
+            <b data-testid="cost-withheld">
+              withheld / <Money usd={budget.maxVariableCostUsd} basis="LIMIT" />
+            </b>
+          ) : (
           <b>
             <Money usd={upperBound > 0 ? counted - upperBound : counted} basis="MEASURED" />
             {upperBound > 0 && (
@@ -75,8 +82,9 @@ export function InvestigationTimeline({ view, usage, budget, now, evidence, onOp
               </>
             )}
           </b>
+          )}
           <i>
-            <span style={{ width: share(counted, budget.maxVariableCostUsd) }} />
+            <span style={{ width: costKnown ? share(counted, budget.maxVariableCostUsd) : "0%" }} />
           </i>
         </div>
         <div style={view.stopReason === "BUDGET_MODEL_CALLS_EXCEEDED" ? hit : undefined}>
@@ -163,9 +171,13 @@ export function InvestigationTimeline({ view, usage, budget, now, evidence, onOp
         <span>{formatCount(usage.modelCalls)} model calls</span>
         <span>{formatCount(usage.toolCalls)} tool calls</span>
         <span>{seconds(elapsedMs)} s</span>
-        <span>
-          <Money usd={usage.measuredModelCostUsd} basis="MEASURED" /> {fixtureCost ? "· fixture" : "measured"}
-        </span>
+        {costKnown ? (
+          <span>
+            <Money usd={usage.measuredModelCostUsd ?? 0} basis="MEASURED" /> {fixtureCost ? "· fixture" : "measured"}
+          </span>
+        ) : (
+          <span>cost and evidence detail are the desk's records; totals are under desk economics</span>
+        )}
         {upperBound > 0 && (
           <span>
             <Money usd={upperBound} basis="ESTIMATED" /> upper bound at price cap

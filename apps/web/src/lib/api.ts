@@ -6,11 +6,15 @@ export interface RailStatus { rail: PaymentRail; network: string; ready: boolean
 export type OperatorRoutes = "OPEN_ON_LOCALHOST" | "TOKEN_REQUIRED" | "DISABLED";
 /** The interval and the cap are absent when the loop is off. */
 export type AutoDesk = { enabled: true; intervalMinutes: number; maxInvestigationsPerDay: number } | { enabled: false };
-export interface Health { service: string; dataSource: { mode: DataMode; asOf: string }; synthesis: { provider: string; model: string; ready: boolean; detail: string }; paymentRail: RailStatus; priceUsd: string; budget: ResearchBudget; operatorRoutes?: OperatorRoutes; autoDesk?: AutoDesk; sdk?: Record<string, string> }
+export interface Health { service: string; dataSource: { mode: DataMode; asOf: string }; synthesis: { provider: string; model: string; ready: boolean; detail: string }; paymentRail: RailStatus; priceUsd: string; budget: ResearchBudget; operatorRoutes?: OperatorRoutes; /** who may read evidence summaries, on-chain figures and per-run cost here */ diagnostics?: OperatorRoutes; autoDesk?: AutoDesk; sdk?: Record<string, string> }
 /** The issuer cancelled or replaced the version a signal (or a Brief's signal) was raised on. */
 export interface Supersession { byVersion: number; reason: "CANCELLED" | "REPLACED"; status: string; notes: string | null; notedAt: string }
 export interface SignalRow { signal: SignalEvent; superseded?: Supersession | null; investigation: { id: string; status: InvestigationView["status"]; stopReason: string | null; briefId: string | null } | null }
-export interface InvestigationResponse { investigation: InvestigationView; budget: ResearchBudget; usage: { modelCalls: number; toolCalls: number; measuredModelCostUsd: number; costBasis: string | null; upperBoundModelCostUsd?: number; budgetSpentUsd?: number; costBases?: string[]; routedModels?: string[] } }
+/** PUBLIC: the free view, with evidence summaries, on-chain figures and per-run cost withheld. DIAGNOSTIC: the operator, a viewer token, or a localhost desk. */
+export type Audience = "PUBLIC" | "DIAGNOSTIC";
+/** what a run cost and where it was routed are the desk's records: a visitor gets the counts, and `costsWithheld: true` */
+export interface InvestigationUsageSummary { modelCalls: number; toolCalls: number; costsWithheld?: boolean; measuredModelCostUsd?: number; costBasis?: string | null; upperBoundModelCostUsd?: number; budgetSpentUsd?: number; costBases?: string[]; routedModels?: string[] }
+export interface InvestigationResponse { audience?: Audience; investigation: InvestigationView; budget: ResearchBudget; usage: InvestigationUsageSummary }
 export interface BriefPreviewResponse { preview: BriefPreview; signal: SignalEvent; withdrawn?: Supersession | null; priceUsd: string; rail: RailStatus; resource: string }
 export interface BriefListResponse { priceUsd: string; rail: RailStatus; briefs: BriefPreview[] }
 export interface OrderRow { order: Order; receipt: EconomicsReceipt; briefHeadline: string | null }
