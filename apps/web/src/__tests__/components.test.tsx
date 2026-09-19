@@ -143,6 +143,46 @@ describe("EconomicsReceipt", () => {
   });
 });
 
+describe("Money", () => {
+  it("prints a configured ceiling plainly: no colour, no estimate mark, no rail label", () => {
+    const html = renderToStaticMarkup(<Money usd={0.6} basis="LIMIT" rail="OKX_X402_TESTNET" />);
+    expect(html).toContain("$0.60");
+    expect(html).toContain('data-basis="LIMIT"');
+    expect(html).not.toContain("color");
+    expect(html).not.toContain("≈");
+    expect(html).not.toContain("estimated");
+    expect(html).not.toContain("TESTNET");
+  });
+});
+
+describe("RadarField as a plot of real signals", () => {
+  it("draws nothing decorative with noise 0 and the sweep off", () => {
+    const html = renderToStaticMarkup(<RadarField size={200} noise={0} sweep="off" />);
+    expect(html).not.toContain('class="sweep"');
+    expect(html).not.toContain('class="noise"');
+    expect(html).not.toContain('class="target"');
+  });
+
+  it("keeps the sweep by default, so the desk is unchanged", () => {
+    expect(renderToStaticMarkup(<RadarField size={200} noise={0} />)).toContain('class="sweep"');
+  });
+
+  it("plots each event where the caller put it, with its state and its label, and invents none", () => {
+    const events = [
+      { id: "sig_a", label: "ESx rebased +0.81%", angle: 0, distance: 0.5, state: "published" as const },
+      { id: "sig_b", label: "AVGOx rebased +0.12%", angle: Math.PI / 2, distance: 3, state: "superseded" as const },
+    ];
+    const html = renderToStaticMarkup(<RadarField size={216} noise={0} sweep="off" events={events} />);
+    expect(html.match(/class="event /g)).toHaveLength(2);
+    // size 216: centre 108, radius 100. angle 0 at half radius is (158, 108); a distance past 1 is held at the ring
+    expect(html).toContain('data-event="sig_a"');
+    expect(html).toMatch(/event-published[^>]*cx="158\.0"[^>]*cy="108\.0"/);
+    expect(html).toMatch(/event-superseded[^>]*cx="108\.0"[^>]*cy="208\.0"/);
+    expect(html).toContain("<title>ESx rebased +0.81%</title>");
+    expect(html).toContain("2 signals plotted");
+  });
+});
+
 describe("RadarField", () => {
   it("asks for a lock once the noise has entered, keeps asking until locked, then stops", () => {
     vi.useFakeTimers();

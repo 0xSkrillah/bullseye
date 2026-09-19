@@ -18,6 +18,7 @@ createApp(container).listen(config.PORT, () => {
   if (config.AUTO_DESK) {
     const desk = new AutoDesk(container, { intervalMinutes: config.AUTO_DESK_INTERVAL_MINUTES, maxInvestigationsPerDay: config.AUTO_DESK_MAX_INVESTIGATIONS_PER_DAY, log: (line) => console.log(`${new Date().toISOString()} ${line}`) });
     console.log(`  auto desk     every ${config.AUTO_DESK_INTERVAL_MINUTES} min, at most ${config.AUTO_DESK_MAX_INVESTIGATIONS_PER_DAY} investigations per 24 h (model spend ceiling $${desk.dailySpendCeilingUsd.toFixed(2)} per 24 h)`);
+    container.autoDesk = desk;
     desk.start();
   } else {
     console.log("  auto desk     off");

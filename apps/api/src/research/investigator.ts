@@ -6,13 +6,13 @@ import {
   DISCLAIMER,
   GateResult,
   InvestigationView,
+  ResearchBudget,
+  SignalEvent,
   TimelineEntry,
   UsageRecord,
   weakestMode,
   type ConsistencyCheck,
   type EvidenceItem,
-  type ResearchBudget,
-  type SignalEvent,
   type StopReason,
 } from "@bullseye/domain";
 import type { Db } from "../db.js";
@@ -47,6 +47,50 @@ class Stop extends Error {
     detail: string,
   ) {
     super(detail);
+  }
+}
+
+export interface InvestigationSummary {
+  id: string;
+  signalId: string;
+  symbol: string | null;
+  status: InvestigationView["status"];
+  stopReason: InvestigationView["stopReason"];
+  startedAt: string;
+  finishedAt: string | null;
+  briefId: string | null;
+  gate: { decision: GateResult["decision"]; confidenceCap: GateResult["confidenceCap"] } | null;
+  /** how many drafts the gate judged in this run */
+  draftsJudged: number;
+}
+
+export interface RebaseChain {
+  network: string;
+  token: string;
+  symbol: string;
+  /** what the issuer said would happen; multipliers are decimal strings, exactly as published */
+  issuer: { multiplierOld: string; multiplierNew: string; effectiveTimeUtc: string };
+  reads: { key: "BEFORE" | "AFTER" | "HEAD"; evidenceId: string; blockNumber: number; blockTime: string | null; multiplier: string; mode: string }[];
+  /** null when the search ran and found no change, or has not run; `activationSearched` tells them apart */
+  activation: { evidenceId: string; blockNumber: number; blockTime: string | null; mode: string } | null;
+  activationSearched: boolean;
+}
+
+function budgetOrNull(json: string | null | undefined): ResearchBudget | null {
+  if (!json) return null;
+  try {
+    const parsed = ResearchBudget.safeParse(JSON.parse(json));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+function symbolOrNull(signalJson: string): string | null {
+  try {
+    return (JSON.parse(signalJson) as { asset?: { symbol?: string } }).asset?.symbol ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -121,8 +165,75 @@ export class InvestigationService {
       finishedAt: row.finished_at,
       briefId: row.brief_id,
       gate: row.gate_json ? JSON.parse(row.gate_json) : null,
+      gateAttempts: row.gate_attempts_json ? JSON.parse(row.gate_attempts_json) : null,
+      budgetAtStart: budgetOrNull(row.budget_json),
       timeline,
     });
+  }
+
+  /** newest first, without timelines: enough to draw every run and pick the one worth watching */
+  list(limit = 50): InvestigationSummary[] {
+    const rows = this.deps.db
+      .prepare(
+        `SELECT i.id, i.signal_id, i.status, i.stop_reason, i.started_at, i.finished_at, i.brief_id, i.gate_json, s.json AS signal_json,
+                (SELECT COUNT(*) FROM timeline t WHERE t.investigation_id = i.id AND t.json LIKE '%"type":"GATE"%') AS drafts_judged
+         FROM investigations i LEFT JOIN signals s ON s.id = i.signal_id ORDER BY i.started_at DESC LIMIT ?`,
+      )
+      .all(limit) as Record<string, string | number | null>[];
+    return rows.map((r) => {
+      const gate = r.gate_json ? (JSON.parse(String(r.gate_json)) as GateResult) : null;
+      return {
+        id: String(r.id),
+        signalId: String(r.signal_id),
+        symbol: r.signal_json ? symbolOrNull(String(r.signal_json)) : null,
+        status: String(r.status) as InvestigationView["status"],
+        stopReason: (r.stop_reason as InvestigationView["stopReason"]) ?? null,
+        startedAt: String(r.started_at),
+        finishedAt: r.finished_at === null ? null : String(r.finished_at),
+        briefId: r.brief_id === null ? null : String(r.brief_id),
+        gate: gate ? { decision: gate.decision, confidenceCap: gate.confidenceCap } : null,
+        draftsJudged: Number(r.drafts_judged),
+      };
+    });
+  }
+
+  /**
+   * The on-chain part of a rebase investigation as numbers instead of prose: the issuer's stated change,
+   * the multiplier() reads around it and the block it changed in. Everything here is already public in
+   * the timeline's evidence summaries; nothing comes from the Brief.
+   */
+  chain(id: string): RebaseChain | null {
+    const row = this.deps.db.prepare("SELECT s.json AS signal_json FROM investigations i JOIN signals s ON s.id = i.signal_id WHERE i.id = ?").get(id) as { signal_json: string } | undefined;
+    if (!row) return null;
+    const signal = SignalEvent.parse(JSON.parse(row.signal_json));
+    const evidence = new Map(this.evidence(id).map((e) => [e.id, e]));
+    const str = (v: unknown) => (typeof v === "string" ? v : typeof v === "number" ? String(v) : null);
+    const num = (v: unknown) => (typeof v === "number" ? v : null);
+    const reads = (
+      [
+        ["BEFORE", "EV-CHAIN-BEFORE"],
+        ["AFTER", "EV-CHAIN-AFTER"],
+        ["HEAD", "EV-CHAIN-LATEST"],
+      ] as const
+    ).flatMap(([key, evidenceId]) => {
+      const e = evidence.get(evidenceId);
+      const blockNumber = num(e?.values.blockNumber);
+      const multiplier = str(e?.values.multiplierExact);
+      if (!e || blockNumber === null || multiplier === null) return [];
+      return [{ key, evidenceId, blockNumber, blockTime: str(e.values.blockTimestamp), multiplier, mode: e.provenance.mode }];
+    });
+    const act = evidence.get("EV-CHAIN-ACTIVATION");
+    const activationBlock = num(act?.values.activationBlock);
+    if (reads.length === 0 && !act) return null;
+    return {
+      network: `eip155:${signal.asset.chainId}`,
+      token: signal.asset.tokenAddress,
+      symbol: signal.asset.symbol,
+      issuer: { multiplierOld: signal.facts.multiplierOld, multiplierNew: signal.facts.multiplierNew, effectiveTimeUtc: signal.observedAt },
+      reads,
+      activation: act && activationBlock !== null ? { evidenceId: act.id, blockNumber: activationBlock, blockTime: str(act.values.activationTimestamp), mode: act.provenance.mode } : null,
+      activationSearched: act !== undefined,
+    };
   }
 
   latestForSignal(signalId: string): InvestigationView | null {
@@ -147,6 +258,7 @@ export class InvestigationService {
       db.prepare("INSERT INTO timeline (investigation_id, seq, json) VALUES (?, ?, ?)").run(id, entry.seq, JSON.stringify(entry));
     };
 
+    const gateAttempts: GateResult[] = [];
     let governor: BudgetGovernor | null = null;
     const recordUsage = (partial: Omit<UsageRecord, "investigationId" | "seq">) => {
       const rec = UsageRecord.parse({ investigationId: id, seq: usageSeq++, ...partial });
@@ -250,6 +362,9 @@ export class InvestigationService {
           throw new Stop("MODEL_OUTPUT_INVALID", "model output was not valid JSON");
         }
         gate = evaluatePublication({ draft, evidence: toolbox.all(), checks, stopReason: "COMPLETED", synthesis: provider.info, asOf: deps.transport.now(), allowFixture: deps.allowFixturePublication });
+        // kept as each draft is judged, so a rejected first draft is on record even when its revision publishes
+        gateAttempts.push(gate);
+        db.prepare("UPDATE investigations SET gate_attempts_json = ? WHERE id = ?").run(JSON.stringify(gateAttempts), id);
         const failures = gate.findings.filter((f) => !f.passed);
         timeline("GATE", gate.decision === "PUBLISH" ? "Publication gate: PUBLISH" : `Publication gate: REJECT (${failures.map((f) => f.rule).join(", ")})`, gate.decision === "PUBLISH", failures.map((f) => `${f.rule}: ${f.detail}`).join(" | ") || null);
         // only drafting faults are worth a second attempt; missing or stale evidence cannot be fixed by rewriting

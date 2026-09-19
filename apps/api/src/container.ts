@@ -13,6 +13,7 @@ import { BriefStore } from "./briefs.js";
 import { OrderLedger } from "./commerce/orderLedger.js";
 import { Checkout } from "./commerce/checkout.js";
 import { createOkxRail, FixtureFacilitator, FixtureRail, type PaymentRailAdapter } from "./commerce/rail.js";
+import type { AutoDesk } from "./desk/autoDesk.js";
 
 export interface Container {
   config: Config;
@@ -24,6 +25,8 @@ export interface Container {
   ledger: OrderLedger;
   rail: PaymentRailAdapter;
   checkout: Checkout;
+  /** set by the entry point when the unattended loop is switched on */
+  autoDesk: AutoDesk | null;
   /** present only on the fixture rail */
   fixtureFacilitator: FixtureFacilitator | null;
   /** test hook: change how the fixture synthesiser behaves */
@@ -115,6 +118,7 @@ export function buildContainer(config: Config, overrides: ContainerOverrides = {
     ledger,
     rail,
     checkout,
+    autoDesk: null,
     fixtureFacilitator,
     setFixtureBehaviour: (b) => {
       fixtureBehaviour = b;

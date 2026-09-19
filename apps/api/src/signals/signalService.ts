@@ -21,6 +21,11 @@ export class SignalService {
     private readonly opts: { lookbackHours: number; maxAssetsPerScan: number } = { lookbackHours: 96, maxAssetsPerScan: 12 },
   ) {}
 
+  /** how far back the detector looks for an effective time, in hours */
+  get lookbackHours(): number {
+    return this.opts.lookbackHours;
+  }
+
   async scan(): Promise<ScanResult> {
     const now = this.transport.now();
     const actions = await this.xstocks.corporateActionHistory({ pageSize: 50 });

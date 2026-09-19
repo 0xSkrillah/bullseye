@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { Container } from "../container.js";
 import { REPO_ROOT } from "../config.js";
 import { toPreview } from "../briefs.js";
+import { ACTIVITY_KINDS, recentActivity } from "./activity.js";
 import { buildReceipt } from "../economics/receipt.js";
 import { RailNotReadyError } from "../commerce/checkout.js";
 import { SDK_VERSIONS } from "../commerce/rail.js";
@@ -122,29 +123,64 @@ export function createApp(c: Container) {
     res.status(started.created ? 202 : 200).json({ ...started, id: started.investigationId });
   });
 
-  app.get("/api/investigations/:id", (req, res) => {
-    const view = c.investigations.view(req.params.id);
-    if (!view) return res.status(404).json({ error: "investigation_not_found" });
-    const usage = c.investigations.usage(view.id);
+  const usageSummary = (investigationId: string) => {
+    const usage = c.investigations.usage(investigationId);
     const models = usage.filter((u) => u.kind === "MODEL_CALL");
     const sum = (rows: typeof usage) => Math.round(rows.reduce((t, u) => t + u.costUsd, 0) * 1e6) / 1e6;
+    return {
+      modelCalls: models.length,
+      toolCalls: usage.filter((u) => u.kind === "TOOL_CALL").length,
+      /** only what a provider reported: billed amounts, or reported tokens at list price */
+      measuredModelCostUsd: sum(models.filter((u) => u.costBasis.startsWith("MEASURED"))),
+      /** calls whose charge is unknown, carried at the price cap */
+      upperBoundModelCostUsd: sum(models.filter((u) => u.costBasis === "UPPER_BOUND_AT_PRICE_CAP")),
+      /** what the governor counted against the ceiling: every basis */
+      budgetSpentUsd: sum(usage),
+      costBases: [...new Set(models.map((u) => u.costBasis))],
+      costBasis: models[0]?.costBasis ?? null,
+      routedModels: [...new Set(models.map((u) => u.model).filter((m): m is string => m !== null))].sort(),
+    };
+  };
+
+  app.get("/api/investigations", (req, res) => {
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    res.json({ investigations: c.investigations.list(limit).map((i) => ({ ...i, usage: usageSummary(i.id) })) });
+  });
+
+  app.get("/api/investigations/:id", (req, res) => {
+    const view = c.investigations.view(String(req.params.id));
+    if (!view) return res.status(404).json({ error: "investigation_not_found" });
+    // `budget` is today's configuration; `investigation.budgetAtStart` is what this run was held to
+    res.json({ investigation: view, budget: c.config.budget, usage: usageSummary(view.id) });
+  });
+
+  /** the on-chain reads of a rebase investigation as numbers; `chain` is null until the first read exists */
+  app.get("/api/investigations/:id/chain", (req, res) => {
+    if (!c.investigations.view(String(req.params.id))) return res.status(404).json({ error: "investigation_not_found" });
+    res.json({ chain: c.investigations.chain(String(req.params.id)) });
+  });
+
+  app.get("/api/desk/status", (_req, res) => {
+    const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
+    const recent = c.db.prepare("SELECT COUNT(*) AS n FROM investigations WHERE started_at > ?").get(since) as { n: number };
+    const loop = c.autoDesk?.status() ?? { lastTick: null, nextTickAt: null };
     res.json({
-      investigation: view,
-      budget: c.config.budget,
-      usage: {
-        modelCalls: models.length,
-        toolCalls: usage.filter((u) => u.kind === "TOOL_CALL").length,
-        /** only what a provider reported: billed amounts, or reported tokens at list price */
-        measuredModelCostUsd: sum(models.filter((u) => u.costBasis.startsWith("MEASURED"))),
-        /** calls whose charge is unknown, carried at the price cap */
-        upperBoundModelCostUsd: sum(models.filter((u) => u.costBasis === "UPPER_BOUND_AT_PRICE_CAP")),
-        /** what the budget governor has counted against the ceiling: every basis */
-        budgetSpentUsd: sum(models),
-        costBases: [...new Set(models.map((u) => u.costBasis))],
-        costBasis: models[0]?.costBasis ?? null,
-        routedModels: [...new Set(models.map((u) => u.model).filter((m): m is string => m !== null))].sort(),
-      },
+      enabled: c.autoDesk !== null,
+      intervalMinutes: c.config.AUTO_DESK_INTERVAL_MINUTES,
+      maxInvestigationsPerDay: c.config.AUTO_DESK_MAX_INVESTIGATIONS_PER_DAY,
+      investigationsLast24h: recent.n,
+      /** process memory: null after a restart until the loop has ticked once */
+      lastTick: loop.lastTick,
+      nextTickAt: loop.nextTickAt,
+      dailySpendCeilingUsd: Math.round(c.config.AUTO_DESK_MAX_INVESTIGATIONS_PER_DAY * c.config.budget.maxVariableCostUsd * 100) / 100,
+      /** how far back the detector looks for an effective time */
+      liveWindowHours: c.signals.lookbackHours,
     });
+  });
+
+  app.get("/api/activity", (req, res) => {
+    const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
+    res.json({ kinds: ACTIVITY_KINDS, events: recentActivity(c.db, limit) });
   });
 
   app.get("/api/briefs", (_req, res) => {

@@ -20,6 +20,8 @@ export type TickOutcome =
 export class AutoDesk {
   private timer: NodeJS.Timeout | null = null;
   private ticking = false;
+  private lastTick: { at: string; outcome: TickOutcome } | null = null;
+  private nextTickAt: string | null = null;
 
   constructor(
     private readonly c: Container,
@@ -34,21 +36,38 @@ export class AutoDesk {
   start(): void {
     if (this.timer) return;
     const run = () => void this.tick().then((o) => this.opts.log?.(`auto desk: ${o.action === "STARTED" ? `investigating ${o.signalId} (${o.investigationId})` : `idle, ${o.reason}${o.detail ? `: ${o.detail}` : ""}`}`));
-    this.timer = setInterval(run, this.opts.intervalMinutes * 60_000);
+    const schedule = () => (this.nextTickAt = new Date(Date.now() + this.opts.intervalMinutes * 60_000).toISOString());
+    this.timer = setInterval(() => {
+      schedule();
+      run();
+    }, this.opts.intervalMinutes * 60_000);
     this.timer.unref();
+    schedule();
     run();
   }
 
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    this.nextTickAt = null;
+  }
+
+  /** what the loop last did and when it will look again; process memory, so empty after a restart until the first tick */
+  status(): { lastTick: { at: string; action: TickOutcome["action"]; reason: string | null; detail: string | null } | null; nextTickAt: string | null } {
+    const t = this.lastTick;
+    return {
+      lastTick: t ? { at: t.at, action: t.outcome.action, reason: t.outcome.action === "IDLE" ? t.outcome.reason : null, detail: t.outcome.action === "IDLE" ? (t.outcome.detail ?? null) : t.outcome.signalId } : null,
+      nextTickAt: this.nextTickAt,
+    };
   }
 
   async tick(): Promise<TickOutcome> {
     if (this.ticking) return { action: "IDLE", reason: "BUSY", detail: "previous tick still scanning" };
     this.ticking = true;
     try {
-      return await this.step();
+      const outcome = await this.step();
+      this.lastTick = { at: (this.opts.now ? this.opts.now() : new Date()).toISOString(), outcome };
+      return outcome;
     } finally {
       this.ticking = false;
     }

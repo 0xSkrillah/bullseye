@@ -85,6 +85,8 @@ export const gate: GateResult = {
 };
 
 export const view: InvestigationView = {
+  gateAttempts: null,
+  budgetAtStart: null,
   id: "inv_0123456789abcdef",
   signalId: "sig_0123456789abcdef",
   status: "PUBLISHED",

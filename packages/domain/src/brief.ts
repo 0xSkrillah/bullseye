@@ -2,7 +2,7 @@ import { z } from "zod";
 import { DataMode } from "./provenance.js";
 import { ConsistencyCheck, EvidenceItem } from "./evidence.js";
 import { SignalEvent } from "./signal.js";
-import { StopReason } from "./budget.js";
+import { ResearchBudget, StopReason } from "./budget.js";
 
 export const Quantity = z.object({
   label: z.string(),
@@ -134,6 +134,10 @@ export const InvestigationView = z.object({
   finishedAt: z.string().nullable(),
   briefId: z.string().nullable(),
   gate: GateResult.nullable(),
+  /** every draft the gate judged, oldest first; null for runs recorded before attempts were kept */
+  gateAttempts: z.array(GateResult).nullable().default(null),
+  /** the ceilings this run was started with, which may differ from today's configuration */
+  budgetAtStart: ResearchBudget.nullable().default(null),
   timeline: z.array(TimelineEntry),
 });
 export type InvestigationView = z.infer<typeof InvestigationView>;

@@ -2,7 +2,8 @@ import type { PaymentRail } from "@bullseye/domain";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
 import { formatUsd } from "../format";
 
-export type MoneyBasis = "MEASURED" | "ESTIMATED" | "PRICE";
+/** LIMIT is a ceiling that was configured, not an amount that was spent, quoted or estimated */
+export type MoneyBasis = "MEASURED" | "ESTIMATED" | "PRICE" | "LIMIT";
 
 export interface MoneyProps {
   usd: number | string;
@@ -14,7 +15,7 @@ export interface MoneyProps {
   decimals?: number;
 }
 
-const DEFAULT_DECIMALS = { PRICE: 2, MEASURED: 4, ESTIMATED: 2 } as const satisfies Record<MoneyBasis, number>;
+const DEFAULT_DECIMALS = { PRICE: 2, MEASURED: 4, ESTIMATED: 2, LIMIT: 2 } as const satisfies Record<MoneyBasis, number>;
 
 /**
  * The only way an amount renders. Colour follows from basis and realised;

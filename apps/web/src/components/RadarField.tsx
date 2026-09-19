@@ -1,16 +1,36 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "../hooks";
 
+export type RadarEventState = "open" | "investigating" | "published" | "superseded";
+
+/** a real signal to plot. The caller places it; the field never moves or invents one */
+export interface RadarEvent {
+  id: string;
+  label: string;
+  /** radians, 0 = right, clockwise */
+  angle: number;
+  /** 0 = centre, 1 = the outer ring */
+  distance: number;
+  state: RadarEventState;
+}
+
 export interface RadarFieldProps {
   size?: number;
-  /** number of decorative dots; they are texture, never events */
+  /** number of decorative dots; they are texture, never events. 0 draws none */
   noise?: number;
+  /** "off" draws no sweep at all: a sweep that never stops implies activity */
+  sweep?: "loop" | "off";
+  /** real signals, drawn as `.event.event-<state>` circles the caller may style; they carry their label as a title */
+  events?: RadarEvent[];
   /** an event is locked: the reticle is drawn and the sweep stops */
   locked?: boolean;
   lockAfterMs?: number;
   /** asked once the noise has entered, and again at the same interval while nothing is locked */
   onLock?(): void;
 }
+
+/** default fills, so an unstyled event still reads; override with `.be-radar .event-<state>` */
+const EVENT_FILL = { open: "var(--ink)", investigating: "var(--uncertain)", published: "var(--verified)", superseded: "var(--ink-muted)" } as const satisfies Record<RadarEventState, string>;
 
 const STEP_MS = 70;
 const MIN_ASK_MS = 250;
@@ -35,7 +55,7 @@ function Dot({ cx, cy, instant }: { cx: string; cy: string; instant: boolean }) 
 }
 
 /** Seeded, so the picture is identical every run. The field never invents an event: it only asks the owner to lock a real one. */
-export function RadarField({ size = 480, noise = 36, locked = false, lockAfterMs = 900, onLock }: RadarFieldProps) {
+export function RadarField({ size = 480, noise = 36, locked = false, lockAfterMs = 900, onLock, sweep = "loop", events }: RadarFieldProps) {
   const reduced = useReducedMotion();
   const c = size / 2;
   const R = size / 2 - 8;
@@ -87,23 +107,41 @@ export function RadarField({ size = 480, noise = 36, locked = false, lockAfterMs
 
   return (
     <div className="be-radar" style={{ width: size, maxWidth: "100%", aspectRatio: "1 / 1" }} data-testid="radar" data-locked={locked}>
-      <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label={locked ? "Radar field: decorative noise, one event locked" : "Radar field: decorative noise, no event locked"}>
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        role="img"
+        aria-label={events ? `Radar field: ${events.length} ${events.length === 1 ? "signal" : "signals"} plotted${locked ? ", one locked" : ""}` : locked ? "Radar field: decorative noise, one event locked" : "Radar field: decorative noise, no event locked"}
+      >
         {[0.25, 0.5, 0.75, 1].map((ring) => (
           <circle key={ring} className="grid" cx={c} cy={c} r={f(R * ring)} />
         ))}
         <line className="grid" x1={c} y1={8} x2={c} y2={size - 8} />
         <line className="grid" x1={8} y1={c} x2={size - 8} y2={c} />
-        <path
-          className="sweep"
-          style={locked ? { animationPlayState: "paused" } : undefined}
-          d={`M${c} ${c} L${c} ${f(c - R)} A${R} ${R} 0 0 1 ${f(c + R * Math.sin(0.6))} ${f(c - R * Math.cos(0.6))} Z`}
-        />
+        {sweep === "loop" && (
+          <path
+            className="sweep"
+            style={locked ? { animationPlayState: "paused" } : undefined}
+            d={`M${c} ${c} L${c} ${f(c - R)} A${R} ${R} 0 0 1 ${f(c + R * Math.sin(0.6))} ${f(c - R * Math.cos(0.6))} Z`}
+          />
+        )}
         <g className="events" aria-hidden="true">
           {dots.slice(0, shown).map((dot, i) => (
             <Dot key={i} cx={f(c + R * dot.d * Math.cos(dot.a))} cy={f(c + R * dot.d * Math.sin(dot.a))} instant={instant} />
           ))}
-          {(locked || shown >= noise / 2) && <circle className={locked ? "target" : "noise"} r={locked ? "3.5" : "2.5"} cx={f(target.x)} cy={f(target.y)} />}
+          {(locked || (noise > 0 && shown >= noise / 2)) && <circle className={locked ? "target" : "noise"} r={locked ? "3.5" : "2.5"} cx={f(target.x)} cy={f(target.y)} />}
         </g>
+        {events && events.length > 0 && (
+          <g className="signals">
+            {events.map((e) => {
+              const d = Math.min(1, Math.max(0, e.distance));
+              return (
+                <circle key={e.id} className={`event event-${e.state}`} data-state={e.state} data-event={e.id} r={f(4 * k)} cx={f(c + R * d * Math.cos(e.angle))} cy={f(c + R * d * Math.sin(e.angle))} style={{ fill: EVENT_FILL[e.state] }}>
+                  <title>{e.label}</title>
+                </circle>
+              );
+            })}
+          </g>
+        )}
         {reticle !== "off" && (
           <g
             className="lock"
