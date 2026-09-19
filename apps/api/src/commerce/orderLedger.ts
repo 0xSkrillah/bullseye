@@ -53,13 +53,19 @@ export class OrderLedger {
   }
 
   /** newest quote for the brief that is still open at `now` */
-  findOpenQuote(briefId: string, now: Date): Quote | null {
+  findOpenQuote(briefId: string, now: Date, resource?: string): Quote | null {
     const rows = this.db.prepare("SELECT id FROM quotes WHERE brief_id = ? ORDER BY created_at DESC LIMIT 20").all(briefId) as { id: string }[];
     for (const r of rows) {
       const q = this.getQuote(r.id);
-      if (q && Date.parse(q.terms.expiresAt) > now.getTime()) return q;
+      if (q && Date.parse(q.terms.expiresAt) > now.getTime() && (resource === undefined || q.terms.resource === resource)) return q;
     }
     return null;
+  }
+
+  /** quotes issued for one address, newest first; a stable address is quoted for whichever Brief it pointed at */
+  quotesForResource(resource: string): Quote[] {
+    const rows = this.db.prepare("SELECT id FROM quotes ORDER BY created_at DESC LIMIT 200").all() as { id: string }[];
+    return rows.map((r) => this.getQuote(r.id)).filter((q): q is Quote => q !== null && q.terms.resource === resource);
   }
 
   quotesForBrief(briefId: string): Quote[] {

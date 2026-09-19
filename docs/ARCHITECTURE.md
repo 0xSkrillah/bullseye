@@ -167,7 +167,9 @@ time: the label says how the data was obtained, the timestamp says what instant 
 
 `PaymentRailAdapter` wraps the OKX SDK's `x402ResourceServer` with `ExactEvmScheme` and one
 facilitator client: `OKXFacilitatorClient` (`syncSettle: true`) for `okx-testnet` / `okx-mainnet`,
-or a local double for tests. The flow for `GET /api/v1/briefs/:id`:
+or a local double for tests. `POST` is accepted as well as `GET`, and `/api/v1/briefs/latest` resolves to
+the newest Brief on sale and then follows the same flow (a request that carries a payment resolves to
+the Brief it was quoted for instead). The flow for `GET /api/v1/briefs/:id`:
 
 1. No payment header → issue or reuse an immutable quote, answer `402` with `PAYMENT-REQUIRED`.
    If the rail is not ready, answer `503` and issue nothing. If the Brief was withdrawn, answer

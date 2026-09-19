@@ -1,0 +1,15 @@
+.git
+.claude
+node_modules
+**/node_modules
+**/dist
+.env
+.env.*
+data
+private
+spike
+test-results
+playwright-report
+*.sqlite
+*.sqlite-*
+*.log

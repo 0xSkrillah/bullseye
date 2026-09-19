@@ -59,6 +59,16 @@ const Env = z.object({
   EST_REWORK_RESERVE_USD: z.coerce.number().nonnegative().default(0.2),
   EST_DATA_TOOL_ALLOWANCE_USD: z.coerce.number().nonnegative().default(0.1),
 
+  // unattended operation
+  /** scan and investigate on a timer, with no operator. Off unless asked for: every investigation it starts spends money. */
+  AUTO_DESK: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+  AUTO_DESK_INTERVAL_MINUTES: z.coerce.number().int().min(5).default(30),
+  /** with BUDGET_MAX_COST_USD this is the most the auto desk can spend on models in 24 hours */
+  AUTO_DESK_MAX_INVESTIGATIONS_PER_DAY: z.coerce.number().int().min(1).max(24).default(3),
+
   /** allow FIXTURE-mode briefs to be published and sold. Tests only. */
   ALLOW_FIXTURE_PUBLICATION: z
     .enum(["true", "false"])
@@ -71,7 +81,8 @@ export type Config = Omit<z.infer<typeof Env>, "BULLSEYE_MODEL"> & { BULLSEYE_MO
 const DEFAULT_MODEL = { openrouter: "openrouter/auto", anthropic: "claude-opus-5", fixture: "deterministic-template" } as const;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = Env.parse(env);
+  // hosting dashboards and .env templates leave unset variables as empty strings; treat those as absent
+  const parsed = Env.parse(Object.fromEntries(Object.entries(env).filter(([, v]) => v !== undefined && v.trim() !== "")));
   return {
     ...parsed,
     BULLSEYE_MODEL: parsed.BULLSEYE_MODEL?.trim() || DEFAULT_MODEL[parsed.SYNTHESIS_PROVIDER],

@@ -43,10 +43,11 @@ export class Checkout {
     return this.deps.now ? this.deps.now() : new Date();
   }
 
-  async quote(brief: Brief): Promise<Quote> {
+  /** `resource` is the URL the buyer calls; it defaults to the Brief's own address */
+  async quote(brief: Brief, resource = `${this.deps.publicBaseUrl}/api/v1/briefs/${brief.id}`): Promise<Quote> {
     const { ledger, rail } = this.deps;
     const now = this.now();
-    const open = ledger.findOpenQuote(brief.id, now);
+    const open = ledger.findOpenQuote(brief.id, now, resource);
     const status = rail.status();
     // an open quote is reused only if it still describes what this server would charge today
     if (open && open.terms.briefContentHash === brief.contentHash && open.terms.priceUsd === this.deps.priceUsd && open.terms.payTo === status.payTo && open.terms.rail === rail.rail) return open;
@@ -66,14 +67,14 @@ export class Checkout {
       maxTimeoutSeconds: 300,
       extra: priced.extra,
       rail: rail.rail,
-      resource: `${this.deps.publicBaseUrl}/api/v1/briefs/${brief.id}`,
+      resource,
       issuedAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + this.deps.quoteTtlSeconds * 1000).toISOString(),
     });
   }
 
-  /** GET /api/v1/briefs/:id — the x402 resource. */
-  async handle(briefId: string, paymentHeader: string | undefined, quoteId: string | undefined): Promise<HttpReply> {
+  /** The x402 resource: /api/v1/briefs/:id, or a stable address that resolved to this Brief. */
+  async handle(briefId: string, paymentHeader: string | undefined, quoteId: string | undefined, resource?: string): Promise<HttpReply> {
     const { ledger, rail } = this.deps;
     const brief = this.deps.getBrief(briefId);
     if (!brief) return json(404, { error: "brief_not_found" });
@@ -85,16 +86,16 @@ export class Checkout {
     }
 
     const withdrawn = this.deps.withdrawnReason?.(brief) ?? null;
-    if (!paymentHeader) return withdrawn ? gone(brief, withdrawn) : this.challenge(brief, quoteId ? ledger.getQuote(quoteId) : null);
+    if (!paymentHeader) return withdrawn ? gone(brief, withdrawn) : this.challenge(brief, quoteId ? ledger.getQuote(quoteId) : null, undefined, resource);
 
     let payload: PaymentPayload;
     try {
       payload = decodePaymentSignatureHeader(paymentHeader);
     } catch {
-      return this.challenge(brief, null, "PAYMENT-SIGNATURE header could not be decoded");
+      return this.challenge(brief, null, "PAYMENT-SIGNATURE header could not be decoded", resource);
     }
     const auth = readAuthorization(payload);
-    if (!auth) return this.challenge(brief, null, "payment payload carries no EIP-3009 authorization");
+    if (!auth) return this.challenge(brief, null, "payment payload carries no EIP-3009 authorization", resource);
     const paymentKey = sha256(`${payload.accepted?.network}:${payload.accepted?.asset}:${auth.from}:${auth.nonce}`.toLowerCase());
 
     // someone who already paid still gets what they paid for; nobody new is charged for a withdrawn Brief
@@ -103,13 +104,13 @@ export class Checkout {
     if (withdrawn) return gone(brief, withdrawn);
 
     const quote = this.resolveQuote(brief, payload, quoteId);
-    if (!quote) return this.challenge(brief, null, "payment does not match any quote issued for this brief");
+    if (!quote) return this.challenge(brief, null, "payment does not match any quote issued for this brief", resource);
 
     let order: Order;
     try {
       order = ledger.openOrder(quote, paymentKey, payload, this.now());
     } catch (err) {
-      if (err instanceof QuoteExpiredError) return this.challenge(brief, null, "quote expired; a new quote is attached");
+      if (err instanceof QuoteExpiredError) return this.challenge(brief, null, "quote expired; a new quote is attached", resource);
       if (err instanceof DuplicatePaymentError) {
         const winner = ledger.get(err.orderId);
         if (winner) return this.resume(winner, brief, payload);
@@ -117,6 +118,29 @@ export class Checkout {
       throw err;
     }
     return this.pay(order, brief, payload);
+  }
+
+  /**
+   * Which Brief a payment sent to a stable address was signed for. The address may point at a newer
+   * Brief by the time the buyer pays, and every Brief costs the same, so the payment alone does not
+   * say. An order that already exists answers it; otherwise the quotes issued at that address do,
+   * preferring the Brief named in the resource description the buyer's client echoes back.
+   */
+  briefForPayment(paymentHeader: string, resource: string): string | null {
+    const { ledger, rail } = this.deps;
+    let payload: PaymentPayload;
+    try {
+      payload = decodePaymentSignatureHeader(paymentHeader);
+    } catch {
+      return null;
+    }
+    const auth = readAuthorization(payload);
+    if (!auth) return null;
+    const existing = ledger.findByPaymentKey(sha256(`${payload.accepted?.network}:${payload.accepted?.asset}:${auth.from}:${auth.nonce}`.toLowerCase()));
+    if (existing) return existing.terms.briefId;
+    const candidates = ledger.quotesForResource(resource).filter((q) => rail.matches(q.terms, payload));
+    const named = /\bbrf_[0-9a-f]{16}\b/.exec(payload.resource?.description ?? "")?.[0];
+    return (candidates.find((q) => q.terms.briefId === named) ?? candidates[0])?.terms.briefId ?? null;
   }
 
   /** Re-examine an order whose payment outcome is not known. Never calls settle again. */
@@ -161,8 +185,8 @@ export class Checkout {
     return ledger.quotesForBrief(brief.id).find((q) => rail.matches(q.terms, payload)) ?? null;
   }
 
-  private async challenge(brief: Brief, requested: Quote | null, error?: string): Promise<HttpReply> {
-    const quote = requested && requested.terms.briefId === brief.id && Date.parse(requested.terms.expiresAt) > this.now().getTime() ? requested : await this.quote(brief);
+  private async challenge(brief: Brief, requested: Quote | null, error?: string, resource?: string): Promise<HttpReply> {
+    const quote = requested && requested.terms.briefId === brief.id && Date.parse(requested.terms.expiresAt) > this.now().getTime() ? requested : await this.quote(brief, resource);
     const required = await this.deps.rail.paymentRequired(quote.terms, `Bullseye Brief ${brief.id}: ${brief.signal.headline}`, error);
     return {
       status: 402,
@@ -184,7 +208,7 @@ export class Checkout {
     }
     if (!verify.isValid) {
       ledger.transition(order.id, "PAYMENT_FAILED", `facilitator rejected the authorization: ${verify.invalidReason ?? "unknown reason"}`, this.evidence(order, verify.payer ?? null, null, verify.invalidReason ?? null));
-      return this.challenge(brief, null, `payment invalid: ${verify.invalidReason ?? "unknown reason"}`);
+      return this.challenge(brief, null, `payment invalid: ${verify.invalidReason ?? "unknown reason"}`, order.terms.resource);
     }
 
     let settle: SettleResponse;
@@ -232,11 +256,11 @@ export class Checkout {
       case "RECONCILIATION_REQUIRED": {
         const after = (await this.reconcile(order.id)) ?? order;
         if (after.state === "PAID") return this.deliver(after, brief, null);
-        if (after.state === "PAYMENT_FAILED") return this.challenge(brief, null, "the earlier authorization expired unused; you were not charged");
+        if (after.state === "PAYMENT_FAILED") return this.challenge(brief, null, "the earlier authorization expired unused; you were not charged", order.terms.resource);
         return this.unknownReply(after);
       }
       case "PAYMENT_FAILED":
-        return this.challenge(brief, null, "that authorization failed and cannot be reused");
+        return this.challenge(brief, null, "that authorization failed and cannot be reused", order.terms.resource);
       default:
         void payload;
         return json(409, { error: "unexpected_order_state", orderId: order.id, state: order.state });

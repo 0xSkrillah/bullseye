@@ -41,6 +41,7 @@ export function createApp(c: Container) {
       paymentRail: c.rail.status(),
       priceUsd: c.config.BRIEF_PRICE_USD,
       budget: c.config.budget,
+      autoDesk: c.config.AUTO_DESK ? { enabled: true, intervalMinutes: c.config.AUTO_DESK_INTERVAL_MINUTES, maxInvestigationsPerDay: c.config.AUTO_DESK_MAX_INVESTIGATIONS_PER_DAY } : { enabled: false },
       sdk: SDK_VERSIONS,
     });
   });
@@ -120,6 +121,7 @@ export function createApp(c: Container) {
       seller: "Bullseye",
       payment: { protocol: "x402", version: 2, rail: c.rail.status() },
       priceUsd: c.config.BRIEF_PRICE_USD,
+      latest: { resource: `${c.config.PUBLIC_BASE_URL}/api/v1/briefs/latest`, methods: ["GET", "POST"], filter: "symbol" },
       items: c.briefs
         .list()
         .filter((b) => c.signals.supersession(b.signal.id) === null)
@@ -127,13 +129,39 @@ export function createApp(c: Container) {
     });
   });
 
-  // the paid resource
-  app.get("/api/v1/briefs/:id", async (req, res) => {
+  const paid = async (req: Request, res: Response, briefId: string, resource?: string) => {
     const header = req.header("payment-signature") ?? req.header("x-payment") ?? undefined;
     const quoteId = typeof req.query.quote === "string" ? req.query.quote : undefined;
-    const reply = await c.checkout.handle(req.params.id, header, quoteId);
+    const reply = await c.checkout.handle(briefId, header, quoteId, resource);
     for (const [k, v] of Object.entries(reply.headers)) res.setHeader(k, v);
     res.status(reply.status).json(reply.body);
+  };
+
+  /**
+   * One stable paid address, for listings that take a single endpoint: the newest Brief on sale,
+   * optionally for one asset (?symbol=QSRx, or {"symbol":"QSRx"} in a POST body). Which Brief that
+   * is gets decided when the request arrives; the quote then freezes it by content hash.
+   */
+  app.all("/api/v1/briefs/latest", async (req, res) => {
+    if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
+    const wanted = typeof req.query.symbol === "string" ? req.query.symbol : typeof req.body?.symbol === "string" ? (req.body.symbol as string) : undefined;
+    const resource = `${c.config.PUBLIC_BASE_URL}/api/v1/briefs/latest${wanted ? `?symbol=${encodeURIComponent(wanted)}` : ""}`;
+    // a buyer who is paying gets the Brief they were quoted, even if a newer one has been published since
+    const header = req.header("payment-signature") ?? req.header("x-payment");
+    const quoted = header ? c.checkout.briefForPayment(header, resource) : null;
+    const newest = c.briefs
+      .list()
+      .filter((b) => c.signals.supersession(b.signal.id) === null)
+      .find((b) => wanted === undefined || b.signal.asset.symbol.toLowerCase() === wanted.toLowerCase());
+    const briefId = quoted ?? newest?.id;
+    if (!briefId) return res.status(404).json({ error: "nothing_for_sale", detail: wanted ? `no Brief on sale for ${wanted}` : "no Brief on sale yet", catalog: `${c.config.PUBLIC_BASE_URL}/api/v1/catalog` });
+    await paid(req, res, briefId, resource);
+  });
+
+  // the paid resource for one Brief; agents and marketplaces call it with GET or POST
+  app.all("/api/v1/briefs/:id", async (req, res) => {
+    if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
+    await paid(req, res, String(req.params.id));
   });
 
   const receiptFor = (orderId: string) => {

@@ -29,7 +29,7 @@ measurement exists. Testnet payments are not revenue, and estimated contribution
 Still blocked: the mock-merchant test payment (CLAIM_LEDGER B1; SF-1: OKX's client SDK cannot
 parse the mock merchant's challenge). SF-2 is still untested end to end.
 
-Tests, all passing on 18 September: `npm test` (API 105 tests in 10 files, web 23 in 3 files
+Tests, all passing on 19 September: `npm test` (API 121 tests in 12 files, web 23 in 3 files
 including the design system's five brand rules), `npm run test:e2e` (3 browser tests, offline
 configuration; `PW_CHANNEL=msedge` uses an installed browser), `npm run spike` (live checks; every
 step PASS except the mock-merchant payment, which is BLOCKED). Offline fallback:
@@ -50,7 +50,11 @@ remains:
    yet. A recorded Mode A run exists to work from; a new live run spends model credit and testnet
    tokens.
 3. **OKX AI A2MCP listing** (the track minimum: "publish or integrate a working service through
-   OKX AI"). It needs a public HTTPS deployment of the API and ASP registration. Not attempted.
+   OKX AI"). The endpoint side is ready: `/api/v1/briefs/latest` answers `POST` with a `402` and a
+   `PAYMENT-REQUIRED` header (OKX's self-test, passed on localhost), and `AUTO_DESK=true` keeps
+   Briefs coming without an operator. What is left needs the owner's accounts: deploy to a public
+   HTTPS host and register the ASP. Steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Not
+   attempted; the Dockerfile has not been built.
 4. **Make the repository public**, or share it with the review team, if that has not been done.
 5. **Submission form**: https://forms.gle/81S2gnFCzqSoeDEA7.
 6. **Sponsor feedback**: send SF-1 to SF-7 from [docs/SPONSOR_FEEDBACK.md](docs/SPONSOR_FEEDBACK.md)
