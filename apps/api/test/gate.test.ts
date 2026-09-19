@@ -36,6 +36,7 @@ const draft = (): BriefDraft => ({
       text: "The issuer moved the multiplier from 1 to 1.003297609233, a change of 0.33%, effective 2026-09-18T00:30:00.000Z.",
       evidenceIds: ["EV-CA"],
       quantities: [
+        { label: "old multiplier", value: 1, unit: "x", evidenceId: "EV-CA", valueKey: "multiplierOld" },
         { label: "new multiplier", value: 1.003297609233, unit: "x", evidenceId: "EV-CA", valueKey: "multiplierNew" },
         { label: "change", value: 0.329761, unit: "%", evidenceId: "EV-CA", valueKey: "changePct" },
       ],
@@ -46,7 +47,13 @@ const draft = (): BriefDraft => ({
     {
       text: "multiplier() returned 1 at block 70922304 and 1.003297609233 at block 70922424 on chain 196.",
       evidenceIds: ["EV-CHAIN-BEFORE", "EV-CHAIN-AFTER"],
-      quantities: [{ label: "after", value: 1.003297609233, unit: "x", evidenceId: "EV-CHAIN-AFTER", valueKey: "multiplier" }],
+      quantities: [
+        { label: "before", value: 1, unit: "x", evidenceId: "EV-CHAIN-BEFORE", valueKey: "multiplier" },
+        { label: "block before", value: 70922304, unit: "block", evidenceId: "EV-CHAIN-BEFORE", valueKey: "blockNumber" },
+        { label: "after", value: 1.003297609233, unit: "x", evidenceId: "EV-CHAIN-AFTER", valueKey: "multiplier" },
+        { label: "block after", value: 70922424, unit: "block", evidenceId: "EV-CHAIN-AFTER", valueKey: "blockNumber" },
+        { label: "chain", value: 196, unit: "chain id", evidenceId: "EV-CHAIN-AFTER", valueKey: "chainId" },
+      ],
     },
   ],
   confidence: { level: "HIGH", rationale: "Issuer record and chain state agree." },
@@ -114,7 +121,7 @@ describe("publication gate", () => {
 
   it("rejects a declared quantity that disagrees with its evidence value", () => {
     const d = draft();
-    d.whatHappened[0]!.quantities[0]!.value = 1.0033;
+    d.whatHappened[0]!.quantities[1]!.value = 1.0033;
     expect(failed(evaluatePublication(input({ draft: d })))).toContain("QUANTITIES_RESOLVE_TO_EVIDENCE");
   });
 
@@ -136,7 +143,13 @@ describe("publication gate", () => {
   it("caps confidence: a failed on-chain check allows LOW at most", () => {
     const core = checks().map((c) => (c.id === "CHK-AFTER-MATCHES-NEW" ? { ...c, status: "FAIL" as const } : c));
     expect(computeConfidenceCap(evidence(), core)).toBe("LOW");
-    const d = { ...draft(), conflicts: [{ checkId: "CHK-AFTER-MATCHES-NEW", description: "Chain disagrees with the issuer." }] };
+    // with a core check failed the draft may not announce a confirmation, so this one reports the dispute and overstates only its confidence
+    const d = {
+      ...draft(),
+      headline: "IFFx multiplier change reported by the issuer is not reflected on X Layer",
+      confidence: { level: "HIGH" as const, rationale: "Issuer record and chain state were compared by the desk." },
+      conflicts: [{ checkId: "CHK-AFTER-MATCHES-NEW", description: "Chain disagrees with the issuer." }],
+    };
     expect(failed(evaluatePublication(input({ checks: core, draft: d })))).toEqual(["CONFIDENCE_WITHIN_CAP"]);
   });
 

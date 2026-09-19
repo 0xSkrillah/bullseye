@@ -1,4 +1,5 @@
 import type { BriefDraft, EvidenceItem, Synthesis } from "@bullseye/domain";
+import { CORE_CHECKS } from "../evidence/checks.js";
 import type { ModelSession, ModelTurn, ProviderPricing, SynthesisProvider, ToolCall, ToolResult } from "./model.js";
 
 /**
@@ -63,7 +64,8 @@ export class FixtureProvider implements SynthesisProvider {
       async synthesise(instruction): Promise<ModelTurn> {
         if (behaviour === "invalid_json") return { kind: "done", text: "{ not json", usage: SYNTHETIC_USAGE };
         const failed = [...instruction.matchAll(/^(CHK-[A-Z0-9-]+) FAIL/gm)].map((m) => m[1] as string);
-        return { kind: "done", text: JSON.stringify(templateDraft(evidence, failed, behaviour)), usage: SYNTHETIC_USAGE };
+        const unsettled = [...instruction.matchAll(/^(CHK-[A-Z0-9-]+) (?:FAIL|UNKNOWN)/gm)].some((m) => (CORE_CHECKS as readonly string[]).includes(m[1] as string));
+        return { kind: "done", text: JSON.stringify(templateDraft(evidence, failed, unsettled, behaviour)), usage: SYNTHETIC_USAGE };
       },
     };
   }
@@ -73,7 +75,7 @@ function call(turn: number, i: number, name: string, input: unknown): ToolCall {
   return { id: `fx_${turn}_${i}`, name, input };
 }
 
-function templateDraft(evidence: EvidenceItem[], failedChecks: string[], behaviour: FixtureBehaviour): BriefDraft {
+function templateDraft(evidence: EvidenceItem[], failedChecks: string[], coreUnsettled: boolean, behaviour: FixtureBehaviour): BriefDraft {
   const ev = (id: string) => evidence.find((e) => e.id === id);
   const num = (id: string, key: string): number => Number(ev(id)?.values[key] ?? Number.NaN);
   const q = (label: string, id: string, key: string, unit: string) => ({ label, value: num(id, key), unit, evidenceId: id, valueKey: key });
@@ -117,7 +119,8 @@ function templateDraft(evidence: EvidenceItem[], failedChecks: string[], behavio
   ];
 
   return {
-    headline: "Multiplier change confirmed against X Layer contract state",
+    // an honest template does not announce a confirmation the core checks did not give; the one that hides its conflicts does
+    headline: coreUnsettled && behaviour !== "hides_conflict" ? "Multiplier change reported by the issuer is disputed by the desk's core checks" : "Multiplier change confirmed against X Layer contract state",
     whatHappened,
     whyItMayMatter: why,
     onchainObservations: onchain,

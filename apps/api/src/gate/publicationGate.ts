@@ -12,8 +12,12 @@ import {
 } from "@bullseye/domain";
 import { CORE_CHECKS } from "../evidence/checks.js";
 import { MANDATORY_EVIDENCE } from "../evidence/toolbox.js";
+import { CANONICAL_UNIT, fieldSpec, ungroundedFigures, unitAccepted } from "./numericGrounding.js";
 
-export const GATE_VERSION = "1.0.0";
+export { extractNumberTokens } from "./numericGrounding.js";
+
+/** 2.0.0: figures bind to declared quantities by unit, sign and precision; no small-integer exemption */
+export const GATE_VERSION = "2.0.0";
 
 export interface GateInput {
   draft: unknown;
@@ -48,67 +52,11 @@ const ADVICE_PATTERNS: RegExp[] = [
 
 const RANK: Record<ConfidenceLevel, number> = { LOW: 0, MEDIUM: 1, HIGH: 2 };
 
-/** integers this small are treated as prose ("2 sources"), not as market data */
-const SMALL_INTEGER_MAX = 12;
-
-interface NumberToken {
-  raw: string;
-  value: number;
-  decimals: number;
-}
-
-export function extractNumberTokens(text: string): { numbers: NumberToken[]; timestamps: string[] } {
-  const timestamps: string[] = [];
-  let scrubbed = text
-    .replace(/\b(EV|CHK)-[A-Z0-9-]+\b/g, " ")
-    .replace(/\b0x[0-9a-fA-F]+\b/g, " ")
-    .replace(/\b\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z?)?\b/g, (m) => {
-      timestamps.push(m);
-      return " ";
-    })
-    .replace(/\b\d{1,2}:\d{2}(:\d{2})?\b/g, (m) => {
-      timestamps.push(m);
-      return " ";
-    });
-  // identifiers such as "x402" or "v2" are names, not quantities
-  scrubbed = scrubbed.replace(/\b[A-Za-z]+\d+[A-Za-z0-9]*\b/g, " ");
-  const numbers: NumberToken[] = [];
-  for (const m of scrubbed.matchAll(/(?<![\w.])-?\d[\d,]*(\.\d+)?/g)) {
-    const raw = m[0].replace(/,/g, "");
-    const value = Number(raw);
-    if (!Number.isFinite(value)) continue;
-    numbers.push({ raw: m[0], value, decimals: raw.includes(".") ? raw.split(".")[1]!.length : 0 });
-  }
-  return { numbers, timestamps };
-}
-
-function roundTo(n: number, dp: number): number {
-  const f = 10 ** dp;
-  return Math.round(n * f) / f;
-}
-
-/** A number in prose is evidenced when it is some evidence value, that value's magnitude, or its percentage form, at the precision written. */
-function numberIsEvidenced(token: NumberToken, candidates: number[]): boolean {
-  if (token.decimals === 0 && Math.abs(token.value) <= SMALL_INTEGER_MAX) return true;
-  const target = Math.abs(token.value);
-  return candidates.some((c) => {
-    const forms = [Math.abs(c), Math.abs(c) * 100];
-    return forms.some((f) => Math.abs(roundTo(f, token.decimals) - target) < 10 ** -(token.decimals + 3));
-  });
-}
-
-function numericValues(items: EvidenceItem[]): number[] {
-  return items.flatMap((e) => Object.values(e.values).filter((v): v is number => typeof v === "number"));
-}
-
-function stringValues(items: EvidenceItem[]): string[] {
-  return items.flatMap((e) => [e.observedAt, e.provenance.fetchedAt, ...Object.values(e.values).filter((v): v is string => typeof v === "string")]);
-}
-
-function timestampIsEvidenced(ts: string, haystack: string[]): boolean {
-  const needle = ts.replace(/Z$/, "");
-  return haystack.some((h) => h.includes(needle));
-}
+/**
+ * Words that present the event as settled. While a core check is not PASS the desk has not settled
+ * it, and listing the conflict further down does not license a headline that says otherwise.
+ */
+const CONFIRMATION_LANGUAGE = /\b(confirm(s|ed|ation)?|verified|verifies|matches|agree(s|d)?|consistent with|in line with)\b/i;
 
 export function computeConfidenceCap(evidence: EvidenceItem[], checks: ConsistencyCheck[]): ConfidenceLevel {
   const core = checks.filter((c) => (CORE_CHECKS as readonly string[]).includes(c.id));
@@ -192,23 +140,24 @@ export function evaluatePublication(input: GateInput): GateResult {
       if (!item) badQuantities.push(`${section}: "${q.label}" cites unknown ${q.evidenceId}`);
       else if (!claim.evidenceIds.includes(q.evidenceId)) badQuantities.push(`${section}: "${q.label}" uses ${q.evidenceId} which the claim does not cite`);
       else if (typeof actual !== "number") badQuantities.push(`${section}: "${q.label}" -> ${q.evidenceId}.${q.valueKey} is not a number`);
-      else if (Math.abs(actual - q.value) > Math.max(1e-9, Math.abs(actual) * 1e-9)) badQuantities.push(`${section}: "${q.label}" says ${q.value} but ${q.evidenceId}.${q.valueKey} is ${actual}`);
+      else {
+        if (Math.abs(actual - q.value) > Math.max(1e-9, Math.abs(actual) * 1e-9)) badQuantities.push(`${section}: "${q.label}" says ${q.value} but ${q.evidenceId}.${q.valueKey} is ${actual}`);
+        // the unit is the registry's, not the draft's: a quantity may name it but cannot choose it
+        const spec = fieldSpec(item.kind, q.valueKey);
+        if (!spec) badQuantities.push(`${section}: "${q.label}" -> ${q.evidenceId}.${q.valueKey} has no registered unit and cannot support a number`);
+        else if (!unitAccepted(q.unit, spec)) badQuantities.push(`${section}: "${q.label}" declares unit "${q.unit}" but ${q.evidenceId}.${q.valueKey} is ${spec.unit}; use "${CANONICAL_UNIT[spec.unit]}"`);
+      }
     }
   }
-  record("QUANTITIES_RESOLVE_TO_EVIDENCE", badQuantities.length === 0, badQuantities.length === 0 ? "every declared quantity equals its evidence value" : badQuantities.join("; "));
+  record("QUANTITIES_RESOLVE_TO_EVIDENCE", badQuantities.length === 0, badQuantities.length === 0 ? "every declared quantity equals its evidence value and names its registered unit" : badQuantities.join("; "));
 
-  const unevidenced: string[] = [];
-  const checkText = (where: string, text: string, items: EvidenceItem[], extra: number[]) => {
-    const { numbers, timestamps } = extractNumberTokens(text);
-    const candidates = [...numericValues(items), ...extra];
-    for (const n of numbers) if (!numberIsEvidenced(n, candidates)) unevidenced.push(`${where}: "${n.raw}"`);
-    const haystack = stringValues(items);
-    for (const ts of timestamps) if (!timestampIsEvidenced(ts, haystack)) unevidenced.push(`${where}: "${ts}"`);
-  };
-  for (const { section, claim } of claims) {
-    const cited = claim.evidenceIds.map((id) => byId.get(id)).filter((e): e is EvidenceItem => e !== undefined);
-    checkText(section, claim.text, cited, claim.quantities.map((q) => q.value));
-  }
+  const unevidenced = ungroundedFigures({ draft, evidence: input.evidence, checks: input.checks });
+  record(
+    "NUMBERS_IN_TEXT_ARE_EVIDENCED",
+    unevidenced.length === 0,
+    unevidenced.length === 0 ? "every figure and timestamp in the text is bound to collected evidence by unit, sign and precision" : `not grounded in evidence: ${unevidenced.join("; ")}`,
+  );
+
   const free: [string, string][] = [
     ["headline", draft.headline],
     ["confidence.rationale", draft.confidence.rationale],
@@ -216,13 +165,6 @@ export function evaluatePublication(input: GateInput): GateResult {
     ...draft.limitations.map((t, i): [string, string] => [`limitations[${i}]`, t]),
     ...draft.conflicts.map((c, i): [string, string] => [`conflicts[${i}]`, c.description]),
   ];
-  for (const [where, text] of free) checkText(where, text, input.evidence, []);
-  record(
-    "NUMBERS_IN_TEXT_ARE_EVIDENCED",
-    unevidenced.length === 0,
-    unevidenced.length === 0 ? "every number and timestamp in the text resolves to collected evidence" : `not found in evidence: ${unevidenced.join(", ")}`,
-  );
-
   const allText: [string, string][] = [...claims.map(({ section, claim }): [string, string] => [section, claim.text]), ...free];
   const advice = allText.flatMap(([where, text]) => ADVICE_PATTERNS.filter((p) => p.test(text)).map((p) => `${where}: matches ${p.source}`));
   record("NO_INVESTMENT_ADVICE", advice.length === 0, advice.length === 0 ? "no advisory language found" : advice.join("; "));
@@ -230,10 +172,19 @@ export function evaluatePublication(input: GateInput): GateResult {
   const failed = input.checks.filter((c) => c.status === "FAIL").map((c) => c.id);
   const disclosed = new Set(draft.conflicts.map((c) => c.checkId));
   const hidden = failed.filter((id) => !disclosed.has(id));
+  // a conflict listed under "conflicts" is not disclosed if the headline still announces a confirmation
+  const unsettled = CORE_CHECKS.filter((id) => input.checks.find((c) => c.id === id)?.status !== "PASS");
+  const dressed =
+    unsettled.length === 0
+      ? []
+      : ([["headline", draft.headline], ["confidence.rationale", draft.confidence.rationale]] as const).flatMap(([where, text]) => {
+          const phrase = CONFIRMATION_LANGUAGE.exec(text)?.[0];
+          return phrase ? [`${where} says "${phrase}" while ${unsettled.join(", ")} did not pass`] : [];
+        });
   record(
     "FAILED_CHECKS_DISCLOSED",
-    hidden.length === 0,
-    hidden.length === 0 ? (failed.length === 0 ? "no failed checks" : `all failed checks disclosed: ${failed.join(", ")}`) : `failed checks missing from conflicts: ${hidden.join(", ")}`,
+    hidden.length === 0 && dressed.length === 0,
+    [...(hidden.length > 0 ? [`failed checks missing from conflicts: ${hidden.join(", ")}`] : []), ...dressed].join("; ") || (failed.length === 0 ? "no failed checks" : `all failed checks disclosed: ${failed.join(", ")}`),
   );
 
   record(

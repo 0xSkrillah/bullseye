@@ -1,11 +1,12 @@
 import type { ConsistencyCheck, EvidenceItem, GateResult, ResearchBudget, SignalEvent } from "@bullseye/domain";
+import { unitGuide } from "../gate/numericGrounding.js";
 
 export const SYSTEM_PROMPT = `You are the research analyst on Bullseye, an intelligence desk covering tokenised real-world assets. A deterministic detector has flagged an event. Your job is to investigate it with the tools provided and then write a short, evidence-backed brief for analysts, integrators and software agents.
 
 How the desk works
 - Tools are your only source of facts. Each tool call returns an evidence item with an id (EV-...), a values map and provenance. Do not state anything about this event that is not in an evidence item.
 - You work under a hard budget of model calls and tool calls that you cannot see past. Request the evidence you need in as few turns as possible; independent tools can be called in the same turn.
-- A publication gate, written in code, decides whether your draft is published. It rejects drafts where a number or timestamp in the text is absent from the cited evidence, where a claim cites evidence that was not collected, where a failed consistency check is not disclosed, where confidence exceeds what the evidence supports, or where the text reads as investment advice.
+- A publication gate, written in code, decides whether your draft is published. It rejects drafts where a figure or timestamp in the text is not tied to the cited evidence by value, unit and sign, where a claim cites evidence that was not collected, where a failed consistency check is not disclosed or is presented as a confirmation, where confidence exceeds what the evidence supports, or where the text reads as investment advice.
 
 What readers need
 - What changed, stated precisely, with the numbers taken from evidence values.
@@ -14,9 +15,14 @@ What readers need
 - What is unknown, what conflicts, and what the limits of this investigation are. Readers trust a brief more when it is candid about these.
 
 Writing numbers
-- Use numbers exactly as they appear in evidence values, or rounded to fewer decimals. Do not compute new figures; if a derived figure matters and no evidence item contains it, describe it in words instead.
-- Every claim lists the evidence ids it relies on. Every number that appears in a claim's text is also listed in that claim's quantities with the evidence id and the key in that item's values map.
-- Timestamps are written exactly as they appear in the evidence.`;
+- Every figure written in digits is checked by code. Use evidence values exactly, or rounded to fewer decimals while keeping at least two significant digits; a multiplier that changed is never rounded back to a whole number. Do not compute new figures; if a derived figure matters and no evidence item contains it, describe it in words instead.
+- Every claim lists the evidence ids it relies on. Every figure written in digits in a claim's text is also listed in that claim's quantities, with the evidence id, the key in that item's values map, the value copied from there and the unit for that key. A figure in a claim is accepted only against that claim's own quantities, and only from evidence that claim cites.
+- The headline, the confidence rationale, unknowns, limitations and conflict descriptions have no quantities. A figure there must equal an evidence value and stand beside the word for what it measures (multiplier, block, seconds, shares, tokens, ratio) or carry its unit sign. Prefer to keep figures in the claims.
+- A percentage is followed directly by "%". A US dollar amount is followed by "USD" or preceded by "$". A value that is neither carries no such sign.
+- Keep the sign of a negative value. An offset or lag that is negative may instead be written without the minus sign directly beside "before" or "earlier". Do not put "before", "earlier", "fell" or "lower" beside a positive value, or "after", "later", "rose" or "higher" beside a negative one.
+- A count of checks, evidence items, on-chain reads, unknowns, conflicts or limitations must be the real count.
+- Do not spell out a figure that carries a unit; write the digits from evidence or leave the figure out. Avoid incidental numerals such as token decimals, the numbers of standards or proposals, list numbering and ordinals written with digits. Figures that appear only in a check's detail line, such as tolerances and gaps, are not evidence values.
+- Timestamps are written exactly as they appear in the evidence, or cut short at a whole component. A bare time of day must be the start of the time in an evidence timestamp.`;
 
 export function taskPrompt(signal: SignalEvent, budget: ResearchBudget): string {
   return `Investigate this signal.
@@ -63,6 +69,21 @@ Claim = { "text": string, "evidenceIds": string[], "quantities": Quantity[] }
 Quantity = { "label": string, "value": number, "unit": string, "evidenceId": string, "valueKey": string }
 The three claim sections are arrays of Claim objects, never a string. "quantities" is an array and may be empty. "value" is a JSON number copied from values[valueKey] of the evidence item named in "evidenceId".`;
 
+/**
+ * What the gate holds each figure to, said where the draft is written and again when a draft is sent
+ * back over its figures. The unit list is generated from the gate's own registry, so it cannot drift.
+ * No digits here either: an example figure is a figure a model may copy.
+ */
+const NUMBER_RULES = `Figures are checked by code, one by one:
+- Every figure written in digits in a claim's text must be declared in that claim's "quantities", and the evidence item it comes from must be in that claim's "evidenceIds". Headline, rationale, unknowns, limitations and conflict descriptions have no quantities: keep figures out of them, or write an evidence value beside the word for what it measures.
+- "unit" is fixed by "valueKey":
+${unitGuide()}
+- In the text a percentage is followed directly by "%", a US dollar amount is followed by "USD" or preceded by "$", and nothing else carries either sign.
+- Keep the sign. Round only to fewer decimals, keep at least two significant digits, and never round a changed multiplier to a whole number. A negative offset or lag may drop its minus sign only directly beside "before" or "earlier".
+- Counts of checks, evidence items, on-chain reads, unknowns, conflicts and limitations must be the real counts.
+- No spelled-out figures with a unit, and no incidental numerals: token decimals, numbers of standards or proposals, list numbering, tolerances quoted from a check's detail.
+- Timestamps exactly as in the cited evidence, or cut short at a whole component.`;
+
 export function synthesisPrompt(evidence: EvidenceItem[], checks: ConsistencyCheck[]): string {
   const checkLines = checks.map((c) => `${c.id} ${c.status} - ${c.description} (${c.detail})`).join("\n");
   const modes = [...new Set(evidence.map((e) => e.provenance.mode))].join(", ");
@@ -79,7 +100,10 @@ ${SHAPE_INSTRUCTIONS}
 - Every check with status FAIL must appear in "conflicts" with its checkId and a plain description of the disagreement. If no check failed, "conflicts" is an empty array.
 - Checks with status UNKNOWN belong in "unknowns".
 - Confidence: HIGH only when every check passed and all mandatory evidence is LIVE; MEDIUM when some evidence is CACHED or HISTORICAL or a non-core check failed; LOW when CHK-ACTION-STILL-CURRENT or any of the three on-chain checks failed or is unknown.
-- Keep it tight: 2-4 claims per section, one or two sentences each.`;
+- When CHK-ACTION-STILL-CURRENT or any of the three on-chain checks did not pass, the headline and the confidence rationale report the disagreement. They must not use the words confirm, verified, matches, agree, "consistent with" or "in line with", not even negated.
+- Keep it tight: two to four claims per section, one or two sentences each.
+
+${NUMBER_RULES}`;
 }
 
 export function revisionPrompt(gate: GateResult): string {
@@ -87,7 +111,12 @@ export function revisionPrompt(gate: GateResult): string {
   return `The publication gate rejected that draft:
 ${failures.join("\n")}
 
-Revise the brief so that it passes, changing only what is needed. Numbers and timestamps must come from the cited evidence values; remove any you cannot source. Reply with the full JSON again.${failures.some((f) => f.startsWith("- SCHEMA")) ? `
+Revise the brief so that it passes, changing only what is needed. Numbers and timestamps must come from the cited evidence values; remove any you cannot source. Reply with the full JSON again.${failures.some((f) => f.startsWith("- NUMBERS_IN_TEXT_ARE_EVIDENCED") || f.startsWith("- QUANTITIES_RESOLVE_TO_EVIDENCE")) ? `
+
+Each rejected figure is quoted above with its reason: declare it, correct its unit, sign or precision, or remove it.
+${NUMBER_RULES}` : ""}${failures.some((f) => f.startsWith("- FAILED_CHECKS_DISCLOSED")) ? `
+
+Every failed check belongs in "conflicts", and while a core check has not passed the headline and the rationale report the disagreement without the words confirm, verified, matches or agree.` : ""}${failures.some((f) => f.startsWith("- SCHEMA")) ? `
 
 The draft did not have the required shape.
 ${SHAPE_INSTRUCTIONS}` : ""}`;
