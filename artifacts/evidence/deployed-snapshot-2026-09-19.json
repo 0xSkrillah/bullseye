@@ -1,0 +1,920 @@
+{
+  "what": "Read-only snapshot of the public deployment, taken with unauthenticated GET requests and one unpaid POST (OKX's documented listing self-test). No payment was made, nothing was signed, and no operator route was called.",
+  "base": "https://bullseye-production-5d0c.up.railway.app",
+  "capturedAt": "2026-09-19T14:15:17.058Z",
+  "boundaries": [
+    "This shows what the deployed service answered on the day. It is not evidence of a purchase through the deployed address: none has been made.",
+    "The deployment was running the code on main at the time, not the branch this file was committed on.",
+    "The unpaid POST made the seller issue (or reuse) a quote, as any visitor's request does. No funds can move without a signed authorization.",
+    "The rejected run is kept in full: it published nothing, so nothing is sold from it. The published run is kept as the public projection only. Some of the rejected run's lines (the read one minute before 00:30:00Z, the trading status) are word for word the same for every asset that rebased at that second; they describe the rejected run's asset, not the Brief on sale."
+  ],
+  "health": {
+    "service": "bullseye",
+    "dataSource": {
+      "mode": "LIVE",
+      "asOf": "2026-09-19T14:13:52.937Z"
+    },
+    "synthesis": {
+      "provider": "openrouter",
+      "model": "openrouter/auto",
+      "ready": true,
+      "detail": "cost tier medium; price cap $3/$15 per million tokens in/out"
+    },
+    "paymentRail": {
+      "rail": "OKX_X402_TESTNET",
+      "network": "eip155:1952",
+      "ready": true,
+      "detail": "facilitator supports exact on eip155:1952",
+      "payTo": "0xa8bcd760a7c280c05090431c6afdf15df324d64a",
+      "isTestnet": true
+    },
+    "priceUsd": "3.00",
+    "budget": {
+      "maxVariableCostUsd": 0.6,
+      "maxModelCalls": 6,
+      "maxToolCalls": 14,
+      "maxLatencyMs": 180000,
+      "maxOutputTokensPerCall": 8000
+    },
+    "operatorRoutes": "DISABLED",
+    "autoDesk": {
+      "enabled": true,
+      "intervalMinutes": 30,
+      "maxInvestigationsPerDay": 3
+    },
+    "sdk": {
+      "@okxweb3/x402-core": "0.1.0",
+      "@okxweb3/x402-evm": "0.2.1",
+      "@okxweb3/x402-express": "0.1.1",
+      "@okxweb3/x402-fetch": "0.1.0"
+    }
+  },
+  "deskStatus": {
+    "enabled": true,
+    "intervalMinutes": 30,
+    "maxInvestigationsPerDay": 3,
+    "investigationsLast24h": 3,
+    "lastTick": {
+      "at": "2026-09-19T14:00:33.189Z",
+      "action": "IDLE",
+      "reason": "DAILY_CAP",
+      "detail": "3 started in the last 24 h"
+    },
+    "nextTickAt": "2026-09-19T14:30:33.188Z",
+    "dailySpendCeilingUsd": 1.8,
+    "liveWindowHours": 96
+  },
+  "investigations": [
+    {
+      "id": "inv_0b09dec635375140",
+      "symbol": "SATAx",
+      "status": "PUBLISHED",
+      "stopReason": "COMPLETED",
+      "startedAt": "2026-09-19T10:28:14.601Z",
+      "finishedAt": "2026-09-19T10:29:29.966Z",
+      "briefId": "brf_4f41f04af0081567",
+      "gate": {
+        "decision": "PUBLISH",
+        "confidenceCap": "HIGH"
+      },
+      "draftsJudged": 1
+    },
+    {
+      "id": "inv_f117ffa0cac381a6",
+      "symbol": "ESx",
+      "status": "PUBLISHED",
+      "stopReason": "COMPLETED",
+      "startedAt": "2026-09-19T10:23:01.385Z",
+      "finishedAt": "2026-09-19T10:25:13.334Z",
+      "briefId": "brf_9aac63b6842fb78e",
+      "gate": {
+        "decision": "PUBLISH",
+        "confidenceCap": "HIGH"
+      },
+      "draftsJudged": 2
+    },
+    {
+      "id": "inv_bdb36ac9f9a8509f",
+      "symbol": "AVGOx",
+      "status": "REJECTED",
+      "stopReason": "COMPLETED",
+      "startedAt": "2026-09-19T10:16:24.441Z",
+      "finishedAt": "2026-09-19T10:18:44.881Z",
+      "briefId": null,
+      "gate": {
+        "decision": "REJECT",
+        "confidenceCap": "HIGH"
+      },
+      "draftsJudged": 2
+    }
+  ],
+  "rejectedByTheGate": {
+    "projection": "FULL: the run published nothing, so there is no Brief to protect",
+    "investigation": {
+      "id": "inv_bdb36ac9f9a8509f",
+      "signalId": "sig_216bdbd9b6603d1d",
+      "status": "REJECTED",
+      "stopReason": "COMPLETED",
+      "startedAt": "2026-09-19T10:16:24.441Z",
+      "finishedAt": "2026-09-19T10:18:44.881Z",
+      "briefId": null,
+      "gate": {
+        "decision": "REJECT",
+        "evaluatedAt": "2026-09-19T10:18:44.876Z",
+        "gateVersion": "1.0.0",
+        "confidenceCap": "HIGH",
+        "findings": [
+          {
+            "rule": "INVESTIGATION_COMPLETED",
+            "passed": true,
+            "detail": "investigation stop reason: COMPLETED"
+          },
+          {
+            "rule": "SCHEMA",
+            "passed": false,
+            "detail": "whatHappened: Expected array, received string; whyItMayMatter: Expected array, received string; onchainObservations: Expected array, received string; confidence.rationale: Required; limitations: Required"
+          }
+        ]
+      },
+      "gateAttempts": null,
+      "budgetAtStart": {
+        "maxVariableCostUsd": 0.6,
+        "maxModelCalls": 6,
+        "maxToolCalls": 14,
+        "maxLatencyMs": 180000,
+        "maxOutputTokensPerCall": 8000
+      },
+      "timeline": [
+        {
+          "seq": 0,
+          "at": "2026-09-19T10:16:24.443Z",
+          "type": "STARTED",
+          "label": "Investigating AVGOx: AVGOx rebased +0.127234% (CashDividend)",
+          "detail": "budget: $0.6 max variable cost, 6 model calls, 14 tool calls",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 1,
+          "at": "2026-09-19T10:16:30.803Z",
+          "type": "MODEL_CALL",
+          "label": "plan evidence collection",
+          "detail": "deepseek/deepseek-v4-pro · 1742 in / 281 out tokens · $0.0040 MEASURED_PROVIDER_BILLED",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 2,
+          "at": "2026-09-19T10:16:30.999Z",
+          "type": "TOOL_CALL",
+          "label": "get_corporate_action",
+          "detail": "{}",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 3,
+          "at": "2026-09-19T10:16:31.000Z",
+          "type": "EVIDENCE",
+          "label": "EV-CA · LIVE",
+          "detail": "Issuer corporate-action record c3823929-d866-4f3b-986e-1ccd74b252eb v2 for AVGOx: CashDividend, status Initial, multiplier 1.0048837684862768 -> 1.0061623180646875, effective 2026-09-19T00:30:00.000Z.",
+          "evidenceId": "EV-CA",
+          "ok": true
+        },
+        {
+          "seq": 4,
+          "at": "2026-09-19T10:16:37.270Z",
+          "type": "TOOL_CALL",
+          "label": "read_onchain_multiplier",
+          "detail": "{\"when\":\"before_effective\"}",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 5,
+          "at": "2026-09-19T10:16:37.272Z",
+          "type": "EVIDENCE",
+          "label": "EV-CHAIN-BEFORE · LIVE",
+          "detail": "multiplier() on X Layer at block 71008704 (2026-09-19T00:29:00.000Z, 60s before the issuer's effective time) returned 1.0048837684862768.",
+          "evidenceId": "EV-CHAIN-BEFORE",
+          "ok": true
+        },
+        {
+          "seq": 6,
+          "at": "2026-09-19T10:16:44.772Z",
+          "type": "TOOL_CALL",
+          "label": "read_onchain_multiplier",
+          "detail": "{\"when\":\"after_effective\"}",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 7,
+          "at": "2026-09-19T10:16:44.774Z",
+          "type": "EVIDENCE",
+          "label": "EV-CHAIN-AFTER · LIVE",
+          "detail": "multiplier() on X Layer at block 71008824 (2026-09-19T00:31:00.000Z, 60s after the issuer's effective time) returned 1.0061623180646875.",
+          "evidenceId": "EV-CHAIN-AFTER",
+          "ok": true
+        },
+        {
+          "seq": 8,
+          "at": "2026-09-19T10:16:45.406Z",
+          "type": "TOOL_CALL",
+          "label": "read_onchain_multiplier",
+          "detail": "{\"when\":\"latest\"}",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 9,
+          "at": "2026-09-19T10:16:45.408Z",
+          "type": "EVIDENCE",
+          "label": "EV-CHAIN-LATEST · LIVE",
+          "detail": "multiplier() on X Layer at head block 71043968 (2026-09-19T10:16:44.000Z) returned 1.0061623180646875.",
+          "evidenceId": "EV-CHAIN-LATEST",
+          "ok": true
+        },
+        {
+          "seq": 10,
+          "at": "2026-09-19T10:16:45.595Z",
+          "type": "TOOL_CALL",
+          "label": "get_proof_of_reserves",
+          "detail": "{}",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 11,
+          "at": "2026-09-19T10:16:45.597Z",
+          "type": "EVIDENCE",
+          "label": "EV-POR · LIVE",
+          "detail": "Issuer proof-of-reserves at 2026-09-19T10:03:26.946Z: 17600 AVGO shares held against 17529.422175404267631 circulating AVGOx.",
+          "evidenceId": "EV-POR",
+          "ok": true
+        },
+        {
+          "seq": 12,
+          "at": "2026-09-19T10:16:47.981Z",
+          "type": "MODEL_CALL",
+          "label": "plan evidence collection",
+          "detail": "deepseek/deepseek-v4-pro · 3777 in (1741 cached) / 212 out tokens · $0.0045 MEASURED_PROVIDER_BILLED",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 13,
+          "at": "2026-09-19T10:16:48.165Z",
+          "type": "TOOL_CALL",
+          "label": "get_issuer_multiplier_state",
+          "detail": "{}",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 14,
+          "at": "2026-09-19T10:16:48.167Z",
+          "type": "EVIDENCE",
+          "label": "EV-MULT-API · LIVE",
+          "detail": "Issuer API reports current multiplier 1.0061623180646875 for the X Layer deployment; pending multiplier 0.",
+          "evidenceId": "EV-MULT-API",
+          "ok": true
+        },
+        {
+          "seq": 15,
+          "at": "2026-09-19T10:17:06.900Z",
+          "type": "TOOL_CALL",
+          "label": "find_onchain_activation",
+          "detail": "{}",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 16,
+          "at": "2026-09-19T10:17:06.901Z",
+          "type": "EVIDENCE",
+          "label": "EV-CHAIN-ACTIVATION · LIVE",
+          "detail": "multiplier() first returned 1.0061623180646875 at X Layer block 71008764 (2026-09-19T00:30:00.000Z); the previous block still returned 1.0048837684862768.",
+          "evidenceId": "EV-CHAIN-ACTIVATION",
+          "ok": true
+        },
+        {
+          "seq": 17,
+          "at": "2026-09-19T10:17:26.907Z",
+          "type": "TOOL_CALL",
+          "label": "get_reference_price",
+          "detail": "source unavailable [xstocks.price.AVGOx] https://api.xstocks.fi/api/v2/public/assets/AVGOx/price-data: The operation was aborted due to timeout",
+          "evidenceId": null,
+          "ok": false
+        },
+        {
+          "seq": 18,
+          "at": "2026-09-19T10:17:27.507Z",
+          "type": "TOOL_CALL",
+          "label": "get_trading_status",
+          "detail": "{}",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 19,
+          "at": "2026-09-19T10:17:27.508Z",
+          "type": "EVIDENCE",
+          "label": "EV-STATUS · LIVE",
+          "detail": "Issuer trading status: market trading halted = false, atomic trading halted = false.",
+          "evidenceId": "EV-STATUS",
+          "ok": true
+        },
+        {
+          "seq": 20,
+          "at": "2026-09-19T10:17:27.874Z",
+          "type": "TOOL_CALL",
+          "label": "get_supply",
+          "detail": "{}",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 21,
+          "at": "2026-09-19T10:17:27.876Z",
+          "type": "EVIDENCE",
+          "label": "EV-SUPPLY · LIVE",
+          "detail": "Issuer reports total supply 249959.05224674603 and circulating supply 17529.422175399668 across all chains; totalSupply() on X Layer is 14719.23431936040423602 at block 71044011.",
+          "evidenceId": "EV-SUPPLY",
+          "ok": true
+        },
+        {
+          "seq": 22,
+          "at": "2026-09-19T10:17:32.943Z",
+          "type": "MODEL_CALL",
+          "label": "plan evidence collection",
+          "detail": "deepseek/deepseek-v4-pro · 5210 in (3776 cached) / 497 out tokens · $0.0048 MEASURED_PROVIDER_BILLED",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 23,
+          "at": "2026-09-19T10:17:32.946Z",
+          "type": "CHECKS",
+          "label": "8 passed, 0 failed, 1 unknown",
+          "detail": "CHK-ACTION-STILL-CURRENT: PASS; CHK-BEFORE-MATCHES-OLD: PASS; CHK-AFTER-MATCHES-NEW: PASS; CHK-LATEST-MATCHES-NEW: PASS; CHK-API-STATE-MATCHES-CHAIN: PASS; CHK-RESERVES-COVER-SUPPLY: PASS; CHK-ACTIVATION-ON-SCHEDULE: PASS; CHK-REBASE-SIZE-PLAUSIBLE: UNKNOWN; CHK-TRADING-NOT-HALTED: PASS",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 24,
+          "at": "2026-09-19T10:18:14.549Z",
+          "type": "MODEL_CALL",
+          "label": "write brief",
+          "detail": "deepseek/deepseek-v4-pro · 4476 in / 5656 out tokens · $0.0275 MEASURED_PROVIDER_BILLED",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 25,
+          "at": "2026-09-19T10:18:14.552Z",
+          "type": "GATE",
+          "label": "Publication gate: REJECT (SCHEMA)",
+          "detail": "SCHEMA: headline: Required; whatHappened: Required; whyItMayMatter: Required; onchainObservations: Required; confidence: Expected object, received string; unknowns.0: Expected string, received object",
+          "evidenceId": null,
+          "ok": false
+        },
+        {
+          "seq": 26,
+          "at": "2026-09-19T10:18:44.873Z",
+          "type": "MODEL_CALL",
+          "label": "revise brief after gate rejection",
+          "detail": "deepseek/deepseek-v4-pro · 5901 in (4474 cached) / 4128 out tokens · $0.0175 MEASURED_PROVIDER_BILLED",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 27,
+          "at": "2026-09-19T10:18:44.876Z",
+          "type": "GATE",
+          "label": "Publication gate: REJECT (SCHEMA)",
+          "detail": "SCHEMA: whatHappened: Expected array, received string; whyItMayMatter: Expected array, received string; onchainObservations: Expected array, received string; confidence.rationale: Required; limitations: Required",
+          "evidenceId": null,
+          "ok": false
+        },
+        {
+          "seq": 28,
+          "at": "2026-09-19T10:18:44.881Z",
+          "type": "REJECTED",
+          "label": "Not published. No Brief was created and nothing can be charged for.",
+          "detail": null,
+          "evidenceId": null,
+          "ok": false
+        }
+      ]
+    },
+    "budget": {
+      "maxVariableCostUsd": 0.6,
+      "maxModelCalls": 6,
+      "maxToolCalls": 14,
+      "maxLatencyMs": 180000,
+      "maxOutputTokensPerCall": 8000
+    },
+    "usage": {
+      "modelCalls": 5,
+      "toolCalls": 10,
+      "measuredModelCostUsd": 0.058282,
+      "upperBoundModelCostUsd": 0,
+      "budgetSpentUsd": 0.058282,
+      "costBases": [
+        "MEASURED_PROVIDER_BILLED"
+      ],
+      "costBasis": "MEASURED_PROVIDER_BILLED",
+      "routedModels": [
+        "deepseek/deepseek-v4-pro"
+      ]
+    }
+  },
+  "publishedByTheGate": {
+    "projection": "PUBLIC: evidence summaries, per-check results, model and tool call details, failed-draft findings and per-run cost are withheld because a Brief from this run is on sale",
+    "investigation": {
+      "id": "inv_f117ffa0cac381a6",
+      "signalId": "sig_5509eaa2ecd85d30",
+      "status": "PUBLISHED",
+      "stopReason": "COMPLETED",
+      "startedAt": "2026-09-19T10:23:01.385Z",
+      "finishedAt": "2026-09-19T10:25:13.334Z",
+      "briefId": "brf_9aac63b6842fb78e",
+      "gate": {
+        "decision": "PUBLISH",
+        "evaluatedAt": "2026-09-19T10:25:13.330Z",
+        "gateVersion": "1.0.0",
+        "confidenceCap": "HIGH",
+        "findings": [
+          {
+            "rule": "INVESTIGATION_COMPLETED",
+            "passed": true,
+            "detail": "investigation stop reason: COMPLETED"
+          },
+          {
+            "rule": "SCHEMA",
+            "passed": true,
+            "detail": "draft matches BriefDraft"
+          },
+          {
+            "rule": "MANDATORY_EVIDENCE_PRESENT",
+            "passed": true,
+            "detail": "all mandatory evidence kinds collected"
+          },
+          {
+            "rule": "EVIDENCE_FRESH",
+            "passed": true,
+            "detail": "all evidence fresh as of 2026-09-19T10:25:13.330Z"
+          },
+          {
+            "rule": "EVIDENCE_MODE_ALLOWED",
+            "passed": true,
+            "detail": "no fixture data or fixture synthesis involved"
+          },
+          {
+            "rule": "CLAIMS_CITE_KNOWN_EVIDENCE",
+            "passed": true,
+            "detail": "7 claims cite collected evidence"
+          },
+          {
+            "rule": "QUANTITIES_RESOLVE_TO_EVIDENCE",
+            "passed": true,
+            "detail": "every declared quantity equals its evidence value"
+          },
+          {
+            "rule": "NUMBERS_IN_TEXT_ARE_EVIDENCED",
+            "passed": true,
+            "detail": "every number and timestamp in the text resolves to collected evidence"
+          },
+          {
+            "rule": "NO_INVESTMENT_ADVICE",
+            "passed": true,
+            "detail": "no advisory language found"
+          },
+          {
+            "rule": "FAILED_CHECKS_DISCLOSED",
+            "passed": true,
+            "detail": "no failed checks"
+          },
+          {
+            "rule": "CONFIDENCE_WITHIN_CAP",
+            "passed": true,
+            "detail": "draft claims HIGH; evidence and checks allow at most HIGH"
+          }
+        ]
+      },
+      "gateAttempts": null,
+      "budgetAtStart": {
+        "maxVariableCostUsd": 0.6,
+        "maxModelCalls": 6,
+        "maxToolCalls": 14,
+        "maxLatencyMs": 180000,
+        "maxOutputTokensPerCall": 8000
+      },
+      "timeline": [
+        {
+          "seq": 0,
+          "at": "2026-09-19T10:23:01.391Z",
+          "type": "STARTED",
+          "label": "Investigating ESx: ESx rebased +0.814014% (CashDividend)",
+          "detail": "budget: $0.6 max variable cost, 6 model calls, 14 tool calls",
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 1,
+          "at": "2026-09-19T10:23:05.466Z",
+          "type": "MODEL_CALL",
+          "label": "plan evidence collection",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 2,
+          "at": "2026-09-19T10:23:05.706Z",
+          "type": "TOOL_CALL",
+          "label": "get_corporate_action",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 3,
+          "at": "2026-09-19T10:23:05.708Z",
+          "type": "EVIDENCE",
+          "label": "EV-CA · LIVE",
+          "detail": null,
+          "evidenceId": "EV-CA",
+          "ok": true
+        },
+        {
+          "seq": 4,
+          "at": "2026-09-19T10:23:12.481Z",
+          "type": "TOOL_CALL",
+          "label": "read_onchain_multiplier",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 5,
+          "at": "2026-09-19T10:23:12.482Z",
+          "type": "EVIDENCE",
+          "label": "EV-CHAIN-BEFORE · LIVE",
+          "detail": null,
+          "evidenceId": "EV-CHAIN-BEFORE",
+          "ok": true
+        },
+        {
+          "seq": 6,
+          "at": "2026-09-19T10:23:19.468Z",
+          "type": "TOOL_CALL",
+          "label": "read_onchain_multiplier",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 7,
+          "at": "2026-09-19T10:23:19.469Z",
+          "type": "EVIDENCE",
+          "label": "EV-CHAIN-AFTER · LIVE",
+          "detail": null,
+          "evidenceId": "EV-CHAIN-AFTER",
+          "ok": true
+        },
+        {
+          "seq": 8,
+          "at": "2026-09-19T10:23:20.136Z",
+          "type": "TOOL_CALL",
+          "label": "read_onchain_multiplier",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 9,
+          "at": "2026-09-19T10:23:20.137Z",
+          "type": "EVIDENCE",
+          "label": "EV-CHAIN-LATEST · LIVE",
+          "detail": null,
+          "evidenceId": "EV-CHAIN-LATEST",
+          "ok": true
+        },
+        {
+          "seq": 10,
+          "at": "2026-09-19T10:23:20.317Z",
+          "type": "TOOL_CALL",
+          "label": "get_proof_of_reserves",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 11,
+          "at": "2026-09-19T10:23:20.320Z",
+          "type": "EVIDENCE",
+          "label": "EV-POR · LIVE",
+          "detail": null,
+          "evidenceId": "EV-POR",
+          "ok": true
+        },
+        {
+          "seq": 12,
+          "at": "2026-09-19T10:23:22.728Z",
+          "type": "MODEL_CALL",
+          "label": "plan evidence collection",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 13,
+          "at": "2026-09-19T10:23:41.220Z",
+          "type": "TOOL_CALL",
+          "label": "find_onchain_activation",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 14,
+          "at": "2026-09-19T10:23:41.223Z",
+          "type": "EVIDENCE",
+          "label": "EV-CHAIN-ACTIVATION · LIVE",
+          "detail": null,
+          "evidenceId": "EV-CHAIN-ACTIVATION",
+          "ok": true
+        },
+        {
+          "seq": 15,
+          "at": "2026-09-19T10:23:42.326Z",
+          "type": "TOOL_CALL",
+          "label": "get_issuer_multiplier_state",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 16,
+          "at": "2026-09-19T10:23:42.328Z",
+          "type": "EVIDENCE",
+          "label": "EV-MULT-API · LIVE",
+          "detail": null,
+          "evidenceId": "EV-MULT-API",
+          "ok": true
+        },
+        {
+          "seq": 17,
+          "at": "2026-09-19T10:24:02.335Z",
+          "type": "TOOL_CALL",
+          "label": "get_reference_price",
+          "detail": null,
+          "evidenceId": null,
+          "ok": false
+        },
+        {
+          "seq": 18,
+          "at": "2026-09-19T10:24:02.783Z",
+          "type": "TOOL_CALL",
+          "label": "get_trading_status",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 19,
+          "at": "2026-09-19T10:24:02.784Z",
+          "type": "EVIDENCE",
+          "label": "EV-STATUS · LIVE",
+          "detail": null,
+          "evidenceId": "EV-STATUS",
+          "ok": true
+        },
+        {
+          "seq": 20,
+          "at": "2026-09-19T10:24:03.558Z",
+          "type": "TOOL_CALL",
+          "label": "get_supply",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 21,
+          "at": "2026-09-19T10:24:03.559Z",
+          "type": "EVIDENCE",
+          "label": "EV-SUPPLY · LIVE",
+          "detail": null,
+          "evidenceId": "EV-SUPPLY",
+          "ok": true
+        },
+        {
+          "seq": 22,
+          "at": "2026-09-19T10:24:09.195Z",
+          "type": "MODEL_CALL",
+          "label": "plan evidence collection",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 23,
+          "at": "2026-09-19T10:24:09.198Z",
+          "type": "CHECKS",
+          "label": "8 passed, 0 failed, 1 unknown",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 24,
+          "at": "2026-09-19T10:24:49.044Z",
+          "type": "MODEL_CALL",
+          "label": "write brief",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 25,
+          "at": "2026-09-19T10:24:49.049Z",
+          "type": "GATE",
+          "label": "Publication gate: REJECT (NUMBERS_IN_TEXT_ARE_EVIDENCED)",
+          "detail": null,
+          "evidenceId": null,
+          "ok": false
+        },
+        {
+          "seq": 26,
+          "at": "2026-09-19T10:25:13.326Z",
+          "type": "MODEL_CALL",
+          "label": "revise brief after gate rejection",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 27,
+          "at": "2026-09-19T10:25:13.331Z",
+          "type": "GATE",
+          "label": "Publication gate: PUBLISH",
+          "detail": null,
+          "evidenceId": null,
+          "ok": true
+        },
+        {
+          "seq": 28,
+          "at": "2026-09-19T10:25:13.338Z",
+          "type": "PUBLISHED",
+          "label": "Published brf_9aac63b6842fb78e",
+          "detail": "content hash e21919747700d330…",
+          "evidenceId": null,
+          "ok": true
+        }
+      ]
+    },
+    "budget": {
+      "maxVariableCostUsd": 0.6,
+      "maxModelCalls": 6,
+      "maxToolCalls": 14,
+      "maxLatencyMs": 180000,
+      "maxOutputTokensPerCall": 8000
+    },
+    "usage": {
+      "modelCalls": 5,
+      "toolCalls": 10,
+      "costsWithheld": true
+    }
+  },
+  "catalog": {
+    "schema": "bullseye.catalog/v1",
+    "seller": "Bullseye",
+    "payment": {
+      "protocol": "x402",
+      "version": 2,
+      "rail": {
+        "rail": "OKX_X402_TESTNET",
+        "network": "eip155:1952",
+        "ready": true,
+        "detail": "facilitator supports exact on eip155:1952",
+        "payTo": "0xa8bcd760a7c280c05090431c6afdf15df324d64a",
+        "isTestnet": true
+      }
+    },
+    "priceUsd": "3.00",
+    "latest": {
+      "resource": "https://bullseye-production-5d0c.up.railway.app/api/v1/briefs/latest",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "filter": "symbol"
+    },
+    "items": [
+      {
+        "id": "brf_4f41f04af0081567",
+        "headline": "SATAx cash-dividend multiplier update is confirmed on X Layer",
+        "publishedAt": "2026-09-19T10:29:29.966Z",
+        "dataMode": "LIVE",
+        "synthesis": {
+          "provider": "openrouter",
+          "model": "openrouter/auto",
+          "mode": "LIVE",
+          "routedModels": [
+            "openai/gpt-5.6-terra"
+          ]
+        },
+        "signalId": "sig_b30d780f239a977f",
+        "asset": "SATAx",
+        "confidence": "MEDIUM",
+        "evidenceCount": 9,
+        "evidenceKinds": [
+          "CORPORATE_ACTION_RECORD",
+          "ONCHAIN_MULTIPLIER_BEFORE",
+          "ONCHAIN_MULTIPLIER_AFTER",
+          "ONCHAIN_MULTIPLIER_LATEST",
+          "PROOF_OF_RESERVES",
+          "ISSUER_MULTIPLIER_STATE",
+          "ONCHAIN_ACTIVATION_BLOCK",
+          "TRADING_STATUS",
+          "SUPPLY"
+        ],
+        "unknownCount": 1,
+        "conflictCount": 0,
+        "contentHash": "d0ef11a89c1ae459f5e0108891fc52ee7f8879c02fbadf0dcfc28b39d9f36e50",
+        "resource": "https://bullseye-production-5d0c.up.railway.app/api/v1/briefs/brf_4f41f04af0081567",
+        "method": "GET"
+      },
+      {
+        "id": "brf_9aac63b6842fb78e",
+        "headline": "ESx Cash Dividend Rebase on X Layer: Balance Multiplier Changed from 1 to 1.008140135854",
+        "publishedAt": "2026-09-19T10:25:13.334Z",
+        "dataMode": "LIVE",
+        "synthesis": {
+          "provider": "openrouter",
+          "model": "openrouter/auto",
+          "mode": "LIVE",
+          "routedModels": [
+            "deepseek/deepseek-v4-pro"
+          ]
+        },
+        "signalId": "sig_5509eaa2ecd85d30",
+        "asset": "ESx",
+        "confidence": "HIGH",
+        "evidenceCount": 9,
+        "evidenceKinds": [
+          "CORPORATE_ACTION_RECORD",
+          "ONCHAIN_MULTIPLIER_BEFORE",
+          "ONCHAIN_MULTIPLIER_AFTER",
+          "ONCHAIN_MULTIPLIER_LATEST",
+          "PROOF_OF_RESERVES",
+          "ONCHAIN_ACTIVATION_BLOCK",
+          "ISSUER_MULTIPLIER_STATE",
+          "TRADING_STATUS",
+          "SUPPLY"
+        ],
+        "unknownCount": 2,
+        "conflictCount": 0,
+        "contentHash": "e21919747700d3300812404638ce1373b37d40d4b375a8c9bd41b32f5aa33cd1",
+        "resource": "https://bullseye-production-5d0c.up.railway.app/api/v1/briefs/brf_9aac63b6842fb78e",
+        "method": "GET"
+      }
+    ]
+  },
+  "listingSelfTest": {
+    "request": "POST /api/v1/briefs/latest, no body, no payment header",
+    "httpStatus": 402,
+    "paymentRequiredHeaderPresent": true,
+    "decodedPaymentRequired": {
+      "x402Version": 2,
+      "resource": {
+        "url": "https://bullseye-production-5d0c.up.railway.app/api/v1/briefs/latest",
+        "description": "Bullseye Brief brf_4f41f04af0081567: SATAx rebased +0.051595% (CashDividend)",
+        "mimeType": "application/json"
+      },
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "eip155:1952",
+          "asset": "0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c",
+          "amount": "3000000",
+          "payTo": "0xa8bcd760a7c280c05090431c6afdf15df324d64a",
+          "maxTimeoutSeconds": 300,
+          "extra": {
+            "name": "USD₮0",
+            "version": "1"
+          }
+        }
+      ]
+    },
+    "bullseye": {
+      "quoteId": "quo_e475f88121fbd245",
+      "termsHash": "2bc05716d7bfe48bdbf12a897b3df58a572643eee1efbe9a5c3bb7ded934ffd2",
+      "priceUsd": "3.00",
+      "expiresAt": "2026-09-19T14:29:01.215Z",
+      "rail": "OKX_X402_TESTNET"
+    }
+  }
+}
