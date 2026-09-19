@@ -92,8 +92,8 @@ offline configuration; `PW_CHANNEL=msedge` uses an installed browser; the fixes 
 see the section above), `npm run spike` (live checks; every
 step PASS except the mock-merchant payment, which is BLOCKED). Offline fallback:
 `npm run start:offline`.
-Repository: https://github.com/0xSkrillah/bullseye. It was created **private**; check its
-visibility, because it has to be public or shared with the review team before submission.
+Repository: https://github.com/0xSkrillah/bullseye. GitHub reported it as public on 19 September
+2026; open it in a signed-out window before submitting all the same.
 
 ## What only a person can do, in order
 
@@ -115,7 +115,7 @@ remains:
    `OKX_SECRET_KEY` and `OKX_PASSPHRASE` in the Railway service's variables (the auto desk then
    starts investigating, at most 3 a day), run the self-test against the deployed address once a
    Brief is on sale, and register the ASP. Steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-4. **Make the repository public**, or share it with the review team, if that has not been done.
+4. **Repository visibility**: public as of 19 September 2026. Check it signed out before submitting.
 5. **Submission form**: https://forms.gle/81S2gnFCzqSoeDEA7.
 6. **Sponsor feedback**: send SF-1 to SF-7 from [docs/SPONSOR_FEEDBACK.md](docs/SPONSOR_FEEDBACK.md)
    to the OKX builders' channel. SF-7 is the facilitator `timeout` observed on
