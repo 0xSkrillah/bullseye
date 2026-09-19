@@ -83,6 +83,25 @@ export class InvestigationService {
     return { investigationId: id, created: true };
   }
 
+  /**
+   * Runs live in this process, so a run the database still calls RUNNING at start-up was cut off by a
+   * restart. It is closed as STOPPED rather than resumed: its budget accounting died with the process.
+   */
+  recoverInterrupted(): string[] {
+    const { db } = this.deps;
+    const rows = (db.prepare("SELECT id FROM investigations WHERE status = 'RUNNING'").all() as { id: string }[]).filter((r) => !this.running.has(r.id));
+    const at = new Date().toISOString();
+    for (const { id } of rows) {
+      const next = db.prepare("SELECT COALESCE(MAX(seq), -1) + 1 AS n FROM timeline WHERE investigation_id = ?").get(id) as { n: number };
+      const entry: TimelineEntry = { seq: next.n, at, type: "STOPPED", label: "Stopped: ERROR", detail: "The server restarted while this investigation was running. It was not resumed and nothing was published.", evidenceId: null, ok: false };
+      transaction(db, () => {
+        db.prepare("INSERT INTO timeline (investigation_id, seq, json) VALUES (?, ?, ?)").run(id, entry.seq, JSON.stringify(entry));
+        db.prepare("UPDATE investigations SET status = 'STOPPED', stop_reason = 'ERROR', finished_at = ? WHERE id = ?").run(at, id);
+      });
+    }
+    return rows.map((r) => r.id);
+  }
+
   /** resolves when the background run for this investigation has finished (tests and scripts) */
   async wait(id: string): Promise<void> {
     await this.running.get(id);

@@ -6,6 +6,8 @@ import { AutoDesk } from "./desk/autoDesk.js";
 const config = loadConfig();
 const container = buildContainer(config);
 const rail = await container.rail.init();
+const interrupted = container.investigations.recoverInterrupted();
+if (interrupted.length > 0) console.log(`closed ${interrupted.length} investigation(s) cut off by a restart: ${interrupted.join(", ")}`);
 const synthesis = container.synthesisStatus();
 
 createApp(container).listen(config.PORT, () => {

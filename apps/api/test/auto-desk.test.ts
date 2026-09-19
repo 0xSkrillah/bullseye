@@ -51,6 +51,25 @@ describe("auto desk", () => {
     expect(count(c)).toBe(1);
   });
 
+  it("is not blocked for ever by a run that a restart cut off: start-up closes it, and its signal is not retried", async () => {
+    const c = await testContainer();
+    const scan = await c.signals.scan();
+    const cut = scan.signals[0]!;
+    c.db.prepare("INSERT INTO investigations (id, signal_id, status, started_at, budget_json, synthesis_json) VALUES ('inv_cut', ?, 'RUNNING', ?, '{}', '{}')").run(cut.id, new Date(Date.now() - 48 * 3_600_000).toISOString());
+    const desk = new AutoDesk(c, opts);
+    expect(await desk.tick()).toMatchObject({ action: "IDLE", reason: "BUSY" });
+
+    expect(c.investigations.recoverInterrupted()).toEqual(["inv_cut"]);
+    const view = c.investigations.view("inv_cut")!;
+    expect(view).toMatchObject({ status: "STOPPED", stopReason: "ERROR" });
+    expect(view.timeline.at(-1)).toMatchObject({ type: "STOPPED", ok: false });
+    expect(view.timeline.at(-1)!.detail).toContain("restarted");
+    expect(c.investigations.recoverInterrupted()).toEqual([]);
+
+    const next = await desk.tick();
+    expect(next.action === "STARTED" ? next.signalId : null).not.toBe(cut.id);
+  });
+
   it("does not spend on research it could not sell: an unready payment rail keeps it idle", async () => {
     const c = await testContainer({ PAY_TO_ADDRESS: undefined as unknown as string });
     const outcome = await new AutoDesk(c, opts).tick();

@@ -3,13 +3,16 @@
 How to put Bullseye on a public HTTPS address and what a marketplace that lists x402 services
 (OKX AI's A2MCP listing is the one this was written against) needs from it.
 
-**Status on 19 September 2026: deployed, not yet selling, not listed.** The Dockerfile built and
-the service runs on Railway at https://bullseye-production-5d0c.up.railway.app (one instance, a volume at `/data`, health check on
-`/api/health`, deploys from `main`). At the time of writing the model key and the OKX credentials
-had not been entered on the host, so `/api/health` reports synthesis and the payment rail as not
-ready, the auto desk is idle, and `POST /api/v1/briefs/latest` answers `404 nothing_for_sale`.
-The self-test below has passed on localhost only. No payment has been made through the deployed
-address.
+**Status on 19 September 2026: deployed and selling on testnet, not listed.** The service runs on
+Railway at https://bullseye-production-5d0c.up.railway.app (built from the Dockerfile, one instance, a volume at `/data`, health check on
+`/api/health`, deploys from `main` when code changes; commits that touch only documents do not
+redeploy). With the owner's model key and OKX credentials on the host, `/api/health` reports the
+data source LIVE, synthesis ready and the rail ready on `eip155:1952`. The auto desk ran two
+investigations there without an operator: the first was rejected by the gate and sold nothing,
+the second published `brf_9aac63b6842fb78e` (ESx, LIVE, HIGH), and the self-test below then
+returned `402` with a complete `PAYMENT-REQUIRED` header from the deployed address. **No payment
+has been made through the deployed address**, and it is a testnet rail: nothing sold there is
+revenue.
 
 ## What a listing needs, and where Bullseye provides it
 
@@ -108,6 +111,10 @@ With `AUTO_DESK=true` the server scans the issuer's corporate actions every
 Worst-case model spend per 24 hours is that ceiling times `BUDGET_MAX_COST_USD`: $1.80 at the
 defaults. It is printed at start-up. The one live investigation on record was billed $0.071725;
 that is one observation, not a forecast.
+
+Investigations run inside the server process. One that a restart cuts off is closed as `STOPPED`
+(`ERROR`) at the next start-up, with a timeline entry saying so, and is not resumed; because the
+desk investigates a signal once, that signal waits for an operator.
 
 Rebase events are not daily. When the detector finds nothing in its 96-hour window the desk stays
 idle and the newest published Brief stays on sale until the issuer cancels or replaces the action

@@ -29,7 +29,7 @@ measurement exists. Testnet payments are not revenue, and estimated contribution
 Still blocked: the mock-merchant test payment (CLAIM_LEDGER B1; SF-1: OKX's client SDK cannot
 parse the mock merchant's challenge). SF-2 is still untested end to end.
 
-Tests, all passing on 19 September: `npm test` (API 149 tests in 15 files, web 23 in 3 files
+Tests, all passing on 19 September: `npm test` (API 150 tests in 15 files, web 23 in 3 files
 including the design system's five brand rules), `npm run test:e2e` (3 browser tests, offline
 configuration; `PW_CHANNEL=msedge` uses an installed browser), `npm run spike` (live checks; every
 step PASS except the mock-merchant payment, which is BLOCKED). Offline fallback:
@@ -70,8 +70,12 @@ investigate and reconcile answer `403`, with or without a bearer token (none is 
 `PAYMENT-SIGNATURE` header that decodes to `null` gets the normal reply, not a `500`; and of 14
 payment attempts in a minute from one machine, each with a different forged `X-Real-IP` and
 `X-Forwarded-For`, the 13th and 14th were answered `429` (the limit is 12). Before
-`CLIENT_IP_HEADER=x-real-ip` was set, all 14 passed. No Brief was on sale there, so the `402`
-self-test and a payment through the deployed address are still to do.
+`CLIENT_IP_HEADER=x-real-ip` was set, all 14 passed. Later that day, with the keys entered on the
+host, the auto desk published `brf_9aac63b6842fb78e` and `POST /api/v1/briefs/latest` on the
+deployed address returned `402` with a complete `PAYMENT-REQUIRED` header (OKX's self-test). A
+payment through the deployed address is still to do:
+`npm run buy -- latest --base https://bullseye-production-5d0c.up.railway.app` from the main
+checkout, where `.env` holds the buyer key (3 testnet USD₮0; the buyer held 7).
 
 To repeat the live run, and keep the artifacts:
 
