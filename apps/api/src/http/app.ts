@@ -55,7 +55,7 @@ export function createApp(c: Container) {
       if (!applies(req)) return next();
       const now = Date.now();
       if (windows.size > 5_000) for (const [k, w] of windows) if (w.resetAt <= now) windows.delete(k);
-      const key = req.ip ?? "unknown";
+      const key = (c.config.CLIENT_IP_HEADER ? req.header(c.config.CLIENT_IP_HEADER) : undefined) ?? req.ip ?? "unknown";
       const w = windows.get(key);
       if (!w || w.resetAt <= now) {
         windows.set(key, { count: 1, resetAt: now + 60_000 });

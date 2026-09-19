@@ -67,6 +67,16 @@ describe("operator routes on a public deployment", () => {
 });
 
 describe("rate limit on the paid routes", () => {
+  it("keys on the edge's client-address header when one is configured, and ignores X-Forwarded-For", async () => {
+    const c = await testContainer({ PAID_ROUTE_RATE_LIMIT_PER_MINUTE: "2", CLIENT_IP_HEADER: "x-real-ip" });
+    const app = createApp(c);
+    const from = (ip: string, xff: string) => request(app).get("/api/v1/briefs/latest").set("x-real-ip", ip).set("x-forwarded-for", xff);
+    expect((await from("203.0.113.7", "10.0.0.1")).status).toBe(404);
+    expect((await from("203.0.113.7", "10.0.0.2")).status).toBe(404);
+    expect((await from("203.0.113.7", "10.0.0.3")).status).toBe(429);
+    expect((await from("203.0.113.8", "10.0.0.3")).status).toBe(404);
+  });
+
   it("answers 429 with Retry-After once one client passes the limit, and leaves the desk's read routes alone", async () => {
     const c = await testContainer({ PAID_ROUTE_RATE_LIMIT_PER_MINUTE: "3" });
     const { view } = await investigateFirstSignal(c);

@@ -2,7 +2,7 @@
 
 ## What is tested automatically
 
-`npm test` (Vitest, no network, no keys) runs 145 API tests in 14 files under `apps/api/test/`
+`npm test` (Vitest, no network, no keys) runs 146 API tests in 14 files under `apps/api/test/`
 (`npx vitest run`), then 23 web tests in 3 files:
 
 | Suite | What it proves |

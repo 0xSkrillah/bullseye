@@ -65,6 +65,14 @@ const Env = z.object({
    * any PUBLIC_BASE_URL that is not localhost they are refused unless this is set and presented.
    */
   OPERATOR_TOKEN: z.string().min(24).optional(),
+  /**
+   * Header the hosting edge sets to the client's address and that a client cannot forge through it
+   * (Railway: x-real-ip). Rate limits are keyed on it when set, and on the connection's address otherwise.
+   */
+  CLIENT_IP_HEADER: z
+    .string()
+    .regex(/^[A-Za-z0-9-]+$/)
+    .optional(),
   /** per client address, per minute, on the paid resource and the quote route */
   PAID_ROUTE_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(60),
   /** per client address, per minute, for requests that carry a payment: each can cost a facilitator call */

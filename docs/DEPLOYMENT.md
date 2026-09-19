@@ -68,6 +68,7 @@ Set these in the host's secret store. Never commit them and never bake them into
 | `BRIEF_PRICE_USD` | Default `3.00`. An investigation is declined as uneconomic before any spend unless the price exceeds `BUDGET_MAX_COST_USD` plus the three estimated reserves (0.60 + 0.45 by default). |
 | `AUTO_DESK`, `AUTO_DESK_INTERVAL_MINUTES`, `AUTO_DESK_MAX_INVESTIGATIONS_PER_DAY` | See below. |
 | `OPERATOR_TOKEN` | Optional, at least 24 characters. See "Operator routes". |
+| `CLIENT_IP_HEADER` | The header your host's edge sets to the client's address and overwrites if a client sends it. On Railway: `x-real-ip`. The rate limits are keyed on it. Without it they are keyed on the connection's address, which behind Railway's proxy is not the client: on 19 Sep 2026 fourteen payment attempts from one machine passed a limit of 12 that way, and a spoofed `X-Forwarded-For` made no difference either way. |
 | `PAID_ROUTE_RATE_LIMIT_PER_MINUTE`, `PAYMENT_ATTEMPT_RATE_LIMIT_PER_MINUTE`, `API_RATE_LIMIT_PER_MINUTE` | Defaults 60, 12 and 600 per client address per minute: the paid resource and quote route; requests there that carry a payment (each can cost a facilitator call); every `/api` route except the health check. Over a limit: `429` with `Retry-After` and no challenge. |
 
 Do not set `BUYER_PRIVATE_KEY` on the server. It belongs to the buyer scripts on a developer

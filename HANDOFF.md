@@ -29,7 +29,7 @@ measurement exists. Testnet payments are not revenue, and estimated contribution
 Still blocked: the mock-merchant test payment (CLAIM_LEDGER B1; SF-1: OKX's client SDK cannot
 parse the mock merchant's challenge). SF-2 is still untested end to end.
 
-Tests, all passing on 19 September: `npm test` (API 145 tests in 14 files, web 23 in 3 files
+Tests, all passing on 19 September: `npm test` (API 146 tests in 14 files, web 23 in 3 files
 including the design system's five brand rules), `npm run test:e2e` (3 browser tests, offline
 configuration; `PW_CHANNEL=msedge` uses an installed browser), `npm run spike` (live checks; every
 step PASS except the mock-merchant payment, which is BLOCKED). Offline fallback:
