@@ -43,6 +43,26 @@ Publication needs at least: the corporate-action record, the on-chain multiplier
 Collect evidence now. When you have what you need, stop calling tools and reply with the single word READY. You will then receive the results of the desk's consistency checks and be asked for the brief.`;
 }
 
+/**
+ * The schema is also sent as response_format, but a router can pick an endpoint that accepts that
+ * parameter without enforcing it. Then the prompt is the only place the model can learn the shape,
+ * so it is spelled out here. Types only, no sample values: a sample number is a number a model may copy.
+ */
+const SHAPE_INSTRUCTIONS = `The object must have exactly these keys and types. No wrapper object, no extra keys, no markdown fences, no text before or after the JSON.
+{
+  "headline": string,
+  "whatHappened": Claim[],
+  "whyItMayMatter": Claim[],
+  "onchainObservations": Claim[],
+  "confidence": { "level": "HIGH" | "MEDIUM" | "LOW", "rationale": string },
+  "unknowns": string[],            // at least one
+  "conflicts": { "checkId": string, "description": string }[],
+  "limitations": string[]          // at least one
+}
+Claim = { "text": string, "evidenceIds": string[], "quantities": Quantity[] }
+Quantity = { "label": string, "value": number, "unit": string, "evidenceId": string, "valueKey": string }
+The three claim sections are arrays of Claim objects, never a string. "quantities" is an array and may be empty. "value" is a JSON number copied from values[valueKey] of the evidence item named in "evidenceId".`;
+
 export function synthesisPrompt(evidence: EvidenceItem[], checks: ConsistencyCheck[]): string {
   const checkLines = checks.map((c) => `${c.id} ${c.status} - ${c.description} (${c.detail})`).join("\n");
   const modes = [...new Set(evidence.map((e) => e.provenance.mode))].join(", ");
@@ -54,7 +74,8 @@ ${JSON.stringify(evidence)}
 Consistency checks computed by the desk from that evidence:
 ${checkLines}
 
-Write the brief now as JSON matching the schema.
+Write the brief now as one JSON object.
+${SHAPE_INSTRUCTIONS}
 - Every check with status FAIL must appear in "conflicts" with its checkId and a plain description of the disagreement. If no check failed, "conflicts" is an empty array.
 - Checks with status UNKNOWN belong in "unknowns".
 - Confidence: HIGH only when every check passed and all mandatory evidence is LIVE; MEDIUM when some evidence is CACHED or HISTORICAL or a non-core check failed; LOW when CHK-ACTION-STILL-CURRENT or any of the three on-chain checks failed or is unknown.
@@ -66,7 +87,10 @@ export function revisionPrompt(gate: GateResult): string {
   return `The publication gate rejected that draft:
 ${failures.join("\n")}
 
-Revise the brief so that it passes, changing only what is needed. Numbers and timestamps must come from the cited evidence values; remove any you cannot source. Reply with the full JSON again.`;
+Revise the brief so that it passes, changing only what is needed. Numbers and timestamps must come from the cited evidence values; remove any you cannot source. Reply with the full JSON again.${failures.some((f) => f.startsWith("- SCHEMA")) ? `
+
+The draft did not have the required shape.
+${SHAPE_INSTRUCTIONS}` : ""}`;
 }
 
 /** JSON Schema handed to the model for the final step. Validation proper is done with the zod BriefDraft schema. */
