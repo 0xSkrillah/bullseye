@@ -1,6 +1,9 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/http/app.js";
+import { REPO_ROOT } from "../src/config.js";
 import { investigateFirstSignal, testContainer } from "./helpers.js";
 
 const PUBLIC = { PUBLIC_BASE_URL: "https://bullseye.example.com" };
@@ -89,5 +92,21 @@ describe("rate limit on the paid routes", () => {
     expect(blocked.headers["payment-required"]).toBeUndefined();
     expect((await request(app).get("/api/signals")).status).toBe(200);
     expect((await request(app).get("/api/health")).status).toBe(200);
+  });
+});
+
+describe("the built web desk", () => {
+  const dist = resolve(REPO_ROOT, "apps/web/dist/index.html");
+
+  // needs `npm run build`; skipped on a checkout that has never built the desk
+  it.skipIf(!existsSync(dist))("serves index.html for a deep link, even when the checkout sits below a dot-directory", async () => {
+    const c = await testContainer();
+    const app = createApp(c);
+    for (const path of ["/room", "/room/anything", "/favicon.ico"]) {
+      const res = await request(app).get(path);
+      expect(res.status, path).toBe(200);
+      expect(res.text, path).toContain('<div id="root">');
+    }
+    expect((await request(app).get("/api/nope")).status).toBe(404);
   });
 });
