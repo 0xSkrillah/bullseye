@@ -70,7 +70,8 @@ Set these in the host's secret store. Never commit them and never bake them into
 | `PAYMENT_RAIL` | `okx-testnet` or `okx-mainnet`. |
 | `BRIEF_PRICE_USD` | Default `3.00`. An investigation is declined as uneconomic before any spend unless the price exceeds `BUDGET_MAX_COST_USD` plus the three estimated reserves (0.60 + 0.45 by default). |
 | `AUTO_DESK`, `AUTO_DESK_INTERVAL_MINUTES`, `AUTO_DESK_MAX_INVESTIGATIONS_PER_DAY` | See below. |
-| `OPERATOR_TOKEN` | Optional, at least 24 characters. See "Operator routes". |
+| `OPERATOR_TOKEN` | Optional, at least 24 characters. See "Operator routes". Never put it in a browser. |
+| `VIEWER_TOKEN` | Optional, at least 24 characters; a shorter value is a configuration error. Read-only diagnostics for a wall display: sent as `Authorization: Bearer <token>` it gets the `DIAGNOSTIC` view of the desk's read routes. It starts nothing, is refused by every operator route and opens no order. See "What changes for visitors when this branch is deployed". |
 | `CLIENT_IP_HEADER` | The header your host's edge sets to the client's address and overwrites if a client sends it. On Railway: `x-real-ip`. The rate limits are keyed on it. Without it they are keyed on the connection's address, which behind Railway's proxy is not the client: on 19 Sep 2026 fourteen payment attempts from one machine passed a limit of 12 that way, and a spoofed `X-Forwarded-For` made no difference either way. |
 | `PAID_ROUTE_RATE_LIMIT_PER_MINUTE`, `PAYMENT_ATTEMPT_RATE_LIMIT_PER_MINUTE`, `API_RATE_LIMIT_PER_MINUTE` | Defaults 60, 12 and 600 per client address per minute: the paid resource and quote route; requests there that carry a payment (each can cost a facilitator call); every `/api` route except the health check. Over a limit: `429` with `Retry-After` and no challenge. |
 
@@ -79,20 +80,73 @@ machine.
 
 ## Operator routes
 
-`POST /api/signals/scan`, `POST /api/signals/:id/investigate` and `POST /api/orders/:id/reconcile`
-start work that spends model credit or calls third parties. On `localhost` they are open so the
+This section and the next describe the code on the fixes branch (`HANDOFF.md` names it). That
+branch is not merged to `main` and is not deployed; the deployment above is built from `main`.
+
+`POST /api/signals/scan` and `POST /api/signals/:id/investigate` start work that spends model
+credit or calls third parties, and `GET /api/orders` lists every buyer's order with payer
+addresses, transaction hashes and the desk's cost per sale. On `localhost` they are open so the
 desk works in development. On any other `PUBLIC_BASE_URL` they answer `403
 operator_routes_disabled` unless `OPERATOR_TOKEN` is set, and then only to
 `Authorization: Bearer <token>`. `GET /api/health` reports which mode is in force as
-`operatorRoutes`. The web desk does not send a token, so on a public deployment its Scan,
-Investigate and Reconcile buttons are refused; the auto desk does that work instead, and a buyer
-whose payment outcome is unknown reconciles by re-sending the same authorization.
+`operatorRoutes`. The web desk does not send a token, so on a public deployment Scan and
+Investigate are refused and the auto desk does that work instead.
+
+`POST /api/orders/:id/reconcile` is no longer an operator-only route. It reads the chain and the
+facilitator's record and never settles, so it is also answered to the buyer who presents the
+order's claim token in `X-Bullseye-Claim`, and it is rate-limited with the paid routes. A buyer
+whose payment outcome is unknown can therefore reconcile from the web desk, re-send the same
+authorization, or collect from `GET /api/orders/:id/delivery` with the token.
 
 The Dockerfile sets `NODE_ENV=production`, and a production build never treats itself as local,
 so a `PUBLIC_BASE_URL` left at its localhost default cannot open these routes.
 
-Everything a buyer needs stays open: the catalogue, previews, quotes and the paid resource. The
-desk's read routes are open too, including the investigation timeline and the order list.
+Everything a buyer needs stays open: the catalogue, previews, quotes, the paid resource, and the
+buyer's own order by claim token. The desk's read routes stay open too, as a public projection.
+
+## What changes for visitors when this branch is deployed
+
+On `main`, which is what is deployed, `GET /api/orders` and `GET /api/orders/:id` answer anyone,
+and the investigation routes return evidence summaries, on-chain figures and per-run cost to
+anyone. On this branch:
+
+- With neither `OPERATOR_TOKEN` nor `VIEWER_TOKEN` set, a public deployment serves the `PUBLIC`
+  projection only: `GET /api/health` reports `diagnostics: "DISABLED"`. A visitor still sees that
+  each step of an investigation happened, when, and whether it succeeded. Evidence summaries,
+  check results, model and tool call details and per-run cost are withheld; for a run that has
+  a Brief or is still running, so are the chain's block numbers, block times and multipliers, and
+  the detail of any rejected draft. Quote and order ids in the activity feed become stand-ins.
+- `GET /api/orders` answers `403 operator_routes_disabled`, or `401 operator_token_required` when
+  `OPERATOR_TOKEN` is set. A single order is answered only to its claim token or to the operator.
+- A wall display therefore cannot read orders or per-run cost. It needs the two aggregate routes,
+  which are open to anyone and carry no order, buyer or run identifiers:
+  `GET /api/commerce/summary` (orders by state and by Brief, and the newest order's path through
+  the states) and `GET /api/desk/economics` (research, sales and delivery totals with every
+  investigation counted once).
+- To show diagnostics on a wall display, set `VIEWER_TOKEN` and give the display that token. Do
+  not give it `OPERATOR_TOKEN`: a token in a browser should be one that can start nothing.
+- Anything that read `GET /api/orders` or `GET /api/orders/:id` without a token stops working.
+  The repository's own callers were changed: the web desk reads only this browser's order with
+  its claim token, and `npm run verify-payment` and `npm run demo` read an order with the token
+  the agent buyer wrote under `data/purchases/`, so they must run from the checkout that made
+  the purchase.
+- Claim tokens do not change. An order opened before the change is answered to the token it
+  already had: the one its buyer chose, or the server's token for that order, which the buyer was
+  sent in the `X-Bullseye-Claim` response header. A buyer who kept neither can no longer read
+  that order without the operator; the agent buyer on `main` kept its token in memory only.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on every push to `main`. Everything in
+it is offline: recorded data, the fixture synthesiser and the fixture payment rail. It reads no
+secret, calls no model and can move no funds.
+
+| Job | Runs |
+| --- | --- |
+| `test` | On Node 22.x and 24.x: `npm ci`, `npm run typecheck`, `npm test`, `npm run build`. |
+| `browser` | On Node 24.x: `npm ci`, `npx playwright install --with-deps chromium`, `npm run test:e2e`. Playwright traces are kept for 7 days when it fails. |
+
+The workflow is on the same unmerged branch. No run of it on GitHub is recorded here.
 
 ## The auto desk
 

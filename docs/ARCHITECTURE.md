@@ -37,6 +37,8 @@ X Layer RPC ─┘                                                              
 | Whether it is published | `evaluatePublication` (pure function) | The model has no vote. One bounded revision is allowed for drafting faults; missing or stale evidence cannot be rewritten away. |
 | Whether a published Brief is still sold | `SignalService.supersession`, enforced by `Checkout` | A Brief whose action the issuer voided is withdrawn: `410 brief_withdrawn`, nothing settled. |
 | Order and payment state | `OrderLedger` | Transition table in `packages/domain`, enforced on every move; events are append-only. |
+| Who an order is answered to | `Checkout.holdsClaim`, `Checkout.recognise` | The claim token is the only secret in a purchase. See "Who an order is answered to". |
+| What a visitor may read of the desk's work | `audienceOf` (`apps/api/src/http/app.ts`), `apps/api/src/http/projections.ts` | Decided per request, in code, from the `Authorization` header. See "Who may read what". |
 
 ## The first intelligence product
 
@@ -205,31 +207,83 @@ the Brief it was quoted for instead). The flow for `GET /api/v1/briefs/:id`:
 ### Who an order is answered to
 
 Once a payment is on-chain, the payer, the nonce and the signature are all public calldata, so
-none of them shows that a caller is the buyer. Two rules:
+none of them shows that a caller is the buyer. The claim token is the only secret in a purchase.
+It travels in the `X-Bullseye-Claim` header, in both directions, and is never read from a URL or
+written into a body. There are two kinds.
 
-- An existing order is only answered to a request that carries the exact payload that opened it.
-  A header rebuilt from `(payer, nonce)` gets a fresh `402`.
-- Fetching an order again needs a claim token in `X-Bullseye-Claim`; without it the answer is
-  `403 claim_token_required`. There are two kinds.
-  - **Chosen by the buyer.** A buyer who sends `X-Bullseye-Claim` (32 to 128 URL-safe characters)
-    with the paying request has committed to a secret before anything about the payment is public.
-    Only its sha256 is stored. That order is never answered without it, delivered or not. The
-    reference buyer (`scripts/buy-brief.ts`) does this, and the OKX fetch client keeps a caller's
-    own headers on the paying request.
-  - **Issued by the server**, for clients that send nothing: an HMAC of the order id under a secret
-    kept in the database, returned in the `X-Bullseye-Claim` response header (never in a body, so
-    it does not end up in a saved delivery envelope). It is the same token every time, so handing
-    it out again can never invalidate the one a buyer already holds. Until the first delivery the
-    payload alone is accepted and the token is returned again, because that is the path a buyer
-    retries on when the payment outcome is unknown and the first response may not have arrived.
+- **Chosen by the buyer.** A buyer who sends `X-Bullseye-Claim` (32 to 128 URL-safe characters)
+  with the paying request has committed to a secret before anything about the payment is public.
+  Only its sha256 is stored. That order is never answered without it, delivered or not, and no
+  server token is issued for it. The browser checkout (`apps/web/src/checkout/purchase.ts`) and
+  the reference buyer (`scripts/buy-brief.ts`) both do this, and the OKX fetch client keeps a
+  caller's own headers on the paying request.
+- **Issued by the server**, for clients that send nothing: an HMAC of the order id under a secret
+  kept in the database, returned in the `X-Bullseye-Claim` response header of `200`, `503` and
+  `409` replies (never in a body, so it does not end up in a saved delivery envelope). It is the
+  same token every time, before and after a restart, so handing it out again can never invalidate
+  the one a buyer already holds.
+
+An order can be reached through two doors. Both are answered from the same ledger, and neither
+ever calls `settle` for an order that exists.
+
+**The paid resource, with the signed payload** (`Checkout.recognise`). A request that carries an
+authorization the ledger already knows:
+
+- is only answered if it carries the exact payload that opened the order. A header rebuilt from
+  `(payer, nonce)` gets a fresh `402`.
+- If the buyer chose a token, it needs that token: `403 claim_token_required` otherwise.
+- If the buyer chose none, it needs the server's token once the Brief has been delivered. Until
+  the first delivery the payload alone is accepted and the token is returned again, because that
+  is the path a buyer retries on when the payment outcome is unknown and the first response may
+  not have arrived.
 - A delivery is counted when the response has been written (`finish`), not when it was built, so
   a buyer whose connection dropped before the first `200` can still collect with the payload.
 
-What is left, for a buyer who did not choose a token: someone who copies the signature out of the
-settlement transaction can, before the first delivery is counted, get the Brief that buyer paid
-for. The buyer still gets theirs. Choosing a token closes it.
+**The order routes, with the token alone** (`Checkout.holdsClaim`). `GET /api/orders/:id` and
+`POST /api/orders/:id/reconcile` are answered to whoever presents the order's claim token, and to
+the operator. `GET /api/orders/:id/delivery` is answered to the token holder only. The payload is
+not asked for. That is no weaker than payload plus token: once the payment has settled, the
+payer, the nonce and the signature are public, so the payload proves nothing the token does not
+already prove, and a buyer who reloads a page, opens another tab or comes back after the
+authorization's `validBefore` no longer has it. An order that does not exist and a wrong token
+get the same `403 claim_token_required` with the same body, so order ids cannot be probed; the
+operator gets `404 order_not_found` for a missing order. A token that is empty or longer than 256
+characters is never compared. For an order opened with a buyer's token, the server's HMAC for
+that order id opens nothing.
 
-`GET /api/orders` and `GET /api/orders/:id` never include the ledger's payment key.
+`GET /api/orders`, the list of every buyer's order, is an operator route.
+
+**Collecting** (`Checkout.collect`, behind `GET /api/orders/:id/delivery`) is delivery for a buyer
+who holds the token but no longer the signed authorization. By order state:
+
+| Order state | Reply |
+| --- | --- |
+| `PAYMENT_PENDING`, settlement running in this process | `409 payment_in_progress`, `Retry-After: 3` |
+| `PAYMENT_PENDING`, nobody working on it | moved to `PAYMENT_UNKNOWN`, then as the next row |
+| `PAYMENT_UNKNOWN`, `RECONCILIATION_REQUIRED` | reconciled (chain and facilitator record are read; `settle` is not called), then answered by the state it reached |
+| `PAID`, `DELIVERING`, `DELIVERY_FAILED`, `DELIVERED` | `200` and the delivery envelope, with no `PAYMENT-RESPONSE` header; counted when written |
+| `PAYMENT_FAILED` | `409 payment_failed` with the state. Not a challenge. |
+| still unknown after reconciliation | `503 payment_outcome_unknown`, nothing delivered |
+
+Collecting never settles, never issues a quote and never answers with a `402` challenge, so
+collecting what was bought cannot turn into a second purchase. The paid resource answers a failed
+authorization with a fresh challenge, because there the caller is buying; the delivery route
+answers the same order with its state, because there the caller is only asking for what they
+already paid for. Withdrawal does not apply to it: a buyer who paid before the issuer voided the
+action still collects.
+
+What is left, for a buyer who did not choose a token: someone who copies the signed payload out of
+the settlement transaction can, before the first delivery is counted, present it at the paid
+resource and get the Brief that buyer paid for, together with the server's token for that order.
+That token also opens the three order routes for that one order. The window is widest after a
+`503 payment_outcome_unknown`, when the transfer can be on-chain while nothing has been
+delivered. The buyer's token is the same token and keeps working, so the buyer still gets theirs.
+Choosing a token closes it: `payment-abuse.test.ts` shows the copied payload getting `403` and no
+token while the order is still undelivered, and the order staying at `PAYMENT_UNKNOWN` until the
+buyer's own token arrives.
+
+`GET /api/orders`, `GET /api/orders/:id` and `POST /api/orders/:id/reconcile` never include the
+ledger's payment key.
 
 The `PAYMENT_UNKNOWN` path has been exercised once on the testnet rail (`OKX_X402_TESTNET`,
 `eip155:1952`). For order `ord_8a2102084ad69dab` on 2026-09-18, `settle` returned
@@ -241,7 +295,132 @@ and `DELIVERED`. `settle` was called once and there was one delivery. Evidence:
 `artifacts/evidence/delivery-ord_8a2102084ad69dab.json`. This is one settlement with test tokens.
 It shows the payment mechanics; it is not revenue and not a rate.
 
-## Storage
+## Keeping one purchase to one signature
+
+The seller's ledger stops one authorization settling twice. It cannot stop a buyer signing a
+second authorization for the same purchase. That is the buyer side's job, and both reference
+buyers hold to one rule: **a second authorization is never requested because a response was lost,
+a page was reloaded, or a write to storage failed.**
+
+**Browser** (`apps/web/src/checkout/purchase.ts`, `usePurchase.ts`, `components/CheckoutNotice.tsx`).
+One record per Brief, under `localStorage` key `bullseye.purchase.v1:<briefId>`, with a copy in the
+page's memory that answers when storage cannot:
+
+| Kept | Why |
+| --- | --- |
+| `quote` | The immutable quote the buyer approved: id, terms and their hash. A `200` whose terms hash or Brief content hash differs from it is not shown (`CONTENT_MISMATCH`). |
+| `claim` | 32 random bytes, base64url. Chosen and saved before anything is signed, and sent with the payment, so no lost response can leave the buyer without it. |
+| `paymentSignature` | The `PAYMENT-SIGNATURE` header value. Saved before it is sent, re-sent as is, never replaced. |
+| `orderId`, `status`, `detail`, `createdAt`, `updatedAt` | Where the purchase stands. |
+
+No private key is kept anywhere: the key stays in the injected wallet, which is only asked to sign
+the seller's challenge. `signer.ts` also keeps the signature per quote id in page memory and
+`sessionStorage` for the quote's `maxTimeoutSeconds`, so a second press of Pay on the same quote
+gets the same signature even when storage refuses the write.
+
+| Status | Meaning |
+| --- | --- |
+| `INTENT` | Recorded, claim token chosen, nothing signed. |
+| `SIGNED` | The wallet signed; the request is not known to have been sent. |
+| `SUBMITTED` | Sent to the seller; no answer recorded. |
+| `UNKNOWN` | The seller says the payment's outcome is not known (`503 payment_outcome_unknown`, or a reconcile that settled nothing). |
+| `PAID` | Paid; the Brief has not reached this browser. |
+| `DELIVERED` | The envelope arrived and matched the quote. |
+| `FAILED` | The seller says nothing was charged. Only now, or from `INTENT`, may a new purchase start. |
+
+Pay signs only when no earlier purchase of that Brief is unresolved. With a record in any status
+but `INTENT` or `FAILED`, Pay recovers instead: it collects by order id and claim token when the
+order id is known, and otherwise re-sends the held signature. `resume`, `reconcile` and collecting
+never sign. Two presses of Pay share one promise and one signature. A wallet that produces no
+signature throws a typed `WalletError` (`DECLINED`, `NO_ACCOUNT`, `NETWORK_MISSING`,
+`NETWORK_NOT_SWITCHED`, `SIGN_FAILED`); each means nothing was signed, and the notice says so. A
+`402` in answer to a held authorization marks the purchase `FAILED`, except when its reason
+speaks of a used nonce: then the status is left alone and the buyer is told not to pay again.
+
+An unknown outcome, or a settlement still in progress, is re-checked without the buyer:
+`AUTO_CHECKS` is 6 checks, 10 s apart, each a reconcile by claim token (or a re-send of the held
+signature when no order id is known yet). After that the page waits for the buyer to press "Check
+the chain again". On load, a record that has an order id and is not `FAILED` is collected with
+its token; nothing on that path signs or sends an authorization. `App.tsx` reads this browser's
+own order with its token and does not read `GET /api/orders`.
+
+Known limit: when a write does not reach `localStorage` (a private window, blocked storage) the
+record lives only in the page's memory. `Checkout.durable` turns false and the notice warns:
+keep the tab open until the Brief is delivered. If such a page is reloaded before delivery, the
+claim token and the authorization are gone. The order still exists in the seller's ledger, but
+nothing in that browser leads back to it, and a new press of Pay would start a new purchase.
+
+**Agent** (`scripts/buy-brief.ts`, `scripts/purchase-journal.ts`). One JSON file per purchase under
+`data/purchases/`, which is git-ignored, written whole (temporary file, then rename) with mode
+`0600`. It holds `base`, `briefId`, `path`, `quoteId`, `termsHash`, `payer`, `claim`,
+`paymentHeaders` (exactly as sent), `orderId` and `state` (`SIGNED`, `UNKNOWN`, `DELIVERED`,
+`FAILED`). The buyer's private key is never written or printed, and nothing from the journal is
+printed. The entry is written before the authorization is sent; if it cannot be written, the
+script refuses to send and the authorization expires unused. A later run that finds an entry in
+state `SIGNED` or `UNKNOWN` for the same seller, Brief and payer re-sends the same headers and
+signs nothing. `--collect <orderId>` fetches a purchase again through
+`GET /api/orders/:id/delivery` with the journal's token; it needs no key. `verify-payment.ts` and
+`run-demo.ts` read an order with the journal's token, as any buyer must. The delivery envelope
+saved under `artifacts/evidence/` carries no claim token and no signature.
+
+## Who may read what
+
+Three readers, decided per request.
+
+| Reader | Recognised by | Reads |
+| --- | --- | --- |
+| Visitor (`PUBLIC`) | Nothing. Anyone. | The public projection of the desk's read routes, the free previews, the catalogue and the two aggregates (`GET /api/commerce/summary`, `GET /api/desk/economics`). |
+| Buyer | `X-Bullseye-Claim` | One order: its row and receipt, its reconciliation, its delivery. Nothing of anyone else's. |
+| Diagnostics (`DIAGNOSTIC`) | `Authorization: Bearer` with `OPERATOR_TOKEN` or `VIEWER_TOKEN`; or, with no operator token configured, a localhost desk that is not a production build | The desk's working detail: evidence summaries, on-chain figures, per-run cost, real ids in the activity feed. |
+
+`audienceOf` answers `DIAGNOSTIC` when the operator check grants access, or when the bearer token
+equals `VIEWER_TOKEN`; otherwise `PUBLIC`. Tokens are compared as sha256 digests in constant
+time. Every projected response carries `audience`, so a client can say which view it is showing.
+`GET /api/health` reports who may read diagnostics as `diagnostics` (`OPEN_ON_LOCALHOST`,
+`TOKEN_REQUIRED` or `DISABLED`).
+
+`VIEWER_TOKEN` reads and starts nothing. It is not accepted by the operator routes (scan,
+investigate, the order list, the fixture control) and it opens no order: `GET /api/orders/:id`
+answers it `403` like anyone else without the claim token. It exists so that a wall display can
+show diagnostics without the operator's token sitting in a browser. With it a reader does see
+order and quote ids in the activity feed; those open nothing without a claim token.
+
+What a Brief sells is what the chain showed, checked against the issuer: the reads, the activation
+block, each check's verdict. Evidence summaries and per-check results say exactly that, so a
+visitor is shown that each step happened, when, and whether it succeeded, and not what it found.
+Model and tool call details (models routed to, tokens, cost) are the desk's working records. The
+issuer's own figures are public and stay. The public projection (`projections.ts`):
+
+| Route | Kept | Withheld |
+| --- | --- | --- |
+| `GET /api/investigations` | Every summary field: ids, symbol, status, stop reason, times, `briefId`, the gate's decision and cap, `draftsJudged`. `usage.modelCalls`, `usage.toolCalls`. | What the run cost, its cost bases and the models it was routed to. `usage.costsWithheld` is `true`. |
+| `GET /api/investigations/:id`, and `investigation` in `GET /api/signals/:id` | Every timeline entry with its time, type, label, evidence id and `ok`. The gate's decision, version, cap, and each finding's rule and `passed`. `budget`, `budgetAtStart`. | `detail` of `EVIDENCE`, `CHECKS`, `MODEL_CALL` and `TOOL_CALL` entries, on every run. For a run that may still sell, also `detail` of `GATE` entries and the `detail` of every failed finding in `gate` and `gateAttempts`, replaced by a sentence saying it is withheld. Usage as above. |
+| `GET /api/investigations/:id/chain` | `network`, `token`, `symbol`, the issuer's multipliers and effective time, `activationSearched`; for each read its `key`, `evidenceId` and `mode`; for the activation its `evidenceId` and `mode`. | For a run that may still sell: `blockNumber`, `blockTime` and `multiplier` of every read, and `blockNumber` and `blockTime` of the activation, all `null`, with `withheld: true`. |
+| `GET /api/activity` | Every event, its time, kind, symbol, summary, rail and state. Signal and investigation ids. | The `refId` of `QUOTE_ISSUED` and `ORDER_STATE` events, replaced by a stand-in. |
+
+"May still sell" is `mayStillSell` in `projections.ts`: the run has a Brief, or it is still
+`RUNNING`. A run has something to protect while it may still publish, and once it has, so a run
+is not readable in full during the minutes before its Brief exists. Only a run that finished
+with no Brief (`REJECTED`, `STOPPED`) has nothing to sell, and its rejection is the point: its
+gate findings and its on-chain figures are shown in full (`withheld: false`). Its evidence and
+check details stay withheld like any other run's. A rejected first draft of a run whose revision
+was published can quote the very figures the Brief sells, so the detail of its failed findings
+is withheld.
+
+The stand-in is `ref_` plus 16 hex characters of an HMAC of the real id under a secret kept in
+the database. It is the same every time, so one order's rows still group, and it names no order
+and no quote.
+
+`access-projections.test.ts` checks the projection from the outside: with one Brief published and
+bought, none of thirteen free routes contains an evidence summary other than the issuer's record,
+a block number from that evidence, or the text of a claim, an unknown, a limitation or the
+confidence rationale.
+
+Status: the claim-token order routes, the browser and agent purchase records, and the
+projections in this section are on a branch that has not been merged to `main`, and are not
+deployed. The public deployment is built from `main`, where `GET /api/orders` and
+`GET /api/orders/:id` answer anyone, reconcile is an operator route, and the investigation routes
+return full detail. See `DEPLOYMENT.md`.
 
 SQLite through `node:sqlite`. Quotes are insert-only, `orders.quote_id` and `orders.terms_hash`
 are frozen, `order_events` is append-only; all three are enforced by triggers as well as by code.
@@ -250,8 +429,17 @@ round trip and schema parse a reader applies, and re-checked on every read.
 
 ## Known limits
 
-Single process, single SQLite file, no auth on the desk endpoints (the investigation timeline is
-an operator view), a detector that scans only on request and has no measured latency, one issuer, one chain, one signal type.
+Single process, single SQLite file, no accounts (a visitor gets the public projection, a buyer is
+known only by a claim token, diagnostics by one of two shared bearer tokens), a detector that
+scans only on request and has no measured latency, one issuer, one chain, one signal type.
+
+- A claim token is a bearer secret. Whoever holds it reads, reconciles and collects that order,
+  and there is no way to revoke or rotate it. A buyer who loses it cannot reach the order; only
+  the operator's order list still shows it.
+- A browser whose storage is unusable keeps the purchase in page memory only. See "Keeping one
+  purchase to one signature".
+- `GET /api/commerce/summary` and `GET /api/desk/economics` read the 500 newest orders and
+  investigations. Past that they undercount.
 
 - One live investigation and one live testnet settlement exist. No quality evaluation, rejection
   rate, detector recall or latency measurement exists.

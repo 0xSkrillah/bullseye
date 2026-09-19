@@ -75,6 +75,52 @@ bound". The one live investigation had none.
 order as if it were the only sale of that Brief. It excludes labour, hosting, customer
 acquisition, overhead and tax. It is an estimate and is never presented as profit.
 
+## Desk-level economics
+
+A receipt answers one question: what did this sale cost, if it were the only sale of its Brief?
+It charges the whole investigation to that one order. That is the conservative figure for one
+sale and the wrong thing to add up. Summing receipts goes wrong in two directions at once:
+
+- A Brief that sold twice has its research counted twice.
+- Research that was rejected by the gate, stopped by the budget, or published and never bought
+  appears on no receipt, so it is not counted at all.
+
+`GET /api/desk/economics` (`apps/api/src/economics/deskEconomics.ts`) totals the desk instead. It
+is open to anyone, labelled `AGGREGATE`, and carries no investigation, Brief or order id and no
+payer.
+
+| Part | What it counts | Basis |
+| --- | --- | --- |
+| `investigations` | Every investigation once: `total`, `published`, `rejected`, `stopped`, `running`. | Counted. |
+| `research.total`, `research.byOutcome` | Model cost summed per investigation, whatever came of it, and however many orders its Brief has. `measuredUsd` and `upperBoundUsd` are kept apart in every bucket. | `measuredUsd` is `MEASURED_PROVIDER_BILLED` plus `MEASURED_USAGE_AT_LIST_PRICE`. `upperBoundUsd` is `UPPER_BOUND_AT_PRICE_CAP`: a ceiling, not a measurement. Data and chain reads had no per-call charge. |
+| `research.unsold` | The same two sums for research that no paid order has been placed against: rejected, stopped, running, or published and not bought. | As above. |
+| `research.runsWithoutAPrice` | Runs whose model calls came from the test double. They are reported as a count, never as a cost of zero. | Counted. |
+| `sales` | `paidOrders`: orders in `PAID`, `DELIVERING`, `DELIVERY_FAILED` or `DELIVERED`. `revenueOrders` and `revenueUsd`: only those on `OKX_X402_MAINNET` whose transfer was read back from the chain (`payment.chainVerified`). `testOrders` and `testPaymentsUsd`: paid orders on the testnet or fixture rail, reported apart and never as revenue. `unverifiedMainnetOrders` and `unverifiedMainnetUsd`: paid mainnet orders whose transfer has not been read back from the chain; neither revenue nor test payments. | Quoted prices of counted orders. |
+| `delivery` | The three planning allowances, per paid order: `perPaidOrderUsd` and `estimatedTotalUsd`. | `ESTIMATED`. No fee has been measured. |
+| `estimatedContributionUsd` | `revenueUsd − measured research − upper-bound research − estimated delivery`. | An estimate. With no revenue it is simply what the desk has spent, as a negative number. |
+
+Two consequences follow from the definitions. A facilitator's word is not enough for revenue: a
+mainnet order that is paid but whose transfer was not verified on-chain is counted under
+`unverifiedMainnetOrders`, not `revenueOrders`, until the chain confirms it. A paid order whose
+delivery failed is still counted as paid, because the payment stands; a per-order receipt is
+stricter and does not call such an order revenue. And while every paid
+order used test tokens or the fixture rail, `revenueUsd` is 0 and `sales.note` says so; the price
+of a testnet order appears only in `testPaymentsUsd`.
+
+Like a receipt, the contribution excludes labour, hosting, customer acquisition, overhead and tax,
+and it is never presented as profit. Measured amounts, upper bounds and allowances stay in
+separate fields; they meet only in that last figure, which is labelled an estimate.
+
+The route reads the 500 newest investigations and the 500 newest orders. No figure from it is
+reported in this document: the code is on a branch that is not merged or deployed, and no live
+run has been made since the one below. `access-projections.test.ts` checks the arithmetic on
+constructed runs and orders.
+
+`GET /api/commerce/summary` is the companion for sales: orders counted by state and by Brief,
+with `countsAsRevenue` false on any rail but mainnet. It shows one order's receipt totals
+(`latestReceipt`) only to a diagnostics reader, because one order's cost lines are the desk's
+records.
+
 ## The budget is part of the economics
 
 Each investigation has a maximum variable cost (default $0.60), model-call ceiling (6), tool-call

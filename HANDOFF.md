@@ -8,7 +8,7 @@ State of the build on 18 September 2026 (build day 2 of 9). Submission closes 25
 An outside review of commit `1ae8e79` found three things that mattered: the browser could not
 finish or recover a purchase as the buyer's own, the read routes gave away buyers' orders and
 most of what a Brief sells, and the gate's number rule accepted figures with no evidence. All
-three were reproduced and fixed on branch `claude/bullseye-okx-submission-10d181`. **That branch
+three were reproduced and fixed on a fixes branch. **That branch
 is not merged and not deployed**: a push to `main` deploys, and that is the owner's call. Until
 then the deployed service behaves as it did on 19 September (CLAIM_LEDGER V41).
 
