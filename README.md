@@ -16,7 +16,9 @@ tokenised stocks (xStocks).
 > xStocks event, X Layer reads, a model investigation through OpenRouter, a Brief published by the
 > gate, and a purchase settled through the OKX facilitator on X Layer **testnet** and confirmed
 > on-chain. That is one investigation and one settlement. Testnet payments are not revenue, and
-> nothing here is evidence of demand.
+> nothing here is evidence of demand. That purchase was made by the agent buyer against a server
+> on localhost; nobody has yet bought from the deployed address, and no purchase has been made
+> from a browser with a real wallet. The browser and recovery paths below are verified offline.
 
 ## What it does
 
@@ -37,12 +39,18 @@ agrees with the issuer.
    60 s after, and at the head, bisects for the activation block, and compares with the issuer at
    18-decimal precision. Reserves, price, trading status and supply are cross-checked too.
 4. **Publish, or not.** A deterministic gate rejects drafts with missing or stale evidence,
-   numbers that are not in the cited evidence, undisclosed conflicts, inflated confidence or
-   investment-advice language. A rejected draft creates no Brief and nothing can be charged.
-   If the issuer later cancels or replaces the action, the Brief is withdrawn from sale.
+   undisclosed conflicts, inflated confidence or investment-advice language, and any figure that
+   is not bound to evidence: in a claim, every number must match one of the claim's declared
+   quantities by unit, sign and rounding; counts are computed by the gate; a small number gets no
+   pass for being small. A rejected draft creates no Brief and nothing can be charged. If the
+   issuer later cancels or replaces the action, the Brief is withdrawn from sale.
 5. **Sell.** `GET /api/v1/briefs/:id` is an x402 resource built on the OKX seller SDK. Quotes are
    immutable and hashed. One signed authorization is one order and settles at most once.
    A timeout is `PAYMENT_UNKNOWN`: nothing is delivered and a retry cannot charge twice.
+   The buyer, browser or agent, chooses a claim token before signing and sends it with the
+   payment. After a lost response, a reload or a crash, the same authorization is sent again or
+   the order is collected with the token (`GET /api/orders/:id/delivery`); neither can become a
+   second purchase, and an order is answered to nobody but its buyer and the operator.
 6. **Deliver and account.** The buyer receives one JSON document (`bullseye.brief/v1`), which is
    also what the web app renders. The receipt keeps price, measured cost and estimated allowances
    apart. Testnet payments are never revenue; estimated contribution is never profit.
@@ -101,9 +109,13 @@ npm run detect           # what the detector sees right now
 npm run demo -- QSRx     # drive the golden path for one flagged ticker and save a transcript (add --buy to purchase)
 npm run buy -- latest    # an agent discovers, pays for and receives the newest Brief; prints the order id
 npm run verify-payment -- ord_8a2102084ad69dab   # re-checks that order against X Layer without trusting the API
-npm run test:e2e         # Playwright: golden path and failure paths in a browser (offline configuration)
+npm run buy -- --collect ord_…   # fetch a purchase again with its claim token; signs nothing, needs no key
+npm run test:e2e         # Playwright: golden path, recovery and failure paths in a browser (offline configuration)
                          # first run: `npx playwright install chromium`, or set PW_CHANNEL=msedge|chrome to use an installed browser
 ```
+
+On Windows, clone into a short path (or set `git config --global core.longpaths true`): the
+recorded source responses have long file names, and the longest tracked path is 121 characters.
 
 If a key is missing, Bullseye says so and stops: the API answers `503 payment_rail_unavailable`
 rather than issuing a challenge it cannot settle, and an investigation ends `MODEL_UNAVAILABLE`
@@ -121,7 +133,7 @@ rather than switching synthesiser. It never substitutes fixtures for live data.
 | First settlement | order `ord_8a2102084ad69dab`, tx `0xa2f4058c4a839f58e3dcdc574f2cd0090d76cffd0848d89cebd32d6cb723f28a`, X Layer testnet block 41310183, seller `0xa8bcd760a7c280c05090431c6afdf15df324d64a` |
 | Contracts deployed | none: Bullseye uses the sponsor's payment rails and deploys no escrow or token |
 
-Six documentation and SDK findings, each with a reproduction, are in
+Seven documentation and SDK findings, each with a reproduction, are in
 [docs/SPONSOR_FEEDBACK.md](docs/SPONSOR_FEEDBACK.md).
 
 ## Repository
@@ -144,8 +156,13 @@ One signal type, one issuer, one chain. A polling detector with no measured late
 issuer's 50 most recent corporate actions. One live investigation and one live testnet settlement:
 no quality evaluation, no rejection rate, no measured detector recall. In the one live run the
 routed endpoint did not enforce strict structured output: the first draft failed the schema and cost a revision. No
-demand evidence yet ([docs/DEMAND.md](docs/DEMAND.md)). The desk's read routes are public; the
-routes that start paid work need an operator token anywhere but localhost. Bullseye Briefs describe observed events and their evidence; they are not
+demand evidence yet ([docs/DEMAND.md](docs/DEMAND.md)). The one live Brief was first detected
+21 h 29 min after the event took effect: a look back, not an early warning, and the desk labels
+it so. No live model draft has been judged by the current gate, so its rejection rate is unknown.
+The free view shows that each step of an investigation happened and what the issuer announced;
+what the chain showed, each check's verdict and per-run cost are in the Brief or behind a
+read-only viewer token; a buyer reads one order with its claim token; the routes that start paid
+work need an operator token anywhere but localhost. Bullseye Briefs describe observed events and their evidence; they are not
 investment, legal or tax advice.
 
 ## Licence

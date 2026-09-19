@@ -3,6 +3,63 @@
 State of the build on 18 September 2026 (build day 2 of 9). Submission closes 25 September 2026,
 23:59 UTC. Read [docs/CLAIM_LEDGER.md](docs/CLAIM_LEDGER.md) before repeating any claim.
 
+## 19 September: fixes after an outside review
+
+An outside review of commit `1ae8e79` found three things that mattered: the browser could not
+finish or recover a purchase as the buyer's own, the read routes gave away buyers' orders and
+most of what a Brief sells, and the gate's number rule accepted figures with no evidence. All
+three were reproduced and fixed on branch `claude/bullseye-okx-submission-10d181`. **That branch
+is not merged and not deployed**: a push to `main` deploys, and that is the owner's call. Until
+then the deployed service behaves as it did on 19 September (CLAIM_LEDGER V41).
+
+What the branch adds, with the ledger row that says how each is verified:
+
+| | |
+| --- | --- |
+| Buyer flow (V34, V35) | A claim token chosen before signing; one signature per purchase; recovery after a lost response, a reload, a second click or a failed write to storage; buyer-authorised reconcile; `GET /api/orders/:id/delivery`; the agent buyer journals its purchase and resumes instead of re-signing. |
+| Access (V37) | `GET /api/orders` is an operator route; one order is answered to its claim token only; the public view of an investigation keeps the steps and leaves out what the chain showed, each check's verdict and per-run cost; `VIEWER_TOKEN` reads diagnostics and starts nothing. |
+| Gate 2.0.0 (V36) | Figures bind to declared, typed quantities by unit, sign and rounding; counts are computed; no small-integer exemption; still eleven rules and still no model in the gate. |
+| Value and evidence | The Brief screen states the issuer's notice, what the desk checked, and the purchase, in that order; the gate's decision shows before purchase; evidence ids open the drawer; the delivery downloads as JSON; four clocks are kept apart and a late first detection is labelled retrospective. |
+| Economics (V38) | `GET /api/desk/economics`: each investigation counted once, rejected and unsold work included, revenue only for chain-verified mainnet orders. |
+| Proof (V39 to V41) | A restart test over a database file; a fresh-clone run of every suite; a CI workflow; a read-only snapshot of the deployed service. |
+
+Tests on the branch, 19 September, Node 26.7.0: `npm run typecheck` clean; `npm test` API 238 in
+20 files, web 53 in 5; `npm run test:e2e` 7 browser tests (`PW_CHANNEL=msedge`); `npm run build`
+ok. The same from a fresh clone (V40). Baseline before the branch, at `84e4a22`: API 162 and 1
+skipped in 16 files, web 27 in 3, 3 browser tests.
+
+**What is proved where.** Everything above is proved offline: recorded data, fixture synthesiser,
+fixture rail, a stand-in wallet. On a real rail there is still exactly one settlement, by the
+agent buyer, against localhost (18 September). Nothing has been bought from the deployed address,
+no browser purchase has used a wallet extension, and no live model draft has met gate 2.0.0. An
+unknown outcome cannot be forced on the real facilitator; if it does not recur by itself that
+case stays a fixture-rail demonstration and has to be labelled as one.
+
+**Decisions waiting for the owner**, in the order they unblock things:
+
+1. Send the organisers' question in [docs/SUBMISSION_DRAFTS.md](docs/SUBMISSION_DRAFTS.md): does a
+   testnet x402 integration at a public URL satisfy "publish or integrate a working service
+   through OKX AI", and is the finale on 6 October (terms page) or 7 October (builder kit)? Do not
+   book travel until that is answered.
+2. Review and merge the branch. The Situation Room changes that move the wall to
+   `/api/commerce/summary` and `/api/desk/economics` belong in the same merge, or the wall loses
+   its order and cost panels when the public view ships.
+3. Decide whether the wall gets a `VIEWER_TOKEN` on Railway (read-only; without it the public wall
+   shows steps and counts, not on-chain figures or cost). This is a change to production
+   configuration and is the owner's to make.
+4. Approve a bounded testnet spend (each purchase is 3 test USD₮0; the buyer held 7) and run, from
+   the main checkout where `.env` holds the buyer key: one agent purchase
+   (`npm run buy -- latest --base https://bullseye-production-5d0c.up.railway.app`), then
+   `npm run verify-payment -- <orderId>`, then one browser purchase with a wallet extension on X
+   Layer testnet. Keep the delivery envelopes; they carry no key, signature or claim token.
+   `data/purchases/` does carry them and must never be committed.
+5. Start the ASP registration by 23 September if the organisers' answer makes it useful.
+6. Record the video only after step 4 works.
+7. Interviews and usability sessions: the guides are in [docs/DEMAND.md](docs/DEMAND.md). Record
+   what actually happens, including nothing.
+
+Feature freeze is 24 September. The target is to submit by 20:00 UTC on 25 September.
+
 ## Where things stand
 
 Every golden-path stage has now run live once, on 18 September 2026 between 21:37 and 22:04 UTC,
@@ -29,9 +86,10 @@ measurement exists. Testnet payments are not revenue, and estimated contribution
 Still blocked: the mock-merchant test payment (CLAIM_LEDGER B1; SF-1: OKX's client SDK cannot
 parse the mock merchant's challenge). SF-2 is still untested end to end.
 
-Tests, all passing on 19 September: `npm test` (API 163 tests in 16 files, web 27 in 3 files
-including the design system's five brand rules), `npm run test:e2e` (3 browser tests, offline
-configuration; `PW_CHANNEL=msedge` uses an installed browser), `npm run spike` (live checks; every
+Tests on `main`, all passing on 19 September: `npm test` (API 163 tests in 16 files, web 27 in
+3 files including the design system's five brand rules), `npm run test:e2e` (3 browser tests,
+offline configuration; `PW_CHANNEL=msedge` uses an installed browser; the fixes branch has more,
+see the section above), `npm run spike` (live checks; every
 step PASS except the mock-merchant payment, which is BLOCKED). Offline fallback:
 `npm run start:offline`.
 Repository: https://github.com/0xSkrillah/bullseye. It was created **private**; check its
@@ -141,8 +199,9 @@ what happened; do not relabel an offline run.
   reserves HISTORICAL for replayed recordings. One of the two should change.
 - `docs/design-system/design-system.json` is git-ignored because it records the tool it was made
   with. Everything else in that folder is committed as delivered.
-- The investigation timeline endpoint is unauthenticated and shows evidence summaries. Fine for a
-  demo desk; it should sit behind operator auth before anything real is sold.
+- The investigation timeline endpoint is unauthenticated and shows evidence summaries on `main`.
+  The fixes branch answers this: the public view keeps the steps and withholds what they found
+  (CLAIM_LEDGER V37). Open until that branch is deployed.
 
 ## Web app: what is whose, and what is still open
 
@@ -152,19 +211,16 @@ to that scaffold's call sites. During integration `components/EconomicsReceipt.t
 `components/RadarField.tsx` from the scaffold were replaced; the versions here satisfy the
 scaffold's call sites and brand tests, and the design originals can be re-exported over them.
 
-Open items in the scaffold, left for its owner:
+Open items in the scaffold. Closed on the fixes branch: the "Gate running" chip on a published,
+unpurchased Brief; "View evidence first" doing nothing; a declined signature or a quote mismatch
+raising no banner; and delivery after a reconciled unknown payment needing a second press of Pay
+(the buyer's reconcile now collects the Brief, and the screen says what is happening). Still open:
 
-- The Brief header chip reads "Gate running" on a published, unpurchased Brief (it is given the
-  gate only after delivery).
-- "View evidence first" on the paywall does nothing yet.
-- A declined wallet signature or a quote mismatch raises no banner (`pay` has no catch).
 - The Console does not pass `payment.chainVerified` to the receipt, so a chain-verified price
   would not turn green; `EconomicsReceipt` accepts an optional `chainVerified` prop for this.
 - The PAYMENT_UNKNOWN sentence says "after 90 s"; nothing in the API enforces that figure.
-- `tokens.css` in the app lacks the light theme block that `docs/design-system/tokens.css` has.
-- After an unknown payment is reconciled to PAID, delivery happens when the buyer presses Pay
-  again: the signer re-sends the same authorization (one per quote, held for its validity
-  window), so nothing is signed or settled twice. The screen does not explain this yet.
+- `tokens.css` in the app lacks the light theme block that `docs/design-system/tokens.css` has
+  (the Situation Room work adds it).
 
 ## Things that will bite
 
