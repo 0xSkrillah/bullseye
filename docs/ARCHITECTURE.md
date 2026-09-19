@@ -175,15 +175,61 @@ the Brief it was quoted for instead). The flow for `GET /api/v1/briefs/:id`:
    If the rail is not ready, answer `503` and issue nothing. If the Brief was withdrawn, answer
    `410 brief_withdrawn` and issue nothing (see "Cancelled and corrected actions").
 2. Payment header → idempotency key = `sha256(network:asset:from:nonce)` of the EIP-3009
-   authorization. A known key is answered from the ledger and never settled again.
-3. New key → order opens at `PAYMENT_PENDING` (the UNIQUE key makes concurrent duplicates lose),
-   then `verify`, then `settle`.
+   authorization. A known key is answered from the ledger and never settled again, but only to
+   the buyer: see "Who an order is answered to".
+3. New key → the authorization is checked against the quote without any network call (recipient,
+   amount, 32-byte nonce, validity window, a signature is present); a payload that cannot pay the
+   quote gets a `402` and costs no order row and no facilitator call. Then the order opens at
+   `PAYMENT_PENDING` (the UNIQUE key makes concurrent duplicates lose), then `verify`, then
+   `settle`.
 4. `success` → independent receipt check on X Layer (exact `Transfer` to `payTo`) → `PAID` →
    `DELIVERING` → `DELIVERED`. `pending`, `timeout` or a thrown call → `PAYMENT_UNKNOWN`, `503`,
    nothing delivered. An explicit refusal → `PAYMENT_FAILED`.
 5. Reconciliation never calls `settle`. It asks `getSettleStatus`, reads the receipt, and reads the
    token's `authorizationState(from, nonce)`; an unused authorization is declared failed only after
-   its `validBefore`.
+   its `validBefore`. A consumed authorization is not proof of payment, because EIP-3009's
+   `cancelAuthorization` consumes a nonce and moves nothing. So when there is no transaction hash
+   to check, reconciliation looks for the token's `AuthorizationUsed(payer, nonce)` event and
+   requires the quoted `Transfer` in that same transaction (and no more of that payer's
+   authorizations in it than quoted transfers). The event can only exist between the order opening
+   and the authorization's `validBefore`, so the search starts at the block for that time (found
+   by bisection) and walks forward in windows of 100 blocks, the RPC's `eth_getLogs` limit, up to
+   40 windows. It therefore works however old the order is. Run against the real settlement of 18
+   September twelve hours later it found the transaction in about 20 s; that is slow, and it only
+   runs on this path. Consumed with no transfer found → `RECONCILIATION_REQUIRED`, never `PAID`.
+   One reconciliation runs per order at a time; overlapping retries share it.
+6. A `PAYMENT_PENDING` order that this process is not working on (it stopped, or threw, between
+   opening the order and recording an outcome) is an unknown outcome, not a dead end: the next
+   request with that authorization moves it to `PAYMENT_UNKNOWN` and reconciles it.
+
+### Who an order is answered to
+
+Once a payment is on-chain, the payer, the nonce and the signature are all public calldata, so
+none of them shows that a caller is the buyer. Two rules:
+
+- An existing order is only answered to a request that carries the exact payload that opened it.
+  A header rebuilt from `(payer, nonce)` gets a fresh `402`.
+- Fetching an order again needs a claim token in `X-Bullseye-Claim`; without it the answer is
+  `403 claim_token_required`. There are two kinds.
+  - **Chosen by the buyer.** A buyer who sends `X-Bullseye-Claim` (32 to 128 URL-safe characters)
+    with the paying request has committed to a secret before anything about the payment is public.
+    Only its sha256 is stored. That order is never answered without it, delivered or not. The
+    reference buyer (`scripts/buy-brief.ts`) does this, and the OKX fetch client keeps a caller's
+    own headers on the paying request.
+  - **Issued by the server**, for clients that send nothing: an HMAC of the order id under a secret
+    kept in the database, returned in the `X-Bullseye-Claim` response header (never in a body, so
+    it does not end up in a saved delivery envelope). It is the same token every time, so handing
+    it out again can never invalidate the one a buyer already holds. Until the first delivery the
+    payload alone is accepted and the token is returned again, because that is the path a buyer
+    retries on when the payment outcome is unknown and the first response may not have arrived.
+- A delivery is counted when the response has been written (`finish`), not when it was built, so
+  a buyer whose connection dropped before the first `200` can still collect with the payload.
+
+What is left, for a buyer who did not choose a token: someone who copies the signature out of the
+settlement transaction can, before the first delivery is counted, get the Brief that buyer paid
+for. The buyer still gets theirs. Choosing a token closes it.
+
+`GET /api/orders` and `GET /api/orders/:id` never include the ledger's payment key.
 
 The `PAYMENT_UNKNOWN` path has been exercised once on the testnet rail (`OKX_X402_TESTNET`,
 `eip155:1952`). For order `ord_8a2102084ad69dab` on 2026-09-18, `settle` returned

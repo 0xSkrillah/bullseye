@@ -78,7 +78,7 @@ export class OrderLedger {
    * straight to PAYMENT_PENDING. The UNIQUE payment_key makes this the single
    * point where a replayed or concurrent authorization is detected.
    */
-  openOrder(quote: Quote, paymentKey: string, paymentPayload: unknown, now: Date): Order {
+  openOrder(quote: Quote, paymentKey: string, paymentPayload: unknown, now: Date, claimHash: string | null = null): Order {
     if (Date.parse(quote.terms.expiresAt) <= now.getTime()) throw new QuoteExpiredError(`quote ${quote.id} expired at ${quote.terms.expiresAt}`);
     const id = newId("ord");
     const at = now.toISOString();
@@ -86,8 +86,8 @@ export class OrderLedger {
       const existing = this.db.prepare("SELECT id FROM orders WHERE payment_key = ?").get(paymentKey) as { id: string } | undefined;
       if (existing) throw new DuplicatePaymentError(existing.id);
       this.db
-        .prepare("INSERT INTO orders (id, quote_id, terms_hash, state, payment_key, payment_payload_json, delivery_count, created_at, updated_at) VALUES (?, ?, ?, 'QUOTED', ?, ?, 0, ?, ?)")
-        .run(id, quote.id, quote.termsHash, paymentKey, JSON.stringify(paymentPayload), at, at);
+        .prepare("INSERT INTO orders (id, quote_id, terms_hash, state, payment_key, payment_payload_json, claim_hash, delivery_count, created_at, updated_at) VALUES (?, ?, ?, 'QUOTED', ?, ?, ?, 0, ?, ?)")
+        .run(id, quote.id, quote.termsHash, paymentKey, JSON.stringify(paymentPayload), claimHash, at, at);
       this.appendEvent(id, null, "QUOTED", `buyer approved quote ${quote.id} (terms ${quote.termsHash.slice(0, 12)}…)`, at);
       this.move(id, "PAYMENT_PENDING", "signed payment authorization received", at);
       return this.mustGet(id);
@@ -116,6 +116,18 @@ export class OrderLedger {
   recordDelivery(orderId: string): Order {
     this.db.prepare("UPDATE orders SET delivery_count = delivery_count + 1, updated_at = ? WHERE id = ?").run(new Date().toISOString(), orderId);
     return this.mustGet(orderId);
+  }
+
+  /** sha256 of the claim token handed to whoever presented the authorization; the token itself is never stored */
+  claimHash(orderId: string): string | null {
+    const row = this.db.prepare("SELECT claim_hash FROM orders WHERE id = ?").get(orderId) as { claim_hash: string | null } | undefined;
+    return row?.claim_hash ?? null;
+  }
+
+  /** random, created once per database and kept with it, so the claim token for an order is the same before and after a restart */
+  secret(name: string): string {
+    this.db.prepare("INSERT OR IGNORE INTO server_secrets (name, value) VALUES (?, ?)").run(name, randomBytes(32).toString("hex"));
+    return (this.db.prepare("SELECT value FROM server_secrets WHERE name = ?").get(name) as { value: string }).value;
   }
 
   paymentPayload(orderId: string): unknown {

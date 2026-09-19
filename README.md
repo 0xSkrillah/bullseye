@@ -117,7 +117,7 @@ rather than switching synthesiser. It never substitutes fixtures for live data.
 | Networks | X Layer testnet `eip155:1952` for payments; X Layer mainnet `eip155:196` for reading xStock contracts |
 | Settlement asset | the SDK's default for the network (testnet `USD₮0` `0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c`) |
 | Contracts read | xStock tokens on X Layer, e.g. IFFx `0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5`, QSRx `0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046` |
-| Agent access | `GET /api/v1/catalog` for discovery, `GET` or `POST /api/v1/briefs/:id` to buy, and `/api/v1/briefs/latest` as one stable paid address for marketplace listings ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md); not deployed or listed yet); `scripts/buy-brief.ts` is a reference buyer on the OKX client SDK whose spend limits apply to the terms it signs (network, token contract, base-unit amount), not to the seller's stated price |
+| Agent access | `GET /api/v1/catalog` for discovery, `GET` or `POST /api/v1/briefs/:id` to buy, and `/api/v1/briefs/latest` as one stable paid address for marketplace listings ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md); deployed at https://bullseye-production-5d0c.up.railway.app, not listed yet); `scripts/buy-brief.ts` is a reference buyer on the OKX client SDK whose spend limits apply to the terms it signs (network, token contract, base-unit amount), not to the seller's stated price |
 | First settlement | order `ord_8a2102084ad69dab`, tx `0xa2f4058c4a839f58e3dcdc574f2cd0090d76cffd0848d89cebd32d6cb723f28a`, X Layer testnet block 41310183, seller `0xa8bcd760a7c280c05090431c6afdf15df324d64a` |
 | Contracts deployed | none: Bullseye uses the sponsor's payment rails and deploys no escrow or token |
 
@@ -144,8 +144,8 @@ One signal type, one issuer, one chain. A polling detector with no measured late
 issuer's 50 most recent corporate actions. One live investigation and one live testnet settlement:
 no quality evaluation, no rejection rate, no measured detector recall. In the one live run the
 routed endpoint did not enforce strict structured output: the first draft failed the schema and cost a revision. No
-demand evidence yet ([docs/DEMAND.md](docs/DEMAND.md)). The desk endpoints have no
-authentication. Bullseye Briefs describe observed events and their evidence; they are not
+demand evidence yet ([docs/DEMAND.md](docs/DEMAND.md)). The desk's read routes are public; the
+routes that start paid work need an operator token anywhere but localhost. Bullseye Briefs describe observed events and their evidence; they are not
 investment, legal or tax advice.
 
 ## Licence

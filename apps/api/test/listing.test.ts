@@ -80,9 +80,12 @@ describe("a listable paid endpoint", () => {
     const symbol = c.briefs.get(briefId)!.signal.asset.symbol;
     const byQuery = await request(app).get(`${LATEST}?symbol=${symbol.toLowerCase()}`);
     expect(byQuery.status).toBe(402);
-    expect(decodePaymentRequiredHeader(byQuery.headers["payment-required"]!).resource.url).toBe(`http://localhost:4402${LATEST}?symbol=${symbol.toLowerCase()}`);
-    const byBody = await request(app).post(LATEST).send({ symbol });
+    // however the caller spells it, the address and its quote use the asset's own symbol
+    expect(decodePaymentRequiredHeader(byQuery.headers["payment-required"]!).resource.url).toBe(`http://localhost:4402${LATEST}?symbol=${symbol}`);
+    const byBody = await request(app).post(LATEST).send({ symbol: symbol.toUpperCase() });
     expect(byBody.status).toBe(402);
+    expect(byBody.body.bullseye.quoteId).toBe(byQuery.body.bullseye.quoteId);
+    expect(c.ledger.quotesForBrief(briefId)).toHaveLength(1);
     const none = await request(app).post(LATEST).send({ symbol: "NOPEx" });
     expect(none.status).toBe(404);
     expect(none.body).toMatchObject({ error: "nothing_for_sale" });
@@ -113,7 +116,7 @@ describe("a listable paid endpoint", () => {
     expect(c.fixtureFacilitator!.settleCalls).toHaveLength(1);
 
     // the same authorization replayed is answered from its order, still for the Brief that was bought
-    const again = await request(app).post(LATEST).set(headers);
+    const again = await request(app).post(LATEST).set(headers).set("x-bullseye-claim", paid.headers["x-bullseye-claim"]!);
     expect(again.body).toMatchObject({ orderId: paid.body.orderId, brief: { id: briefId } });
     expect(c.fixtureFacilitator!.settleCalls).toHaveLength(1);
   });

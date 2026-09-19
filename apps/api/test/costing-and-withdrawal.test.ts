@@ -121,7 +121,9 @@ describe("a Brief about an action the issuer has voided", () => {
       return buyer.http.encodePaymentSignatureHeader(await buyer.http.createPaymentPayload(required));
     };
     const paidBefore = await sign();
-    expect((await request(app).get(path).set(paidBefore)).status).toBe(200);
+    const firstDelivery = await request(app).get(path).set(paidBefore);
+    expect(firstDelivery.status).toBe(200);
+    const paidClaim = firstDelivery.headers["x-bullseye-claim"]!;
     const signedButUnsent = await sign();
 
     // the issuer cancels the action; the next scan notices
@@ -140,7 +142,7 @@ describe("a Brief about an action the issuer has voided", () => {
     expect((await request(app).get(path).set(signedButUnsent)).status).toBe(410);
     expect(c.fixtureFacilitator!.settleCalls).toHaveLength(settlesBefore);
 
-    expect((await request(app).get(path).set(paidBefore)).status).toBe(200);
+    expect((await request(app).get(path).set(paidBefore).set("x-bullseye-claim", paidClaim)).status).toBe(200);
     expect((await request(app).get("/api/v1/catalog")).body.items).toEqual([]);
     expect((await request(app).get("/api/signals")).body.signals[0].superseded).toMatchObject({ reason: "CANCELLED", byVersion: 2 });
   });

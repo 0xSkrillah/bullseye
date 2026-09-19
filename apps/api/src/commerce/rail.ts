@@ -48,7 +48,8 @@ export interface Eip3009Authorization {
 }
 
 export function readAuthorization(payload: PaymentPayload): Eip3009Authorization | null {
-  const auth = (payload.payload as { authorization?: Partial<Eip3009Authorization> } | undefined)?.authorization;
+  // the header is attacker-controlled JSON: it may decode to null, a string or an array
+  const auth = (payload as { payload?: { authorization?: Partial<Eip3009Authorization> } } | null)?.payload?.authorization;
   if (!auth || typeof auth.from !== "string" || typeof auth.nonce !== "string" || typeof auth.validBefore !== "string") return null;
   return auth as Eip3009Authorization;
 }
@@ -67,6 +68,10 @@ export function requirementsFromTerms(terms: QuoteTerms): PaymentRequirements {
 
 const erc20TransferEvent = parseAbi(["event Transfer(address indexed from, address indexed to, uint256 value)"]);
 const eip3009Abi = parseAbi(["function authorizationState(address authorizer, bytes32 nonce) view returns (bool)"]);
+const authorizationUsedEvent = parseAbi(["event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)"]);
+/** X Layer's public RPC answers eth_getLogs for at most 100 blocks */
+const LOG_WINDOW = 100n;
+const LOG_WINDOWS_SEARCHED = 40;
 
 /** A payment rail is the OKX x402 SDK resource server plus a way to look at the chain ourselves. */
 export class PaymentRailAdapter {
@@ -168,6 +173,63 @@ export class PaymentRailAdapter {
     }
   }
 
+  /**
+   * Proof that this authorization paid the quote. authorizationState alone is not proof: an EIP-3009
+   * cancelAuthorization sets the same flag and moves nothing. So find the AuthorizationUsed event for
+   * (payer, nonce) and require the quoted Transfer in the same transaction. The event can only exist
+   * between the moment the order was opened and the authorization's validBefore, so the search is
+   * anchored there and works however old the order is. "Not found" is an answer the caller must
+   * treat as unknown, never as paid.
+   */
+  async authorizationSettled(terms: QuoteTerms, auth: Eip3009Authorization, openedAt: Date): Promise<(ChainCheck & { txHash: string | null }) | null> {
+    if (!this.chain) return null;
+    const checkedAt = new Date().toISOString();
+    const miss = (note: string) => ({ verified: false, blockNumber: null, checkedAt, txHash: null, note });
+    try {
+      const head = await this.chain.getBlock();
+      const fromTime = BigInt(Math.floor(openedAt.getTime() / 1000) - 120);
+      const untilTime = BigInt(auth.validBefore) + 120n;
+      let from = await this.firstBlockAtOrAfter(fromTime, head.number);
+      for (let i = 0; i < LOG_WINDOWS_SEARCHED && from <= head.number; i++) {
+        const to = from + LOG_WINDOW - 1n > head.number ? head.number : from + LOG_WINDOW - 1n;
+        const logs = await this.chain.getLogs({ address: getAddress(terms.asset), event: authorizationUsedEvent[0], args: { authorizer: getAddress(auth.from), nonce: auth.nonce as `0x${string}` }, fromBlock: from, toBlock: to });
+        const hit = logs[0];
+        if (hit?.transactionHash) return await this.transferForAuthorization(terms, auth, hit.transactionHash);
+        if (to === head.number || (await this.chain.getBlock({ blockNumber: to })).timestamp > untilTime) break;
+        from = to + 1n;
+      }
+      return miss("no AuthorizationUsed event for this payer and nonce between the order opening and the authorization's expiry");
+    } catch (err) {
+      return miss(`log search failed: ${err instanceof Error ? err.message.slice(0, 160) : String(err)}`);
+    }
+  }
+
+  /** the receipt must succeed, carry the quoted Transfer, and not carry more of this payer's authorizations than quoted Transfers */
+  private async transferForAuthorization(terms: QuoteTerms, auth: Eip3009Authorization, txHash: `0x${string}`): Promise<ChainCheck & { txHash: string | null }> {
+    const check = await this.chainCheck(terms, auth.from, txHash);
+    if (!check.verified || !this.chain) return { ...check, txHash };
+    const receipt = await this.chain.getTransactionReceipt({ hash: txHash });
+    const own = (address: string) => getAddress(address) === getAddress(terms.asset);
+    const authorizations = parseEventLogs({ abi: authorizationUsedEvent, logs: receipt.logs, eventName: "AuthorizationUsed" }).filter((l) => own(l.address) && getAddress(l.args.authorizer) === getAddress(auth.from)).length;
+    const transfers = parseEventLogs({ abi: erc20TransferEvent, logs: receipt.logs, eventName: "Transfer" }).filter(
+      (l) => own(l.address) && getAddress(l.args.from) === getAddress(auth.from) && getAddress(l.args.to) === getAddress(terms.payTo) && l.args.value === BigInt(terms.amount),
+    ).length;
+    if (authorizations > transfers) return { ...check, verified: false, txHash, note: `transaction carries ${authorizations} authorizations from this payer but only ${transfers} quoted transfer(s); cannot attribute one to this order` };
+    return { ...check, txHash };
+  }
+
+  /** first block whose timestamp is at or after `time` (seconds), by bisection */
+  private async firstBlockAtOrAfter(time: bigint, head: bigint): Promise<bigint> {
+    let lo = 0n;
+    let hi = head;
+    while (lo < hi) {
+      const mid = (lo + hi) / 2n;
+      if ((await this.chain!.getBlock({ blockNumber: mid })).timestamp < time) lo = mid + 1n;
+      else hi = mid;
+    }
+    return lo;
+  }
+
   explorerUrl(txHash: string | null): string | null {
     if (!txHash || this.rail === "FIXTURE") return null;
     return `${this.network === "eip155:196" ? xLayer.blockExplorers.default.url : xLayerTestnet.blockExplorers.default.url}/tx/${txHash}`;
@@ -208,7 +270,7 @@ export type FixtureFacilitatorMode = "ok" | "verify_invalid" | "settle_failed" |
 export class FixtureFacilitator implements FacilitatorClient {
   mode: FixtureFacilitatorMode = "ok";
   /** what a later reconciliation should discover for authorizations left unknown */
-  reconcileOutcome: "used" | "unused" | "unreadable" = "unreadable";
+  reconcileOutcome: "used" | "unused" | "unreadable" | "cancelled" = "unreadable";
   readonly settleCalls: string[] = [];
   private readonly usedNonces = new Set<string>();
 
@@ -277,6 +339,14 @@ export class FixtureRail extends PaymentRailAdapter {
 
   override async authorizationUsed(): Promise<boolean | null> {
     const outcome = this.fixtureFacilitator.reconcileOutcome;
-    return outcome === "unreadable" ? null : outcome === "used";
+    return outcome === "unreadable" ? null : outcome === "used" || outcome === "cancelled";
+  }
+
+  /** "cancelled" models cancelAuthorization: the nonce is consumed and no funds moved */
+  override async authorizationSettled(): Promise<(ChainCheck & { txHash: string | null }) | null> {
+    const outcome = this.fixtureFacilitator.reconcileOutcome;
+    const checkedAt = new Date().toISOString();
+    if (outcome === "used") return { verified: true, blockNumber: null, checkedAt, txHash: null, note: "fixture: the authorization was consumed by the quoted transfer" };
+    return { verified: false, blockNumber: null, checkedAt, txHash: null, note: "fixture: no transfer used this authorization" };
   }
 }

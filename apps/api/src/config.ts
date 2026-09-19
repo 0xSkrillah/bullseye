@@ -59,6 +59,19 @@ const Env = z.object({
   EST_REWORK_RESERVE_USD: z.coerce.number().nonnegative().default(0.2),
   EST_DATA_TOOL_ALLOWANCE_USD: z.coerce.number().nonnegative().default(0.1),
 
+  // public deployments
+  /**
+   * Bearer token for the operator routes (scan, investigate, reconcile). They start paid work, so on
+   * any PUBLIC_BASE_URL that is not localhost they are refused unless this is set and presented.
+   */
+  OPERATOR_TOKEN: z.string().min(24).optional(),
+  /** per client address, per minute, on the paid resource and the quote route */
+  PAID_ROUTE_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(60),
+  /** per client address, per minute, for requests that carry a payment: each can cost a facilitator call */
+  PAYMENT_ATTEMPT_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(12),
+  /** per client address, per minute, across every /api route except the health check */
+  API_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(600),
+
   // unattended operation
   /** scan and investigate on a timer, with no operator. Off unless asked for: every investigation it starts spends money. */
   AUTO_DESK: z

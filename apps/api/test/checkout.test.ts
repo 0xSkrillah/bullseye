@@ -51,7 +51,10 @@ describe("paid delivery over x402", () => {
     const { c, app, path } = await shop();
     const { headers } = await signChallenge(app, path);
     const first = await request(app).get(path).set(headers);
-    const second = await request(app).get(path).set(headers);
+    const claim = first.headers["x-bullseye-claim"]!;
+    expect(claim).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(JSON.stringify(first.body)).not.toContain(claim);
+    const second = await request(app).get(path).set(headers).set("x-bullseye-claim", claim);
     expect(second.status).toBe(200);
     expect(second.body.orderId).toBe(first.body.orderId);
     expect(c.fixtureFacilitator!.settleCalls).toHaveLength(1);
@@ -65,8 +68,10 @@ describe("paid delivery over x402", () => {
     const replies = await Promise.all([1, 2, 3, 4].map(() => request(app).get(path).set(headers)));
     expect(c.fixtureFacilitator!.settleCalls).toHaveLength(1);
     expect(c.ledger.list()).toHaveLength(1);
-    expect(replies.map((r) => r.status).every((s) => s === 200 || s === 409)).toBe(true);
-    expect(replies.some((r) => r.status === 200)).toBe(true);
+    // the duplicates are told "in progress" while the first settles, and need its claim token once it has been delivered
+    expect(replies.map((r) => r.status).every((s) => s === 200 || s === 409 || s === 403)).toBe(true);
+    expect(replies.filter((r) => r.status === 200)).toHaveLength(1);
+    expect(replies.filter((r) => r.headers["x-bullseye-claim"])).toHaveLength(1);
   });
 
   it("treats a settle timeout as unknown: no delivery, no second charge, then reconciles to PAID", async () => {

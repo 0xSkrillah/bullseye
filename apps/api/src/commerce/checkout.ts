@@ -1,14 +1,17 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { decodePaymentSignatureHeader, encodePaymentRequiredHeader, encodePaymentResponseHeader } from "@okxweb3/x402-core/http";
 import type { PaymentPayload, SettleResponse } from "@okxweb3/x402-core/types";
-import type { Brief, Order, PaymentEvidence, Quote, QuoteTerms } from "@bullseye/domain";
+import { canonicalJson, type Brief, type Order, type PaymentEvidence, type Quote, type QuoteTerms } from "@bullseye/domain";
 import { sha256 } from "../adapters/transport.js";
 import { DuplicatePaymentError, OrderLedger, QuoteExpiredError } from "./orderLedger.js";
-import { readAuthorization, type PaymentRailAdapter } from "./rail.js";
+import { readAuthorization, type Eip3009Authorization, type PaymentRailAdapter } from "./rail.js";
 
 export interface HttpReply {
   status: number;
   headers: Record<string, string>;
   body: unknown;
+  /** call once the response has actually been written; a delivery only counts when it left the building */
+  onSent?: () => void;
 }
 
 export interface DeliveryEnvelope {
@@ -37,6 +40,11 @@ export interface CheckoutDeps {
  * order settles at most once: every retry is answered from the ledger.
  */
 export class Checkout {
+  /** orders whose verify/settle call is running in this process right now */
+  private readonly inFlight = new Set<string>();
+  /** one reconciliation per order at a time; overlapping retries share it */
+  private readonly reconciling = new Map<string, Promise<Order | null>>();
+
   constructor(private readonly deps: CheckoutDeps) {}
 
   private now(): Date {
@@ -74,7 +82,7 @@ export class Checkout {
   }
 
   /** The x402 resource: /api/v1/briefs/:id, or a stable address that resolved to this Brief. */
-  async handle(briefId: string, paymentHeader: string | undefined, quoteId: string | undefined, resource?: string): Promise<HttpReply> {
+  async handle(briefId: string, paymentHeader: string | undefined, quoteId: string | undefined, resource?: string, claimToken?: string): Promise<HttpReply> {
     const { ledger, rail } = this.deps;
     const brief = this.deps.getBrief(briefId);
     if (!brief) return json(404, { error: "brief_not_found" });
@@ -100,24 +108,77 @@ export class Checkout {
 
     // someone who already paid still gets what they paid for; nobody new is charged for a withdrawn Brief
     const existing = ledger.findByPaymentKey(paymentKey);
-    if (existing) return this.resume(existing, brief, payload);
+    if (existing) return this.recognise(existing, brief, payload, claimToken);
     if (withdrawn) return gone(brief, withdrawn);
 
     const quote = this.resolveQuote(brief, payload, quoteId);
     if (!quote) return this.challenge(brief, null, "payment does not match any quote issued for this brief", resource);
 
+    // nothing is stored and the facilitator is not called for a payload that cannot possibly pay this quote
+    const malformed = this.malformed(payload, auth, quote.terms);
+    if (malformed) return this.challenge(brief, null, `payment rejected before verification: ${malformed}`, resource);
+
+    // a buyer who sends their own token with the payment holds it whatever happens to the responses
+    const chosen = claimToken !== undefined && BUYER_CLAIM.test(claimToken) ? claimToken : null;
     let order: Order;
     try {
-      order = ledger.openOrder(quote, paymentKey, payload, this.now());
+      order = ledger.openOrder(quote, paymentKey, payload, this.now(), chosen ? `buyer:${sha256(chosen)}` : null);
     } catch (err) {
       if (err instanceof QuoteExpiredError) return this.challenge(brief, null, "quote expired; a new quote is attached", resource);
       if (err instanceof DuplicatePaymentError) {
         const winner = ledger.get(err.orderId);
-        if (winner) return this.resume(winner, brief, payload);
+        if (winner) return this.recognise(winner, brief, payload, claimToken);
       }
       throw err;
     }
-    return this.pay(order, brief, payload);
+    const reply = await this.pay(order, brief, payload);
+    return chosen ? reply : withClaim(reply, this.serverClaim(order.id));
+  }
+
+  /** the same token for the same order every time, so re-issuing it can never invalidate the one the buyer already holds */
+  private serverClaim(orderId: string): string {
+    return createHmac("sha256", this.deps.ledger.secret("claim-token")).update(orderId).digest("base64url");
+  }
+
+  /**
+   * (payer, nonce) is public once a payment is on-chain, and so is the signature, so neither proves
+   * that the caller is the buyer. An existing order is only ever answered to someone who presents
+   * the exact payload that opened it, and:
+   *  - if the buyer sent their own claim token when they paid, only ever with that token;
+   *  - otherwise, once the Brief has been delivered, only with the token the server returned.
+   *    Until the first delivery the payload alone is accepted, because that is the path a buyer
+   *    whose payment outcome is unknown retries on, and the server's token is returned again.
+   */
+  private async recognise(order: Order, brief: Brief, payload: PaymentPayload, claimToken: string | undefined): Promise<HttpReply> {
+    const { ledger } = this.deps;
+    const stored = ledger.paymentPayload(order.id) as PaymentPayload | null;
+    const samePayload = stored !== null && digestEqual(canonicalJson(stored.payload ?? null), canonicalJson(payload.payload ?? null));
+    if (!samePayload) return this.challenge(brief, null, "that authorization is already bound to an order and this request does not match it; sign a new authorization", order.terms.resource);
+    if (order.terms.briefId !== brief.id) return json(409, { error: "authorization_bound_to_other_brief", orderId: order.id });
+
+    const required = { error: "claim_token_required", orderId: order.id, detail: "Fetch this order with the X-Bullseye-Claim token: the one you sent with the payment, or the one returned with the first response." };
+    const buyerHash = ledger.claimHash(order.id);
+    if (buyerHash?.startsWith("buyer:")) {
+      if (claimToken === undefined || !digestEqual(`buyer:${sha256(claimToken)}`, buyerHash)) return json(403, required);
+      return this.resume(order, brief, payload);
+    }
+    const token = this.serverClaim(order.id);
+    if (claimToken !== undefined && digestEqual(claimToken, token)) return withClaim(await this.resume(order, brief, payload), token);
+    if (order.deliveryCount > 0) return json(403, required);
+    return withClaim(await this.resume(order, brief, payload), token);
+  }
+
+  /** cheap checks that need no network: the authorization must be for this quote and carry a signature */
+  private malformed(payload: PaymentPayload, auth: Eip3009Authorization, terms: QuoteTerms): string | null {
+    const signature = (payload.payload as { signature?: unknown } | undefined)?.signature;
+    if (typeof signature !== "string" || !/^0x[0-9a-fA-F]{130,}$/.test(signature)) return "no signature";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(auth.from) || typeof auth.to !== "string" || auth.to.toLowerCase() !== terms.payTo.toLowerCase()) return "authorization is not addressed to the quoted recipient";
+    if (typeof auth.value !== "string" || auth.value !== terms.amount) return "authorization is not for the quoted amount";
+    if (!/^0x[0-9a-fA-F]{64}$/.test(auth.nonce)) return "nonce is not 32 bytes";
+    const nowSeconds = Math.floor(this.now().getTime() / 1000);
+    if (!/^\d{1,12}$/.test(auth.validBefore) || Number(auth.validBefore) <= nowSeconds) return "authorization has expired";
+    if (typeof auth.validAfter !== "string" || !/^\d{1,12}$/.test(auth.validAfter) || Number(auth.validAfter) > nowSeconds + 60) return "authorization is not valid yet";
+    return null;
   }
 
   /**
@@ -145,6 +206,14 @@ export class Checkout {
 
   /** Re-examine an order whose payment outcome is not known. Never calls settle again. */
   async reconcile(orderId: string): Promise<Order | null> {
+    const running = this.reconciling.get(orderId);
+    if (running) return running;
+    const run = this.reconcileOnce(orderId).finally(() => this.reconciling.delete(orderId));
+    this.reconciling.set(orderId, run);
+    return run;
+  }
+
+  private async reconcileOnce(orderId: string): Promise<Order | null> {
     const { ledger, rail } = this.deps;
     const order = ledger.get(orderId);
     if (!order) return null;
@@ -165,7 +234,14 @@ export class Checkout {
     if (auth) {
       const used = await rail.authorizationUsed(order.terms, auth);
       if (used === true) {
-        return ledger.transition(orderId, "PAID", "reconciled: the token contract reports this authorization as consumed", { ...payment, chainVerified: true, chainCheckedAt: new Date().toISOString(), note: "authorizationState(payer, nonce) returned true" });
+        // consumed is not the same as paid: cancelAuthorization consumes a nonce too, so look for the transfer itself
+        const settled = await rail.authorizationSettled(order.terms, auth, new Date(order.createdAt));
+        if (settled?.verified) {
+          return ledger.transition(orderId, "PAID", `reconciled: ${settled.note}`, { ...payment, payer: payment.payer ?? auth.from, txHash: settled.txHash ?? payment.txHash, explorerUrl: rail.explorerUrl(settled.txHash ?? payment.txHash), chainVerified: true, chainBlockNumber: settled.blockNumber, chainCheckedAt: settled.checkedAt, note: settled.note });
+        }
+        const note = `authorization is consumed but the quoted transfer was not found (${settled?.note ?? "this rail cannot search the chain"}); it may have been cancelled`;
+        if (order.state === "PAYMENT_UNKNOWN") return ledger.transition(orderId, "RECONCILIATION_REQUIRED", note, { ...payment, note });
+        return order;
       }
       if (used === false && Number(auth.validBefore) * 1000 < this.now().getTime()) {
         return ledger.transition(orderId, "PAYMENT_FAILED", "reconciled: authorization expired unused, the buyer was not charged", { ...payment, note: "authorizationState false after validBefore" });
@@ -196,6 +272,15 @@ export class Checkout {
   }
 
   private async pay(order: Order, brief: Brief, payload: PaymentPayload): Promise<HttpReply> {
+    this.inFlight.add(order.id);
+    try {
+      return await this.settleAndDeliver(order, brief, payload);
+    } finally {
+      this.inFlight.delete(order.id);
+    }
+  }
+
+  private async settleAndDeliver(order: Order, brief: Brief, payload: PaymentPayload): Promise<HttpReply> {
     const { ledger, rail } = this.deps;
 
     let verify;
@@ -243,7 +328,6 @@ export class Checkout {
 
   /** A request that carries an authorization we have already seen. Never settles again. */
   private async resume(order: Order, brief: Brief, payload: PaymentPayload): Promise<HttpReply> {
-    if (order.terms.briefId !== brief.id) return json(409, { error: "authorization_bound_to_other_brief", orderId: order.id });
     switch (order.state) {
       case "DELIVERED":
       case "PAID":
@@ -251,11 +335,15 @@ export class Checkout {
       case "DELIVERY_FAILED":
         return this.deliver(order, brief, null);
       case "PAYMENT_PENDING":
-        return { status: 409, headers: { "retry-after": "3", "content-type": "application/json" }, body: { error: "payment_in_progress", orderId: order.id, state: order.state } };
+        if (this.inFlight.has(order.id)) return { status: 409, headers: { "retry-after": "3", "content-type": "application/json" }, body: { error: "payment_in_progress", orderId: order.id, state: order.state } };
+        // the process stopped, or threw, between opening the order and recording an outcome; settle may or may not have gone out
+        this.deps.ledger.transition(order.id, "PAYMENT_UNKNOWN", "settlement was interrupted before an outcome was recorded", this.evidence(order, null, null, "outcome unknown"));
+      // falls through
       case "PAYMENT_UNKNOWN":
       case "RECONCILIATION_REQUIRED": {
-        const after = (await this.reconcile(order.id)) ?? order;
-        if (after.state === "PAID") return this.deliver(after, brief, null);
+        await this.reconcile(order.id);
+        const after = this.deps.ledger.get(order.id) ?? order;
+        if (after.state === "PAID" || after.state === "DELIVERING" || after.state === "DELIVERY_FAILED" || after.state === "DELIVERED") return this.deliver(after, brief, null);
         if (after.state === "PAYMENT_FAILED") return this.challenge(brief, null, "the earlier authorization expired unused; you were not charged", order.terms.resource);
         return this.unknownReply(after);
       }
@@ -282,7 +370,7 @@ export class Checkout {
     } catch (err) {
       return json(500, { error: "delivery_failed", detail: message(err), orderId: current.id });
     }
-    current = ledger.recordDelivery(current.id);
+    const delivered = current.id;
     const envelope: DeliveryEnvelope = {
       schema: "bullseye.delivery/v1",
       orderId: current.id,
@@ -293,7 +381,7 @@ export class Checkout {
     };
     const headers: Record<string, string> = { "content-type": "application/json", "x-bullseye-order": current.id };
     if (settle) headers["PAYMENT-RESPONSE"] = encodePaymentResponseHeader(settle);
-    return { status: 200, headers, body: envelope };
+    return { status: 200, headers, body: envelope, onSent: () => void ledger.recordDelivery(delivered) };
   }
 
   private unknownReply(order: Order): HttpReply {
@@ -330,6 +418,18 @@ export class RailNotReadyError extends Error {}
 
 function gone(brief: Brief, reason: string): HttpReply {
   return json(410, { error: "brief_withdrawn", briefId: brief.id, detail: reason, message: "This Brief is no longer sold. Nothing was charged." });
+}
+
+/** a token the buyer picks: long enough to be a secret, plain enough for a header */
+const BUYER_CLAIM = /^[A-Za-z0-9_-]{32,128}$/;
+
+function digestEqual(a: string, b: string): boolean {
+  return timingSafeEqual(Buffer.from(sha256(a), "hex"), Buffer.from(sha256(b), "hex"));
+}
+
+/** the claim token goes out in a header only, so it never lands in a saved delivery envelope */
+function withClaim(reply: HttpReply, claim: string): HttpReply {
+  return reply.status === 200 || reply.status === 503 || reply.status === 409 ? { ...reply, headers: { ...reply.headers, "x-bullseye-claim": claim } } : reply;
 }
 
 function json(status: number, body: unknown): HttpReply {

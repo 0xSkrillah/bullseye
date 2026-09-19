@@ -29,7 +29,7 @@ measurement exists. Testnet payments are not revenue, and estimated contribution
 Still blocked: the mock-merchant test payment (CLAIM_LEDGER B1; SF-1: OKX's client SDK cannot
 parse the mock merchant's challenge). SF-2 is still untested end to end.
 
-Tests, all passing on 19 September: `npm test` (API 121 tests in 12 files, web 23 in 3 files
+Tests, all passing on 19 September: `npm test` (API 145 tests in 14 files, web 23 in 3 files
 including the design system's five brand rules), `npm run test:e2e` (3 browser tests, offline
 configuration; `PW_CHANNEL=msedge` uses an installed browser), `npm run spike` (live checks; every
 step PASS except the mock-merchant payment, which is BLOCKED). Offline fallback:
@@ -52,9 +52,11 @@ remains:
 3. **OKX AI A2MCP listing** (the track minimum: "publish or integrate a working service through
    OKX AI"). The endpoint side is ready: `/api/v1/briefs/latest` answers `POST` with a `402` and a
    `PAYMENT-REQUIRED` header (OKX's self-test, passed on localhost), and `AUTO_DESK=true` keeps
-   Briefs coming without an operator. What is left needs the owner's accounts: deploy to a public
-   HTTPS host and register the ASP. Steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Not
-   attempted; the Dockerfile has not been built.
+   Briefs coming without an operator. It is deployed at https://bullseye-production-5d0c.up.railway.app
+   (Railway, from `main`). What is left needs the owner: enter `OPENROUTER_API_KEY`, `OKX_API_KEY`,
+   `OKX_SECRET_KEY` and `OKX_PASSPHRASE` in the Railway service's variables (the auto desk then
+   starts investigating, at most 3 a day), run the self-test against the deployed address once a
+   Brief is on sale, and register the ASP. Steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 4. **Make the repository public**, or share it with the review team, if that has not been done.
 5. **Submission form**: https://forms.gle/81S2gnFCzqSoeDEA7.
 6. **Sponsor feedback**: send SF-1 to SF-7 from [docs/SPONSOR_FEEDBACK.md](docs/SPONSOR_FEEDBACK.md)

@@ -3,8 +3,13 @@
 How to put Bullseye on a public HTTPS address and what a marketplace that lists x402 services
 (OKX AI's A2MCP listing is the one this was written against) needs from it.
 
-**Status on 19 September 2026: not deployed and not listed.** Everything below has been run on
-localhost only. The Dockerfile has not been built; the build and start commands it wraps have.
+**Status on 19 September 2026: deployed, not yet selling, not listed.** The Dockerfile built and
+the service runs on Railway at https://bullseye-production-5d0c.up.railway.app (one instance, a volume at `/data`, health check on
+`/api/health`, deploys from `main`). At the time of writing the model key and the OKX credentials
+had not been entered on the host, so `/api/health` reports synthesis and the payment rail as not
+ready, the auto desk is idle, and `POST /api/v1/briefs/latest` answers `404 nothing_for_sale`.
+The self-test below has passed on localhost only. No payment has been made through the deployed
+address.
 
 ## What a listing needs, and where Bullseye provides it
 
@@ -62,9 +67,28 @@ Set these in the host's secret store. Never commit them and never bake them into
 | `PAYMENT_RAIL` | `okx-testnet` or `okx-mainnet`. |
 | `BRIEF_PRICE_USD` | Default `3.00`. An investigation is declined as uneconomic before any spend unless the price exceeds `BUDGET_MAX_COST_USD` plus the three estimated reserves (0.60 + 0.45 by default). |
 | `AUTO_DESK`, `AUTO_DESK_INTERVAL_MINUTES`, `AUTO_DESK_MAX_INVESTIGATIONS_PER_DAY` | See below. |
+| `OPERATOR_TOKEN` | Optional, at least 24 characters. See "Operator routes". |
+| `PAID_ROUTE_RATE_LIMIT_PER_MINUTE`, `PAYMENT_ATTEMPT_RATE_LIMIT_PER_MINUTE`, `API_RATE_LIMIT_PER_MINUTE` | Defaults 60, 12 and 600 per client address per minute: the paid resource and quote route; requests there that carry a payment (each can cost a facilitator call); every `/api` route except the health check. Over a limit: `429` with `Retry-After` and no challenge. |
 
 Do not set `BUYER_PRIVATE_KEY` on the server. It belongs to the buyer scripts on a developer
 machine.
+
+## Operator routes
+
+`POST /api/signals/scan`, `POST /api/signals/:id/investigate` and `POST /api/orders/:id/reconcile`
+start work that spends model credit or calls third parties. On `localhost` they are open so the
+desk works in development. On any other `PUBLIC_BASE_URL` they answer `403
+operator_routes_disabled` unless `OPERATOR_TOKEN` is set, and then only to
+`Authorization: Bearer <token>`. `GET /api/health` reports which mode is in force as
+`operatorRoutes`. The web desk does not send a token, so on a public deployment its Scan,
+Investigate and Reconcile buttons are refused; the auto desk does that work instead, and a buyer
+whose payment outcome is unknown reconciles by re-sending the same authorization.
+
+The Dockerfile sets `NODE_ENV=production`, and a production build never treats itself as local,
+so a `PUBLIC_BASE_URL` left at its localhost default cannot open these routes.
+
+Everything a buyer needs stays open: the catalogue, previews, quotes and the paid resource. The
+desk's read routes are open too, including the investigation timeline and the order list.
 
 ## The auto desk
 

@@ -9,6 +9,7 @@
  * If the seller answers "payment outcome unknown" the SAME signed authorization is
  * retried; this script never signs twice for one purchase.
  */
+import { randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { privateKeyToAccount } from "viem/accounts";
 import { x402Client, x402HTTPClient } from "@okxweb3/x402-core/client";
@@ -74,8 +75,11 @@ const headers = http.encodePaymentSignatureHeader(payload);
 console.log(`signed one authorization as ${account.address}: ${payload.accepted.amount} base units of ${SETTLEMENT_ASSETS[payload.accepted.network]?.name} on ${payload.accepted.network}`);
 
 let res: Response | undefined;
+// Once a payment is on-chain its payer, nonce and signature are public, so none of them proves who the buyer is.
+// A secret sent with the payment does: the seller answers this order only to whoever presents it again.
+const claim = randomBytes(24).toString("base64url");
 for (let attempt = 1; attempt <= 6; attempt++) {
-  res = await api(base, path, { headers });
+  res = await api(base, path, { headers: { ...headers, "x-bullseye-claim": claim } });
   if (res.status !== 503 && res.status !== 409) break;
   const body = (await res.clone().json()) as { error?: string; state?: string; orderId?: string };
   console.log(`attempt ${attempt}: ${res.status} ${body.error} (order ${body.orderId}, state ${body.state}); retrying the same authorization in 10s`);

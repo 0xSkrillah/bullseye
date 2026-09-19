@@ -92,6 +92,11 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TRIGGER IF NOT EXISTS orders_terms_frozen BEFORE UPDATE OF quote_id, terms_hash ON orders
 BEGIN SELECT RAISE(ABORT, 'order terms are frozen'); END;
 
+CREATE TABLE IF NOT EXISTS server_secrets (
+  name TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS order_events (
   order_id TEXT NOT NULL REFERENCES orders(id),
   seq INTEGER NOT NULL,
@@ -114,6 +119,8 @@ export function openDb(path: string): Db {
   db.exec(SCHEMA);
   const signalColumns = (db.prepare("PRAGMA table_info(signals)").all() as { name: string }[]).map((c) => c.name);
   if (!signalColumns.includes("superseded_json")) db.exec("ALTER TABLE signals ADD COLUMN superseded_json TEXT");
+  const orderColumns = (db.prepare("PRAGMA table_info(orders)").all() as { name: string }[]).map((c) => c.name);
+  if (!orderColumns.includes("claim_hash")) db.exec("ALTER TABLE orders ADD COLUMN claim_hash TEXT");
   return db;
 }
 
