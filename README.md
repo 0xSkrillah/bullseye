@@ -12,10 +12,11 @@ OKX Dev Day 2026 · track: **Build a Company** (agent services, data and API ser
 tokenised stocks (xStocks).
 
 > **Read this first.** [docs/CLAIM_LEDGER.md](docs/CLAIM_LEDGER.md) lists what is verified, what is
-> only partly done and what is blocked. Today: live xStocks data and X Layer reads are verified;
-> the investigator's live-model run and a real settlement through the OKX facilitator are built
-> but **have not been executed**, because they need credentials that were not available yet.
-> Everything runs end to end offline from recorded real data, labelled as such.
+> only partly done and what is blocked. On 18 September 2026 the whole path ran live once: a real
+> xStocks event, X Layer reads, a model investigation through OpenRouter, a Brief published by the
+> gate, and a purchase settled through the OKX facilitator on X Layer **testnet** and confirmed
+> on-chain. That is one investigation and one settlement. Testnet payments are not revenue, and
+> nothing here is evidence of demand.
 
 ## What it does
 
@@ -27,7 +28,9 @@ agrees with the issuer.
 1. **Detect.** A pure function over the issuer's public corporate-action history flags multiplier
    changes on assets deployed on X Layer. Same inputs, same signal ids.
 2. **Investigate.** A model chooses which evidence tools to call; a governor enforces ceilings on
-   cost, model calls, tool calls and latency before every call. Every fact is an evidence item
+   cost, model calls, tool calls and latency before every call. The model is reached through
+   OpenRouter's Auto Router at a chosen cost tier, under a hard price cap, and each call is
+   costed at what the provider reports charging. Every fact is an evidence item
    written by code from a schema-validated response, with its URL, fetch time, sha256 and a
    LIVE / CACHED / HISTORICAL / FIXTURE label.
 3. **Verify.** Code reads `multiplier()` on the X Layer contract 60 s before the effective time,
@@ -36,6 +39,7 @@ agrees with the issuer.
 4. **Publish, or not.** A deterministic gate rejects drafts with missing or stale evidence,
    numbers that are not in the cited evidence, undisclosed conflicts, inflated confidence or
    investment-advice language. A rejected draft creates no Brief and nothing can be charged.
+   If the issuer later cancels or replaces the action, the Brief is withdrawn from sale.
 5. **Sell.** `GET /api/v1/briefs/:id` is an x402 resource built on the OKX seller SDK. Quotes are
    immutable and hashed. One signed authorization is one order and settles at most once.
    A timeout is `PAYMENT_UNKNOWN`: nothing is delivered and a retry cannot charge twice.
@@ -44,10 +48,22 @@ agrees with the issuer.
    apart. Testnet payments are never revenue; estimated contribution is never profit.
 
 Run on 18 September 2026 over the issuer's 50 most recent corporate actions, the detector flagged
-fifteen dividend rebases on X Layer deployments, six of them effective that day. For the two we
+fifteen dividend rebases on X Layer deployments, six of them effective that day. For the two that were
 investigated and recorded (IFFx and QSRx) the chain held the old multiplier at 00:29:00Z, the new
 one at 00:31:00Z, and activation landed in the block stamped 00:30:00Z, the issuer's effective second.
 The unmodified source responses are in `artifacts/recorded/`.
+
+### The first live run
+
+| Step | What happened | Evidence |
+| --- | --- | --- |
+| Signal | QSRx dividend rebase, multiplier 1 → 1.0066516577977895, effective 2026-09-18T00:30:00Z, all data LIVE | `artifacts/evidence/demo-run-2026-09-18T22-01-13-583Z.json` |
+| Investigation | 10 tool calls, 9 of 9 consistency checks passed; 4 model calls through `openrouter/auto` (medium tier), routed to `deepseek/deepseek-v4-pro` and `openai/gpt-5.6-terra` | same |
+| Gate | The first draft did not match the schema and was **rejected**; the one permitted revision passed all 11 rules and was published as `brf_a790c648a87d52dd` | same |
+| Model cost | **$0.071725**, as billed by the provider, against a $0.60 ceiling. OpenRouter's own ledger for the key agrees to within rounding ($0.0000013) | same transcript; ledger reconciliation in `artifacts/integration/model-check-2026-09-18T21-57-37-431Z.json` |
+| Purchase | An agent buyer signed one authorization for 3,000,000 base units of testnet USD₮0. The facilitator answered `timeout` after 1.9 s, so the order went to `PAYMENT_UNKNOWN` and nothing was delivered. The buyer re-sent the same authorization, the transfer was found on-chain, and the Brief was delivered | delivery: `artifacts/evidence/delivery-ord_8a2102084ad69dab.json`; the event trail is in the order record (`GET /api/orders/ord_8a2102084ad69dab`), not in an artifact |
+| Settlement | [`0xa2f4058c…f28a`](https://www.oklink.com/x-layer-testnet/tx/0xa2f4058c4a839f58e3dcdc574f2cd0090d76cffd0848d89cebd32d6cb723f28a), X Layer testnet block 41310183. Buyer balance 10 → 7, seller 0 → 3: one transfer. `npm run verify-payment` reads the chain directly: VERIFIED | `artifacts/integration/payment-ord_8a2102084ad69dab.json` |
+| Receipt | Price $3.00, **not revenue** (testnet). Measured cost $0.071725. Estimated allowances $0.45. Estimated contribution $2.478275, an estimate that excludes labour, hosting, acquisition, overhead and tax | `GET /api/orders/ord_8a2102084ad69dab` on the desk that ran it; not saved as an artifact |
 
 ## Run it
 
@@ -71,17 +87,20 @@ npm run demo -- IFFx --buy   # or drive the golden path from the terminal
 
 | Variable | For |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | the investigator's model |
+| `OPENROUTER_API_KEY` | the investigator's model, through OpenRouter's Auto Router (`OPENROUTER_COST_TIER`, default `medium`; price caps `OPENROUTER_MAX_PRICE_PROMPT` / `_COMPLETION`). `ANTHROPIC_API_KEY` only if `SYNTHESIS_PROVIDER=anthropic` |
 | `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE` | OKX x402 facilitator ([developer portal](https://web3.okx.com/onchainos/dev-portal)) |
 | `PAY_TO_ADDRESS` | wallet that receives payments |
-| `BUYER_PRIVATE_KEY` | a throwaway **testnet** key for the agent buyer, funded from the [X Layer faucet](https://www.okx.com/xlayer/faucet/xlayerfaucet) |
+| `BUYER_PRIVATE_KEY` | a throwaway **testnet** key for the agent buyer (with or without `0x`), funded with test USD₮0 from the [X Layer faucet](https://www.okx.com/xlayer/faucet/xlayerfaucet) |
 
 ```bash
 npm run spike            # checks xStocks, X Layer, the OKX mock merchant and the seller rail; writes artifacts/integration/
-npm run dev              # API + UI
+npm run wallet           # is the buyer funded? prints its address and testnet balances, never the key
+npm run model-check      # one tiny metered model call, reconciled against the provider's own ledger
+npm run dev              # API + UI. Leave it running; the commands below talk to it from a second terminal
 npm run detect           # what the detector sees right now
-npm run buy -- latest    # an agent discovers, pays for and receives the newest Brief
-npm run verify-payment -- ord_…   # re-checks a payment against X Layer without trusting the API
+npm run demo -- QSRx     # drive the golden path for one flagged ticker and save a transcript (add --buy to purchase)
+npm run buy -- latest    # an agent discovers, pays for and receives the newest Brief; prints the order id
+npm run verify-payment -- ord_8a2102084ad69dab   # re-checks that order against X Layer without trusting the API
 npm run test:e2e         # Playwright: golden path and failure paths in a browser (offline configuration)
                          # first run: `npx playwright install chromium`, or set PW_CHANNEL=msedge|chrome to use an installed browser
 ```
@@ -98,7 +117,8 @@ rather than switching synthesiser. It never substitutes fixtures for live data.
 | Networks | X Layer testnet `eip155:1952` for payments; X Layer mainnet `eip155:196` for reading xStock contracts |
 | Settlement asset | the SDK's default for the network (testnet `USD₮0` `0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c`) |
 | Contracts read | xStock tokens on X Layer, e.g. IFFx `0xdfae653d721d8cbfb7ff7ab1dc56693cdfb480f5`, QSRx `0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046` |
-| Agent access | `GET /api/v1/catalog` for discovery, `GET /api/v1/briefs/:id` to buy; `scripts/buy-brief.ts` is a reference buyer on the OKX client SDK with spend guards |
+| Agent access | `GET /api/v1/catalog` for discovery, `GET /api/v1/briefs/:id` to buy; `scripts/buy-brief.ts` is a reference buyer on the OKX client SDK whose spend limits apply to the terms it signs (network, token contract, base-unit amount), not to the seller's stated price |
+| First settlement | order `ord_8a2102084ad69dab`, tx `0xa2f4058c4a839f58e3dcdc574f2cd0090d76cffd0848d89cebd32d6cb723f28a`, X Layer testnet block 41310183, seller `0xa8bcd760a7c280c05090431c6afdf15df324d64a` |
 | Contracts deployed | none: Bullseye uses the sponsor's payment rails and deploys no escrow or token |
 
 Six documentation and SDK findings, each with a reproduction, are in
@@ -110,7 +130,7 @@ Six documentation and SDK findings, each with a reproduction, are in
 packages/domain    Zod schemas, order state machine, canonical hashing
 apps/api           adapters · signals · evidence · research · gate · commerce · economics · http
 apps/web           React/Vite desk built from docs/design-system
-scripts            spike · record · detect · buy-brief · verify-payment · run-demo
+scripts            spike · record · detect · wallet-check · model-check · buy-brief · spend-guard · verify-payment · run-demo
 tests/e2e          Playwright
 artifacts          integration results · recorded source responses · demo transcripts
 docs               product, architecture, data contracts, economics, evals, demand,
@@ -119,10 +139,13 @@ docs               product, architecture, data contracts, economics, evals, dema
 
 ## Limits
 
-One signal type, one issuer, one chain. A polling detector with no measured latency. No demand
-evidence yet ([docs/DEMAND.md](docs/DEMAND.md)). No live-model Brief and no real settlement yet.
-The desk endpoints have no authentication. Bullseye Briefs describe observed events and their
-evidence; they are not investment, legal or tax advice.
+One signal type, one issuer, one chain. A polling detector with no measured latency, reading the
+issuer's 50 most recent corporate actions. One live investigation and one live testnet settlement:
+no quality evaluation, no rejection rate, no measured detector recall. In the one live run the
+routed endpoint did not enforce strict structured output: the first draft failed the schema and cost a revision. No
+demand evidence yet ([docs/DEMAND.md](docs/DEMAND.md)). The desk endpoints have no
+authentication. Bullseye Briefs describe observed events and their evidence; they are not
+investment, legal or tax advice.
 
 ## Licence
 

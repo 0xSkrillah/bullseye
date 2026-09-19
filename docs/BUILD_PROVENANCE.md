@@ -22,13 +22,13 @@ team ("Judges assess only the work completed during the official build period").
 | xStocks and X Layer adapters with LIVE / CACHED / HISTORICAL / FIXTURE transports | `apps/api/src/adapters` |
 | Deterministic rebase detector | `apps/api/src/signals` |
 | Evidence tools and consistency checks | `apps/api/src/evidence` |
-| Budget governor, investigator, prompts, model provider and test double | `apps/api/src/research` |
+| Budget governor, investigator, prompts, model providers (OpenRouter, Anthropic), provider factory and test double | `apps/api/src/research` |
 | Publication gate | `apps/api/src/gate` |
 | Order ledger, x402 checkout, payment rail adapter, reconciliation | `apps/api/src/commerce` |
 | Delivery economics | `apps/api/src/economics` |
 | Design system (tokens, component contracts, screens, UI copy) | `docs/design-system` |
 | Web app | `apps/web` |
-| Spike, recorder, agent buyer, payment verifier, demo driver | `scripts` |
+| Spike (`spike.ts`), recorder (`record.ts`), agent buyer (`buy-brief.ts`) and its spend guard (`spend-guard.ts`), payment verifier (`verify-payment.ts`), demo driver (`run-demo.ts`), wallet check (`wallet-check.ts`), model check (`model-check.ts`) | `scripts` |
 | Tests | `apps/api/test`, `apps/web/test`, `apps/web/src/__tests__`, `tests/e2e` |
 
 ## Third-party code
@@ -40,7 +40,7 @@ or copied into the source tree.
 | --- | --- | --- |
 | `@okxweb3/x402-core` 0.1.0, `@okxweb3/x402-evm` 0.2.1, `@okxweb3/x402-express` 0.1.1, `@okxweb3/x402-fetch` 0.1.0 | x402 seller and buyer SDK | Apache-2.0 |
 | `viem` | X Layer reads, EIP-712 verification | MIT |
-| `@anthropic-ai/sdk` | Model calls for the investigator | MIT |
+| `@anthropic-ai/sdk` | Optional alternative model provider for the investigator (`SYNTHESIS_PROVIDER=anthropic`); not the default | MIT |
 | `express`, `zod`, `react`, `react-dom`, `vite`, `vitest`, `@playwright/test`, `tsx`, `typescript`, `supertest` | Server, validation, UI, tooling | MIT / Apache-2.0 |
 | IBM Plex Sans, IBM Plex Mono (Google Fonts) | Typography | SIL OFL 1.1 |
 
@@ -51,8 +51,17 @@ SQLite access uses Node's built-in `node:sqlite`; there are no native add-ons.
 - **xStocks public API v2** (`https://api.xstocks.fi/api/v2`, no authentication). Issuer-reported
   corporate actions, multipliers, proof of reserves, prices, supply and trading status.
 - **X Layer mainnet public RPC** (`https://rpc.xlayer.tech`). Contract reads of xStock tokens.
-- `artifacts/recorded/xstocks-2026-09-18/` holds unmodified responses from those two sources,
-  captured by `scripts/record.ts` on 18 September 2026, each with its URL, fetch time and sha256.
+- **OpenRouter API** (`https://openrouter.ai/api/v1`). The default model provider for the
+  investigator (`SYNTHESIS_PROVIDER=openrouter`). A hosted service called over HTTPS with `fetch`
+  from `apps/api/src/research/openrouter.ts`; no OpenRouter SDK is vendored or installed.
+- **OKX x402 facilitator**. The hosted payment service that verifies and settles x402 payments,
+  called through the `@okxweb3` packages listed above.
+- **X Layer testnet public RPC** (`https://testrpc.xlayer.tech`, chain 1952). Read with `viem` to
+  confirm a settlement's token transfer on-chain (payment reconciliation, `npm run verify-payment`) and
+  to read the buyer's testnet balances (`npm run wallet`).
+- `artifacts/recorded/xstocks-2026-09-18/` holds xStocks API response bodies and the decoded results of
+  X Layer RPC reads (block lookups, `multiplier()`, `totalSupply()`), captured by `scripts/record.ts` on
+  18 September 2026, each with its URL, fetch time and sha256.
   They are replayed only under the HISTORICAL label.
 - `apps/api/src/adapters/fixtures.ts` is synthetic test data about an invented asset (`FIXx`). It
   is served only under the FIXTURE label and is never mixed with real data.

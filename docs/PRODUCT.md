@@ -37,6 +37,11 @@ detection, bounded investigation, verification, packaging and honest delivery.
 
 ## What is unproven
 
-Whether anyone will pay for this signal type (see `DEMAND.md`), what a live-model Brief costs and
-how good it is (see `EVALS.md`), and the price. The architecture is built so that the signal type
-can change without touching the gate, the ledger, the checkout or the economics.
+One live-model Brief exists: `brf_a790c648a87d52dd` (QSRx, 2026-09-18, all data LIVE). Its
+investigation made 4 model calls with a measured model cost of $0.071725 as billed, against a
+$0.60 ceiling (`artifacts/evidence/demo-run-2026-09-18T22-01-13-583Z.json`). That is one run. It
+is not an average and says nothing about other events or other routed models.
+
+Still unproven: whether anyone will pay for this signal type (see `DEMAND.md`), how good a
+live-model Brief is (see `EVALS.md`), and the price. The architecture is built so that the signal
+type can change without touching the gate, the ledger, the checkout or the economics.
