@@ -68,7 +68,7 @@ match.
 | 0:00–0:20 | Feed, radar | "Tokenised markets are becoming machine-readable, but the intelligence around them is fragmented. Bullseye is an intelligence desk that turns market events into products humans and agents can buy." | Point at the data-mode badge. |
 | 0:20–0:50 | Feed | "This is a real event: the issuer raised this xStock's balance multiplier for a dividend. Every holder's balance on X Layer changed, with no Transfer event. Here is when it took effect, when we saw it, and where it came from." | Click **Scan sources**, lock the card. |
 | 0:50–1:35 | Investigation | "The investigation runs under a hard budget. You are watching tool calls and evidence arrive, not reasoning: the issuer's record, then the X Layer contract a minute before, a minute after, and now." | Click **Investigate**. Open one on-chain evidence row. Point at the budget bar. |
-| 1:35–2:05 | Brief | "Code, not the model, decides whether this is published: every number must trace to evidence, failed checks must be disclosed, no advice. Here is the finding, the confidence, and what we do not know." | Show the gate result, then Unknowns. |
+| 1:35–2:05 | Brief | "Code, not the model, decides whether this is published: every number must be bound to evidence by unit, sign and precision, failed checks must be disclosed, no advice. The free page says what the issuer announced and what we went and checked. Here is when it happened, and when we first saw it." | Show the gate chip (it reads PUBLISH before anyone pays), "What this Brief adds", then "When". If the event is labelled Retrospective, say so: it is a look back, not an early warning. |
 | 2:05–2:40 | Purchase | "A separate buyer pays over x402 using the OKX SDK. The quote is frozen and hashed before approval." | Click **Pay**, or run `npm run buy -- latest` in a terminal as the agent buyer. Show the state ladder and the transaction on the explorer (Mode A only). If the facilitator answers `timeout`, the order shows PAYMENT_UNKNOWN and the agent buyer re-sends the same authorization every 10 s, for at most 6 attempts, and exits with "not delivered" if the order has not reconciled by then: that is the 3:05 case happening live. |
 | 2:40–3:05 | Console | "Price, measured usage and cost, and estimated allowances are kept apart. This was testnet: it is not revenue, and the contribution figure is an estimate." | Point at each block. |
 | 3:05–3:20 | Reconciliation | "When the facilitator times out we say unknown, deliver nothing, and a retry cannot charge twice. And when evidence is missing, nothing is published and nothing is sold." | Show a PAYMENT_UNKNOWN order or a REJECTED investigation (see below). The recorded live run of 18 September contains both adverse cases without any staging: the gate rejected the model's first draft on SCHEMA and published the one permitted revision, and order `ord_8a2102084ad69dab` went PAYMENT_UNKNOWN on a facilitator `timeout` and was reconciled from the chain to PAID, then delivered once. The rejection is in the recorded transcript; the payment's chain-verified result is in the delivery envelope and the `verify-payment` artifact, and its state-by-state trail is in that run's database (see below). Say that it is one run. |
@@ -83,11 +83,32 @@ On the fixture rail only (`/api/_fixture/control` does not exist on the OKX rail
 curl -s -XPOST localhost:4402/api/_fixture/control -H 'content-type: application/json' -d '{"facilitatorMode":"settle_timeout"}'
 #   ... pay in the UI: the order stops at PAYMENT_UNKNOWN ...
 curl -s -XPOST localhost:4402/api/_fixture/control -H 'content-type: application/json' -d '{"facilitatorMode":"ok","reconcileOutcome":"used"}'
-#   ... click "Reconcile from chain": PAID, then DELIVERED, with exactly one settle call
+#   ... the screen shows "Purchase in progress" and offers no quote and no Pay button.
+#   Click "Check the chain again" (or "Reconcile from chain" in the console): the buyer's own
+#   claim token authorises the read, the order goes PAID, then DELIVERED, and the Brief opens,
+#   with exactly one settle call and one wallet signature
 
 # a draft the gate refuses
 curl -s -XPOST localhost:4402/api/_fixture/control -H 'content-type: application/json' -d '{"synthesisBehaviour":"unevidenced_number"}'
 ```
+
+Recovery, which needs no fixture switch:
+
+- **Reload after delivery.** Buy a Brief, reload the page, lock the same card: the Brief opens
+  again from the claim token this browser kept. No wallet prompt and no new order.
+- **Two buyers.** Buy the same Brief in a second browser profile: each console shows its own
+  order, and neither can open the other's.
+- **No wallet.** In a profile without a wallet extension, Pay shows the agent alternative
+  (`npm run buy -- <briefId> --base <origin>`) and says that nothing was signed.
+- **The agent, interrupted.** With `{"facilitatorMode":"settle_timeout"}` set, run
+  `npm run buy -- latest`, stop it with Ctrl-C after its first retry, set the fixture back to
+  `{"facilitatorMode":"ok","reconcileOutcome":"used"}` and run the same command again. It prints
+  "resuming … Nothing new will be signed" and is delivered. `npm run buy -- --collect <orderId>`
+  then fetches it once more with no key in the environment.
+
+All of these are fixture-rail demonstrations. Say so on screen. On a real rail an unknown outcome
+cannot be produced on demand: it happened once by itself (below), and that recording is the only
+real-rail evidence of it.
 
 In Mode A, the recorded live run of 18 September 2026 contains two adverse cases that nobody
 staged:
@@ -107,8 +128,10 @@ staged:
   block 41310183, explorer link) and `artifacts/integration/payment-ord_8a2102084ad69dab.json` the
   independent check (VERIFIED). The state-by-state event trail is not in those files; it is in
   that run's database, `data/live-run.sqlite`, which is git-ignored (keep its `-wal` and `-shm`
-  files next to it). To show it, start the API with `DB_PATH=./data/live-run.sqlite` and run
-  `curl -s localhost:4402/api/orders/ord_8a2102084ad69dab`.
+  files next to it). To show it, start the API on localhost with `DB_PATH=./data/live-run.sqlite`
+  and run `curl -s localhost:4402/api/orders/ord_8a2102084ad69dab`. An order is answered only to
+  its buyer or the operator; on localhost with no `OPERATOR_TOKEN` set, the operator's routes are
+  open, which is why this works there and would answer `403` on a public address.
 
 Each is one observation. No rejection rate and no timeout rate can be inferred from them.
 
