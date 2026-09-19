@@ -34,21 +34,33 @@ export function App() {
   const orders = usePoll(() => api.orders(), 3_000, briefId !== null, [briefId]).data;
   const order: OrderRow | null = useMemo(() => orders?.orders.filter((o) => o.order.terms.briefId === briefId).sort((a, b) => b.order.updatedAt.localeCompare(a.order.updatedAt))[0] ?? null, [orders, briefId]);
 
+  // scan, investigate and reconcile start paid work; off localhost they answer 401/403 and the auto desk runs them instead
+  const operator = health?.operatorRoutes === "OPEN_ON_LOCALHOST";
+
   // scan once on boot so the feed has something to show; the API is idempotent about it
-  useEffect(() => { api.scan().catch(() => undefined); }, []);
+  useEffect(() => { if (operator) api.scan().catch(() => undefined); }, [operator]);
 
   const lock = useCallback((id: string) => {
     setLockedId(id); setQuote(null); setChallenge(null); setDelivered(null);
     const row = rows.find((r) => r.signal.id === id);
-    if (row && !row.investigation) api.investigate(id).then(() => signals).catch((e) => setBanner(`Investigation could not start: ${String(e)}`));
-  }, [rows, signals]);
+    if (operator && row && !row.investigation) api.investigate(id).then(() => signals).catch((e) => setBanner(`Investigation could not start: ${String(e)}`));
+  }, [rows, signals, operator]);
 
-  // the radar locks the newest event that has (or can have) an investigation
+  // a card locked before /api/health answered: start its investigation once the desk learns it is the operator.
+  // Only `operator` is a dependency: `rows` changes on every poll and would start paid work again and again.
+  useEffect(() => {
+    if (!operator || !lockedId) return;
+    const row = rows.find((r) => r.signal.id === lockedId);
+    if (row && !row.investigation) api.investigate(lockedId).catch((e) => setBanner(`Investigation could not start: ${String(e)}`));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [operator]);
+
+  // the radar locks the newest event; a visitor's desk only locks one the auto desk has already investigated
   const radarLock = useCallback(() => {
-    if (lockedId || rows.length === 0) return;
-    const newest = [...rows].sort((a, b) => b.signal.detectedAt.localeCompare(a.signal.detectedAt))[0]!;
-    lock(newest.signal.id);
-  }, [rows, lockedId, lock]);
+    if (lockedId || !health) return;
+    const newest = [...rows].filter((r) => operator || r.investigation).sort((a, b) => b.signal.detectedAt.localeCompare(a.signal.detectedAt))[0];
+    if (newest) lock(newest.signal.id);
+  }, [rows, lockedId, lock, operator, health]);
 
   const requestQuote = useCallback(async () => {
     if (!briefId) return;
@@ -73,6 +85,11 @@ export function App() {
     <>
       <span className="be-stage">Investigation</span>
       <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>Lock an event in the Feed to start. Bullseye investigates within a budget, passes a deterministic gate, and only then offers a Brief.</span>
+    </>
+  ) : health && !operator && !locked.investigation ? (
+    <>
+      <span className="be-stage">Investigation</span>
+      <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>Not investigated yet. Starting an investigation is an operator action; the auto desk runs it on the public deployment.</span>
     </>
   ) : briefId && preview ? (
     <BriefScreen preview={preview.preview} brief={delivered} quote={quote} now={now} paying={paying} onRequestQuote={requestQuote} onPay={pay} onViewEvidence={() => setLockedId(lockedId)} />
@@ -100,7 +117,7 @@ export function App() {
       <Desk
         feed={<Feed rows={rows} lockedId={lockedId} listening={signals.data === null} onLock={lock} onRadarLock={radarLock} />}
         work={work}
-        console={<Console health={health} order={order} gate={inv?.investigation.gate ?? null} briefId={briefId} challenge={challenge} onReconcile={reconcile} />}
+        console={<Console health={health} order={order} gate={inv?.investigation.gate ?? null} briefId={briefId} challenge={challenge} onReconcile={operator ? reconcile : undefined} />}
         strip={strip}
       />
     </>

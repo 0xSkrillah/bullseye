@@ -6,7 +6,7 @@ import { ProvenanceBadge } from "../components/ProvenanceBadge";
 import { Money } from "../primitives/Money";
 import type { GateResult } from "@bullseye/domain";
 
-export interface ConsoleProps { health: Health | null; order: OrderRow | null; gate: GateResult | null; briefId: string | null; challenge: string | null; onReconcile(id: string): void }
+export interface ConsoleProps { health: Health | null; order: OrderRow | null; gate: GateResult | null; briefId: string | null; challenge: string | null; /** absent when reconciling is not this visitor's to start */ onReconcile?(id: string): void }
 
 /** Stages PURCHASE / DELIVERY / RECONCILIATION: order state, payment evidence, receipt. */
 export function Console({ health, order, gate, briefId, challenge, onReconcile }: ConsoleProps) {
@@ -31,7 +31,7 @@ export function Console({ health, order, gate, briefId, challenge, onReconcile }
       )}
       {order ? (
         <>
-          <div className="be-panel" style={{ padding: 16 }}><PaymentState order={order.order} onReconcile={() => onReconcile(order.order.id)} /></div>
+          <div className="be-panel" style={{ padding: 16 }}><PaymentState order={order.order} onReconcile={onReconcile ? () => onReconcile(order.order.id) : undefined} /></div>
           <EconomicsReceipt receipt={order.receipt} state={order.order.state} paidAt={paidAt} network={order.order.terms.network} />
         </>
       ) : (
