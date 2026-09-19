@@ -18,21 +18,30 @@ export const WITHHELD = "Withheld from the public view: it is part of the Brief,
  */
 const DETAIL_IS_DIAGNOSTIC: ReadonlySet<TimelineEntry["type"]> = new Set(["EVIDENCE", "CHECKS", "MODEL_CALL", "TOOL_CALL"]);
 
-function publicGate(gate: GateResult, hasBrief: boolean): GateResult {
-  // a rejected draft of a run that later published can quote figures the Brief sells; a run that published nothing has nothing to protect
-  if (!hasBrief) return gate;
+/**
+ * A run has something to protect while it may still publish, and once it has. Only a run that
+ * finished with no Brief (REJECTED, STOPPED) has nothing to sell, and so nothing to withhold:
+ * a run that is still RUNNING must not be readable in full for the two minutes before its Brief exists.
+ */
+export function mayStillSell(view: Pick<InvestigationView, "status" | "briefId">): boolean {
+  return view.briefId !== null || view.status === "RUNNING";
+}
+
+function publicGate(gate: GateResult, protect: boolean): GateResult {
+  // a rejected draft of a run that later publishes can quote figures the Brief sells
+  if (!protect) return gate;
   return { ...gate, findings: gate.findings.map((f) => (f.passed ? f : { ...f, detail: WITHHELD })) };
 }
 
 export function projectInvestigation(view: InvestigationView, audience: Audience): InvestigationView & { audience: Audience } {
   if (audience === "DIAGNOSTIC") return { ...view, audience };
-  const hasBrief = view.briefId !== null;
+  const protect = mayStillSell(view);
   return {
     ...view,
     audience,
-    gate: view.gate ? publicGate(view.gate, hasBrief) : null,
-    gateAttempts: view.gateAttempts ? view.gateAttempts.map((g) => publicGate(g, hasBrief)) : null,
-    timeline: view.timeline.map((t) => (DETAIL_IS_DIAGNOSTIC.has(t.type) || (t.type === "GATE" && hasBrief) ? { ...t, detail: null } : t)),
+    gate: view.gate ? publicGate(view.gate, protect) : null,
+    gateAttempts: view.gateAttempts ? view.gateAttempts.map((g) => publicGate(g, protect)) : null,
+    timeline: view.timeline.map((t) => (DETAIL_IS_DIAGNOSTIC.has(t.type) || (t.type === "GATE" && protect) ? { ...t, detail: null } : t)),
   };
 }
 
@@ -64,11 +73,11 @@ export type ProjectedChain = (RebaseChain & { withheld: false }) | (Omit<RebaseC
 /**
  * The issuer's figures are public and stay. The chain's side (which block, what it returned, when it
  * changed) is the verification being sold, so a visitor sees which reads exist and how they were
- * sourced, with the numbers left out. A run that produced no Brief keeps its numbers: nothing is sold from it.
+ * sourced, with the numbers left out. A run that finished with no Brief keeps its numbers: nothing is sold from it.
  */
-export function projectChain(chain: RebaseChain | null, audience: Audience, hasBrief: boolean): ProjectedChain | null {
+export function projectChain(chain: RebaseChain | null, audience: Audience, protect: boolean): ProjectedChain | null {
   if (chain === null) return null;
-  if (audience === "DIAGNOSTIC" || !hasBrief) return { ...chain, withheld: false };
+  if (audience === "DIAGNOSTIC" || !protect) return { ...chain, withheld: false };
   return {
     ...chain,
     withheld: true,

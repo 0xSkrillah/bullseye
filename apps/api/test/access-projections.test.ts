@@ -101,6 +101,24 @@ describe("what a visitor may read of an investigation", () => {
     expect(chain.reads[0].blockNumber).toEqual(expect.any(Number));
   });
 
+  it("does not open a run's findings to visitors during the minutes before its Brief exists", async () => {
+    const c = await testContainer(PUBLIC);
+    const { view } = await investigateFirstSignal(c);
+    // the same run as it looked while it was still going: reads collected, a first draft judged, no Brief yet
+    const stored = c.investigations.view(view.id)!;
+    const rejected = { ...stored.gate!, decision: "REJECT" as const, findings: stored.gate!.findings.map((f) => (f.rule === "NUMBERS_IN_TEXT_ARE_EVIDENCED" ? { ...f, passed: false, detail: 'onchainObservations: "70922364" (no declared quantity)' } : f)) };
+    c.db.prepare("UPDATE investigations SET status = 'RUNNING', brief_id = NULL, finished_at = NULL, gate_json = ?, gate_attempts_json = ? WHERE id = ?").run(JSON.stringify(rejected), JSON.stringify([rejected]), view.id);
+    const app = createApp(c);
+
+    const { chain } = (await request(app).get(`/api/investigations/${view.id}/chain`)).body;
+    expect(chain.withheld).toBe(true);
+    expect(chain.reads.every((r: { blockNumber: unknown; multiplier: unknown }) => r.blockNumber === null && r.multiplier === null)).toBe(true);
+    const body = (await request(app).get(`/api/investigations/${view.id}`)).body;
+    expect(body.investigation.status).toBe("RUNNING");
+    expect(JSON.stringify(body)).not.toContain("70922364");
+    expect(body.investigation.timeline.filter((t: { type: string }) => t.type === "EVIDENCE").every((t: { detail: unknown }) => t.detail === null)).toBe(true);
+  });
+
   it("withholds the detail of a rejected first draft once a revision of it is on sale", async () => {
     const c = await testContainer(PUBLIC);
     const { view } = await investigateFirstSignal(c);

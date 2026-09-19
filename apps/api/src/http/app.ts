@@ -9,7 +9,7 @@ import { toPreview } from "../briefs.js";
 import { ACTIVITY_KINDS, recentActivity } from "./activity.js";
 import { buildReceipt } from "../economics/receipt.js";
 import { deskEconomics } from "../economics/deskEconomics.js";
-import { projectChain, projectInvestigation, projectUsage, type Audience } from "./projections.js";
+import { mayStillSell, projectChain, projectInvestigation, projectUsage, type Audience } from "./projections.js";
 import { RailNotReadyError } from "../commerce/checkout.js";
 import { SDK_VERSIONS } from "../commerce/rail.js";
 import { SourceUnavailableError } from "../adapters/transport.js";
@@ -191,7 +191,7 @@ export function createApp(c: Container) {
     const view = c.investigations.view(String(req.params.id));
     if (!view) return res.status(404).json({ error: "investigation_not_found" });
     const audience = audienceOf(req);
-    res.json({ audience, chain: projectChain(c.investigations.chain(view.id), audience, view.briefId !== null) });
+    res.json({ audience, chain: projectChain(c.investigations.chain(view.id), audience, mayStillSell(view)) });
   });
 
   app.get("/api/desk/status", (_req, res) => {
