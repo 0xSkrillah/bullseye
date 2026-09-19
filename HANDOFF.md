@@ -23,8 +23,8 @@ What the branch adds, with the ledger row that says how each is verified:
 | Economics (V38) | `GET /api/desk/economics`: each investigation counted once, rejected and unsold work included, revenue only for chain-verified mainnet orders. |
 | Proof (V39 to V41) | A restart test over a database file; a fresh-clone run of every suite; a CI workflow; a read-only snapshot of the deployed service. |
 
-Tests on the branch, 19 September, Node 26.7.0: `npm run typecheck` clean; `npm test` API 239 in
-20 files, web 53 in 5; `npm run test:e2e` 7 browser tests (`PW_CHANNEL=msedge`); `npm run build`
+Tests on the branch, 19 September, Node 26.7.0: `npm run typecheck` clean; `npm test` API 250 in
+20 files, web 59 in 5; `npm run test:e2e` 7 browser tests (`PW_CHANNEL=msedge`); `npm run build`
 ok. The same from a fresh clone (V40). Baseline before the branch, at `84e4a22`: API 162 and 1
 skipped in 16 files, web 27 in 3, 3 browser tests.
 
