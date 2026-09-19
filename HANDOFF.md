@@ -65,6 +65,14 @@ remains:
    end to end. How the buyer wallet was funded was not observed, so SF-3's question (which token
    the faucet sends) is still open.
 
+Checked against the deployed address on 19 September 2026, after the hardening commits: scan,
+investigate and reconcile answer `403`, with or without a bearer token (none is configured); a
+`PAYMENT-SIGNATURE` header that decodes to `null` gets the normal reply, not a `500`; and of 14
+payment attempts in a minute from one machine, each with a different forged `X-Real-IP` and
+`X-Forwarded-For`, the 13th and 14th were answered `429` (the limit is 12). Before
+`CLIENT_IP_HEADER=x-real-ip` was set, all 14 passed. No Brief was on sale there, so the `402`
+self-test and a payment through the deployed address are still to do.
+
 To repeat the live run, and keep the artifacts:
 
 ```bash
