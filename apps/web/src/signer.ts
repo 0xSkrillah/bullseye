@@ -13,16 +13,27 @@ function wallet(): Eip1193Provider | null {
 
 const KEY = (quoteId: string) => `bullseye.authorization.${quoteId}`;
 
+/**
+ * Kept for the life of the page whatever storage does. The seller's ledger stops one authorization
+ * settling twice; it cannot stop a second authorization for the same purchase, so this page must
+ * never ask the wallet for one just because a write to storage failed.
+ */
+const signedThisPage = new Map<string, { signature: string; expiresAt: number }>();
+
 /** the authorization is useless after its validBefore, so the memory of it expires then too */
 function remember(quoteId: string, signature: string, validForSeconds: number): void {
+  const held = { signature, expiresAt: Date.now() + validForSeconds * 1000 };
+  signedThisPage.set(quoteId, held);
   try {
-    sessionStorage.setItem(KEY(quoteId), JSON.stringify({ signature, expiresAt: Date.now() + validForSeconds * 1000 }));
+    sessionStorage.setItem(KEY(quoteId), JSON.stringify(held));
   } catch {
-    // storage unavailable: the next Pay signs again, and the seller's ledger still prevents a double charge per authorization
+    // storage unavailable (private window, quota): the page's own memory above still answers the next Pay
   }
 }
 
 function recall(quoteId: string): string | null {
+  const inPage = signedThisPage.get(quoteId);
+  if (inPage && inPage.expiresAt > Date.now()) return inPage.signature;
   try {
     const raw = sessionStorage.getItem(KEY(quoteId));
     if (!raw) return null;

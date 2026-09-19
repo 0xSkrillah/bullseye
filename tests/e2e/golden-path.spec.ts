@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { installTestWallet } from "./wallet.js";
+import { installTestWallet, SECOND_DEV_KEY } from "./wallet.js";
 
 /**
  * Offline configuration (see playwright.config.ts): recorded real source data
@@ -16,6 +16,15 @@ async function control(page: Page, body: Record<string, string>) {
 
 const card = (page: Page, symbol: string) => page.getByTestId("signal-card").filter({ hasText: symbol }).first();
 const orderEvents = (o: { order: { events: { to: string }[] } }) => o.order.events.map((e) => e.to);
+/** the operator's list is open on localhost, where these tests run; the desk under test never reads it on a buyer's behalf */
+const allOrders = async (page: Page) => (await (await page.request.get(`${API}/api/orders`)).json()).orders;
+const orderById = async (page: Page, id: string) => (await allOrders(page)).find((o: { order: { id: string } }) => o.order.id === id);
+const openPaywall = async (page: Page) => {
+  await page.goto("/");
+  await card(page, "IFFx").click();
+  await page.getByRole("button", { name: "Request quote" }).click({ timeout: 45_000 });
+  await expect(page.getByTestId("paywall")).toBeVisible();
+};
 
 test.describe.configure({ mode: "serial" });
 
@@ -107,21 +116,149 @@ test("an unknown payment delivers nothing, cannot be charged twice, and reconcil
   const state = page.getByTestId("payment-state");
   await expect(state).toHaveAttribute("data-state", "PAYMENT_UNKNOWN", { timeout: 30_000 });
   await expect(state).toContainText("A retry cannot charge you twice.");
-  const pending = (await (await page.request.get(`${API}/api/orders`)).json()).orders.find((o: { order: { state: string } }) => o.order.state === "PAYMENT_UNKNOWN");
+  const orderId = (await state.getAttribute("data-order-id"))!;
+  const pending = await orderById(page, orderId);
   expect(pending.order.deliveryCount).toBe(0);
   await expect(page.getByText(pending.order.terms.briefContentHash)).toHaveCount(0);
 
-  // reconciliation evidence arrives from the chain; the facilitator is healthy again
-  await control(page, { facilitatorMode: "ok", reconcileOutcome: "used" });
-  await page.getByTestId("reconcile-button").click();
-  await expect(state).toHaveAttribute("data-state", "PAID", { timeout: 30_000 });
+  // while the outcome is unknown the screen offers no quote and no Pay button: there is nothing to sign a second time
+  const notice = page.getByTestId("checkout-notice");
+  await expect(notice).toHaveAttribute("data-status", "UNKNOWN");
+  await expect(page.getByTestId("pay-button")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Request quote" })).toHaveCount(0);
 
-  // paying again re-sends the same authorization: no second signature, no second settle
-  await page.getByTestId("pay-button").click();
+  // reconciliation evidence arrives from the chain; the buyer asks with their own claim token, not through an operator route
+  await control(page, { facilitatorMode: "ok", reconcileOutcome: "used" });
+  const reconcile = page.waitForResponse((r) => r.url().includes(`/api/orders/${orderId}/reconcile`));
+  await page.getByTestId("buyer-reconcile-button").click();
+  expect((await reconcile).request().headers()["x-bullseye-claim"]).toMatch(/^[A-Za-z0-9_-]{43}$/);
   await expect(state).toHaveAttribute("data-state", "DELIVERED", { timeout: 30_000 });
+  for (const name of SECTIONS) await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
   expect(wallet.signatures()).toBe(1);
 
-  const orders = await (await page.request.get(`${API}/api/orders`)).json();
-  const mine = orders.orders.find((o: { order: { events: { to: string }[] } }) => o.order.events.some((e) => e.to === "PAYMENT_UNKNOWN"));
+  const mine = await orderById(page, orderId);
   expect(orderEvents(mine)).toEqual(["QUOTED", "PAYMENT_PENDING", "PAYMENT_UNKNOWN", "PAID", "DELIVERING", "DELIVERED"]);
+});
+
+test("two browsers buying the same Brief stay apart: own order, own claim, and one cannot collect the other", async ({ browser }) => {
+  const buy = async (key?: `0x${string}`) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const wallet = await installTestWallet(page, key);
+    await control(page, { facilitatorMode: "ok", synthesisBehaviour: "good" });
+    await openPaywall(page);
+    await page.getByTestId("pay-button").click();
+    const state = page.getByTestId("payment-state");
+    await expect(state).toHaveAttribute("data-state", "DELIVERED", { timeout: 30_000 });
+    const kept = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("bullseye.purchase.")).map((k) => JSON.parse(localStorage.getItem(k)!) as { orderId: string; claim: string }));
+    expect(kept).toHaveLength(1);
+    expect(wallet.signatures()).toBe(1);
+    return { context, page, wallet, orderId: (await state.getAttribute("data-order-id"))!, kept: kept[0]! };
+  };
+  const a = await buy();
+  const b = await buy(SECOND_DEV_KEY);
+
+  expect(a.orderId).not.toBe(b.orderId);
+  expect(a.kept.orderId).toBe(a.orderId);
+  expect(b.kept.orderId).toBe(b.orderId);
+  expect(a.kept.claim).not.toBe(b.kept.claim);
+  const payerOf = async (id: string) => (await orderById(a.page, id)).order.payment.payer.toLowerCase();
+  expect(await payerOf(a.orderId)).toBe(a.wallet.address.toLowerCase());
+  expect(await payerOf(b.orderId)).toBe(b.wallet.address.toLowerCase());
+
+  // the token kept by browser A opens the order of A and nothing of B
+  const own = await a.page.request.get(`${API}/api/orders/${a.orderId}/delivery`, { headers: { "x-bullseye-claim": a.kept.claim } });
+  expect(own.status()).toBe(200);
+  const other = await a.page.request.get(`${API}/api/orders/${b.orderId}/delivery`, { headers: { "x-bullseye-claim": a.kept.claim } });
+  expect(other.status()).toBe(403);
+  expect(JSON.stringify(await other.json())).not.toContain("whatHappened");
+  await a.context.close();
+  await b.context.close();
+});
+
+test("a reload after delivery brings the same Brief back: no wallet prompt, no new order", async ({ page }) => {
+  const wallet = await installTestWallet(page);
+  await control(page, { facilitatorMode: "ok", synthesisBehaviour: "good" });
+  await openPaywall(page);
+  await page.getByTestId("pay-button").click();
+  const state = page.getByTestId("payment-state");
+  await expect(state).toHaveAttribute("data-state", "DELIVERED", { timeout: 30_000 });
+  const orderId = await state.getAttribute("data-order-id");
+  const before = (await allOrders(page)).length;
+
+  await page.reload();
+  await card(page, "IFFx").click();
+  for (const name of SECTIONS) await expect(page.getByRole("heading", { name, exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("payment-state")).toHaveAttribute("data-order-id", orderId!);
+  await expect(page.getByTestId("pay-button")).toHaveCount(0);
+  expect(wallet.signatures()).toBe(1);
+  expect((await allOrders(page)).length).toBe(before);
+});
+
+test("a paid response that never arrives is recovered as the same order, with the one signature already given", async ({ page }) => {
+  const wallet = await installTestWallet(page);
+  await control(page, { facilitatorMode: "ok", synthesisBehaviour: "good" });
+  await openPaywall(page);
+
+  // the seller settles and answers; the answer is lost on the way back to the browser
+  let dropped = 0;
+  await page.route("**/api/v1/briefs/**", async (route) => {
+    if (dropped === 0 && route.request().headers()["payment-signature"]) {
+      dropped += 1;
+      await route.fetch();
+      return route.abort("connectionreset");
+    }
+    return route.fallback();
+  });
+  const before = (await allOrders(page)).length;
+  await page.getByTestId("pay-button").click();
+
+  const notice = page.getByTestId("checkout-notice");
+  await expect(notice).toHaveAttribute("data-issue", "NO_ANSWER", { timeout: 30_000 });
+  await expect(notice).toHaveAttribute("data-status", "SUBMITTED");
+  await expect(notice).toContainText("cannot charge you twice");
+  await expect(page.getByTestId("pay-button")).toHaveCount(0);
+
+  await page.getByTestId("resume-button").click();
+  await expect(page.getByTestId("payment-state")).toHaveAttribute("data-state", "DELIVERED", { timeout: 30_000 });
+  for (const name of SECTIONS) await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  expect(dropped).toBe(1);
+  expect(wallet.signatures()).toBe(1);
+  const after = await allOrders(page);
+  expect(after.length).toBe(before + 1);
+  expect(orderEvents(after[0]).filter((to: string) => to === "PAID")).toHaveLength(1);
+});
+
+test("a declined signature and a wallet on the wrong network charge nothing and say so; no wallet points at the agent buyer", async ({ page, browser }) => {
+  const wallet = await installTestWallet(page);
+  await control(page, { facilitatorMode: "ok", synthesisBehaviour: "good" });
+  await openPaywall(page);
+  const before = (await allOrders(page)).length;
+  const notice = page.getByTestId("checkout-notice");
+
+  await wallet.setMode("wrong_chain");
+  await page.getByTestId("pay-button").click();
+  await expect(notice).toHaveAttribute("data-issue", "WRONG_NETWORK", { timeout: 30_000 });
+  await expect(notice).toContainText("X Layer testnet");
+
+  await wallet.setMode("decline");
+  await page.getByTestId("pay-button").click();
+  await expect(notice).toHaveAttribute("data-issue", "WALLET_DECLINED", { timeout: 30_000 });
+  await expect(notice).toContainText("Nothing charged");
+  expect(wallet.signatures()).toBe(0);
+  expect((await allOrders(page)).length).toBe(before);
+
+  // nothing was signed, so being asked again is safe, and it completes
+  await wallet.setMode("sign");
+  await page.getByTestId("pay-button").click();
+  await expect(page.getByTestId("payment-state")).toHaveAttribute("data-state", "DELIVERED", { timeout: 30_000 });
+  expect(wallet.signatures()).toBe(1);
+
+  const bare = await (await browser.newContext()).newPage();
+  await openPaywall(bare);
+  await bare.getByTestId("pay-button").click();
+  const bareNotice = bare.getByTestId("checkout-notice");
+  await expect(bareNotice).toHaveAttribute("data-issue", "NO_WALLET", { timeout: 30_000 });
+  await expect(bareNotice).toContainText("npm run buy");
+  await bare.context().close();
 });

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Brief, Quote } from "@bullseye/domain";
-import { api, type DeliveryEnvelope, type Health, type OrderRow, type SignalRow } from "./lib/api";
-import { payForBrief } from "./lib/pay";
+import { useCallback, useEffect, useState } from "react";
+import type { Quote } from "@bullseye/domain";
+import { api, type Health, type OrderRow, type SignalRow } from "./lib/api";
+import { usePurchase } from "./checkout/usePurchase";
+import { CheckoutNotice, purchaseIsOpen } from "./components/CheckoutNotice";
 import { useNow, usePoll } from "./lib/usePoll";
 import { Desk } from "./layout/Desk";
 import { Feed } from "./screens/Feed";
@@ -18,9 +19,6 @@ export function App() {
   const now = useNow();
   const [lockedId, setLockedId] = useState<string | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
-  const [challenge, setChallenge] = useState<string | null>(null);
-  const [paying, setPaying] = useState(false);
-  const [delivered, setDelivered] = useState<Brief | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
 
   const health = usePoll<Health>(() => api.health(), 15_000).data;
@@ -31,17 +29,21 @@ export function App() {
   const inv = usePoll(() => api.investigation(invId!), 2_000, invId !== null, [invId]).data;
   const briefId = inv?.investigation.briefId ?? locked?.investigation?.briefId ?? null;
   const preview = usePoll(() => api.briefPreview(briefId!), 10_000, briefId !== null, [briefId]).data;
-  const orders = usePoll(() => api.orders(), 3_000, briefId !== null, [briefId]).data;
-  const order: OrderRow | null = useMemo(() => orders?.orders.filter((o) => o.order.terms.briefId === briefId).sort((a, b) => b.order.updatedAt.localeCompare(a.order.updatedAt))[0] ?? null, [orders, briefId]);
-
   // scan, investigate and reconcile start paid work; off localhost they answer 401/403 and the auto desk runs them instead
   const operator = health?.operatorRoutes === "OPEN_ON_LOCALHOST";
+
+  // this browser's own purchase of the Brief: its record, its order (read with its claim token) and what it was delivered
+  const purchase = usePurchase(briefId);
+  const delivered = purchase.brief;
+  const challenge = purchase.issue?.kind === "NO_WALLET" ? purchase.issue.challenge : null;
+  // the console shows this browser's order and no one else's: there is no list of other buyers' orders for it to pick from
+  const order: OrderRow | null = purchase.order;
 
   // scan once on boot so the feed has something to show; the API is idempotent about it
   useEffect(() => { if (operator) api.scan().catch(() => undefined); }, [operator]);
 
   const lock = useCallback((id: string) => {
-    setLockedId(id); setQuote(null); setChallenge(null); setDelivered(null);
+    setLockedId(id); setQuote(null);
     const row = rows.find((r) => r.signal.id === id);
     if (operator && row && !row.investigation) api.investigate(id).then(() => signals).catch((e) => setBanner(`Investigation could not start: ${String(e)}`));
   }, [rows, signals, operator]);
@@ -68,18 +70,13 @@ export function App() {
     catch (e) { setBanner(`Quote unavailable: ${e instanceof Error ? e.message : String(e)}`); }
   }, [briefId]);
 
-  const pay = useCallback(async () => {
-    if (!quote) return;
-    setPaying(true);
-    try {
-      const out = await payForBrief(quote);
-      if (out.kind === "delivered") { const env = out.body as DeliveryEnvelope; setDelivered(env.brief); setChallenge(null); }
-      else if (out.kind === "challenged") setChallenge(out.challenge);
-      else setBanner(out.detail);
-    } finally { setPaying(false); }
-  }, [quote]);
+  const pay = useCallback(() => { if (quote) void purchase.pay(quote); }, [quote, purchase.pay]);
 
-  const reconcile = useCallback((id: string) => { api.reconcile(id).catch((e) => setBanner(`Reconcile failed: ${String(e)}`)); }, []);
+  // the buyer reconciles their own order with their claim token; it reads the chain and never settles
+  const reconcile = useCallback(() => { void purchase.reconcile(); }, [purchase.reconcile]);
+
+  const startOver = useCallback(() => { purchase.startOver(); setQuote(null); }, [purchase.startOver]);
+  const notice = <CheckoutNotice record={purchase.record} issue={purchase.issue} busy={purchase.busy} durable={purchase.durable} autoChecks={purchase.autoChecks} origin={location.origin} onResume={() => void purchase.resume()} onReconcile={() => void purchase.reconcile()} onStartOver={startOver} onDismiss={purchase.dismiss} />;
 
   const work = !locked ? (
     <>
@@ -92,7 +89,7 @@ export function App() {
       <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>Not investigated yet. Starting an investigation is an operator action; the auto desk runs it on the public deployment.</span>
     </>
   ) : briefId && preview ? (
-    <BriefScreen preview={preview.preview} brief={delivered} quote={quote} now={now} paying={paying} onRequestQuote={requestQuote} onPay={pay} onViewEvidence={() => setLockedId(lockedId)} />
+    <BriefScreen preview={preview.preview} brief={delivered} quote={quote} now={now} paying={purchase.busy} purchaseOpen={purchaseIsOpen(purchase.record)} notice={notice} onRequestQuote={requestQuote} onPay={pay} onViewEvidence={() => setLockedId(lockedId)} />
   ) : (
     <Investigation signal={locked.signal} data={inv} brief={delivered} now={now} />
   );
@@ -117,7 +114,7 @@ export function App() {
       <Desk
         feed={<Feed rows={rows} lockedId={lockedId} listening={signals.data === null} onLock={lock} onRadarLock={radarLock} />}
         work={work}
-        console={<Console health={health} order={order} gate={inv?.investigation.gate ?? null} briefId={briefId} challenge={challenge} onReconcile={operator ? reconcile : undefined} />}
+        console={<Console health={health} order={order} gate={inv?.investigation.gate ?? null} briefId={briefId} challenge={challenge} onReconcile={reconcile} />}
         strip={strip}
       />
     </>

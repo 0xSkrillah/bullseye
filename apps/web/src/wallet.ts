@@ -11,7 +11,18 @@ declare global {
   }
 }
 
-export class WalletError extends Error {}
+/** why the wallet produced no signature; every one of them means nothing was signed, so nothing can be charged */
+export type WalletErrorCode = "DECLINED" | "NO_ACCOUNT" | "NETWORK_MISSING" | "NETWORK_NOT_SWITCHED" | "SIGN_FAILED";
+
+export class WalletError extends Error {
+  override readonly name = "WalletError";
+  constructor(
+    message: string,
+    readonly code: WalletErrorCode = "SIGN_FAILED",
+  ) {
+    super(message);
+  }
+}
 
 type TypedDataField = { name: string; type: string };
 
@@ -48,8 +59,8 @@ async function ensureChain(provider: Eip1193Provider, chainId: number): Promise<
   try {
     await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: `0x${chainId.toString(16)}` }] });
   } catch (err) {
-    if (rpcCode(err) === 4902) throw new WalletError(`The wallet has no network with chain id ${chainId}. Add it in the wallet first. Nothing was signed.`);
-    throw new WalletError(`The wallet did not switch to chain id ${chainId}: ${rpcMessage(err)}. Nothing was signed.`);
+    if (rpcCode(err) === 4902) throw new WalletError(`The wallet has no network with chain id ${chainId}. Add it in the wallet first. Nothing was signed.`, "NETWORK_MISSING");
+    throw new WalletError(`The wallet did not switch to chain id ${chainId}: ${rpcMessage(err)}. Nothing was signed.`, "NETWORK_NOT_SWITCHED");
   }
 }
 
@@ -59,10 +70,10 @@ export async function connectSigner(provider: Eip1193Provider): Promise<ClientEv
   try {
     accounts = await provider.request({ method: "eth_requestAccounts" });
   } catch (err) {
-    throw new WalletError(`The wallet did not share an account: ${rpcMessage(err)}. Nothing was signed.`);
+    throw new WalletError(`The wallet did not share an account: ${rpcMessage(err)}. Nothing was signed.`, rpcCode(err) === 4001 ? "DECLINED" : "NO_ACCOUNT");
   }
   const first = Array.isArray(accounts) ? accounts[0] : undefined;
-  if (typeof first !== "string") throw new WalletError("The wallet returned no account. Nothing was signed.");
+  if (typeof first !== "string") throw new WalletError("The wallet returned no account. Nothing was signed.", "NO_ACCOUNT");
   const address = getAddress(first);
 
   return {
@@ -76,8 +87,9 @@ export async function connectSigner(provider: Eip1193Provider): Promise<ClientEv
         if (typeof signature !== "string" || !signature.startsWith("0x")) throw new Error("the wallet returned no signature");
         return signature as `0x${string}`;
       } catch (err) {
-        if (rpcCode(err) === 4001) throw new WalletError("Signature declined in the wallet. Nothing was signed. Nothing charged.");
-        throw new WalletError(`The wallet could not sign: ${rpcMessage(err)}. Nothing charged.`);
+        if (rpcCode(err) === 4001) throw new WalletError("Signature declined in the wallet. Nothing was signed. Nothing charged.", "DECLINED");
+        // a wallet whose active account changed after it connected refuses to sign for the old one
+        throw new WalletError(`The wallet could not sign as ${address}: ${rpcMessage(err)}. Nothing charged.`, "SIGN_FAILED");
       }
     },
   };

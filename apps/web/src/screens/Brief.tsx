@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Brief as BriefT, BriefPreview, Claim, Quote } from "@bullseye/domain";
 import { ConfidenceIndicator } from "../components/ConfidenceIndicator";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
@@ -14,6 +15,10 @@ export interface BriefScreenProps {
   quote: Quote | null;
   now: Date;
   paying: boolean;
+  /** a purchase of this Brief from this browser is unresolved: no new quote and no Pay button until it is */
+  purchaseOpen?: boolean;
+  /** what happened to the buyer's purchase and the one safe thing to do next */
+  notice?: ReactNode;
   onRequestQuote(): void;
   onPay(): void;
   onViewEvidence(): void;
@@ -28,7 +33,7 @@ function Claims({ claims }: { claims: Claim[] }) {
 const SECTIONS = ["What happened", "Why it may matter", "On-chain observations", "Evidence", "Confidence", "Unknowns", "Conflicts", "Limitations"] as const;
 
 /** Stage VERIFIED INTELLIGENCE. Header and "What happened" are free; the rest sits behind the paywall until delivered. */
-export function BriefScreen({ preview, brief, quote, now, paying, onRequestQuote, onPay, onViewEvidence }: BriefScreenProps) {
+export function BriefScreen({ preview, brief, quote, now, paying, purchaseOpen = false, notice = null, onRequestQuote, onPay, onViewEvidence }: BriefScreenProps) {
   const unlocked = brief !== null;
   return (
     <>
@@ -63,7 +68,7 @@ export function BriefScreen({ preview, brief, quote, now, paying, onRequestQuote
           <>
             {SECTIONS.slice(1).map((s) => <section key={s} aria-hidden="true"><h2 style={{ color: "var(--ink-muted)" }}>{s}</h2></section>)}
             <div className="be-doc-locked" style={{ top: 96 }}>
-              {quote ? (
+              {purchaseOpen ? null : quote ? (
                 <BriefPaywall quote={quote} now={now} paying={paying} onPay={onPay} onViewEvidence={onViewEvidence} onRequote={onRequestQuote} />
               ) : (
                 <section className="be-paywall" role="dialog" aria-label="Request a quote">
@@ -72,6 +77,7 @@ export function BriefScreen({ preview, brief, quote, now, paying, onRequestQuote
                   <div><button className="be-btn be-btn-primary" type="button" onClick={onRequestQuote}>Request quote</button></div>
                 </section>
               )}
+              {notice}
             </div>
           </>
         )}

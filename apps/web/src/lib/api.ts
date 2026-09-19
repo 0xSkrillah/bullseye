@@ -36,16 +36,38 @@ export const api = {
   briefs: () => j<BriefListResponse>("/api/briefs"),
   briefPreview: (id: string) => j<BriefPreviewResponse>(`/api/briefs/${id}/preview`),
   quote: (briefId: string) => j<Quote>(`/api/briefs/${briefId}/quotes`, { method: "POST" }),
+  /** every buyer's order: an operator route, open only on localhost or with the operator's token. The buyer's own flow never calls it. */
   orders: () => j<{ orders: OrderRow[] }>("/api/orders"),
-  order: (id: string) => j<OrderRow>(`/api/orders/${id}`),
-  reconcile: (id: string) => j<OrderRow>(`/api/orders/${id}/reconcile`, { method: "POST" }),
+  /** one order, answered only to the holder of its claim token */
+  order: (id: string, claim: string) => j<OrderRow>(`/api/orders/${id}`, { headers: { [CLAIM_HEADER]: claim } }),
+  /** reads the chain for an order whose outcome is unknown; never settles. The buyer's own token authorises it. */
+  reconcile: (id: string, claim: string) => j<OrderRow>(`/api/orders/${id}/reconcile`, { method: "POST", headers: { [CLAIM_HEADER]: claim } }),
+  /** the Brief again for a buyer who holds the claim token: no signature, no settlement, no challenge */
+  delivery: (orderId: string, claim: string): Promise<PaidReply> => paidFetch(`/api/orders/${orderId}/delivery`, { [CLAIM_HEADER]: claim }),
   /**
    * The paid resource. Without a PAYMENT-SIGNATURE header the server answers 402 with a
-   * PAYMENT-REQUIRED challenge; with one, 200 and the delivery envelope. Signing needs a
-   * wallet, which the browser does not hold: see lib/pay.ts.
+   * PAYMENT-REQUIRED challenge; with one, 200 and the delivery envelope. The claim token goes
+   * in a header, never in the URL, and is sent with the payment so the buyer holds it whatever
+   * happens to the response. Signing is the wallet's job: see checkout/purchase.ts.
    */
-  async paidBrief(briefId: string, quoteId: string, paymentSignature?: string): Promise<{ status: number; challenge: string | null; orderId: string | null; body: unknown }> {
-    const res = await fetch(`/api/v1/briefs/${briefId}?quote=${encodeURIComponent(quoteId)}`, { headers: paymentSignature ? { "payment-signature": paymentSignature } : {} });
-    return { status: res.status, challenge: res.headers.get("PAYMENT-REQUIRED"), orderId: res.headers.get("X-Bullseye-Order"), body: await res.json().catch(() => null) };
-  },
+  paidBrief: (briefId: string, quoteId: string, paymentSignature?: string, claim?: string): Promise<PaidReply> =>
+    paidFetch(`/api/v1/briefs/${briefId}?quote=${encodeURIComponent(quoteId)}`, { ...(paymentSignature ? { "payment-signature": paymentSignature } : {}), ...(claim ? { [CLAIM_HEADER]: claim } : {}) }),
 };
+
+const CLAIM_HEADER = "x-bullseye-claim";
+
+/** What a paid route answered, headers included: the order id and the claim token travel in headers only. */
+export interface PaidReply { status: number; challenge: string | null; orderId: string | null; claim: string | null; retryAfterSeconds: number | null; body: unknown }
+
+async function paidFetch(path: string, headers: Record<string, string>): Promise<PaidReply> {
+  const res = await fetch(path, { headers });
+  const retry = Number(res.headers.get("Retry-After"));
+  return {
+    status: res.status,
+    challenge: res.headers.get("PAYMENT-REQUIRED"),
+    orderId: res.headers.get("X-Bullseye-Order"),
+    claim: res.headers.get("X-Bullseye-Claim"),
+    retryAfterSeconds: Number.isFinite(retry) && retry > 0 ? retry : null,
+    body: await res.json().catch(() => null),
+  };
+}

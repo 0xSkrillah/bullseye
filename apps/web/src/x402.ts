@@ -6,7 +6,9 @@ import { connectSigner, type Eip1193Provider } from "./wallet";
 
 const Accept = z.object({ scheme: z.string(), network: z.string(), asset: z.string(), amount: z.string(), payTo: z.string() });
 
-export class QuoteMismatchError extends Error {}
+export class QuoteMismatchError extends Error {
+  override readonly name = "QuoteMismatchError";
+}
 
 /**
  * Ask the wallet for exactly one signed authorization for exactly the quoted terms.

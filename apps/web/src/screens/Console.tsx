@@ -25,7 +25,7 @@ export function Console({ health, order, gate, briefId, challenge, onReconcile }
       {challenge && !order && (
         <div className="be-panel" style={{ padding: 16, display: "grid", gap: 8 }}>
           <span className="be-stage">Payment challenge issued</span>
-          <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>The paid resource answered 402 with PAYMENT-REQUIRED. Sign it with an x402 wallet or run <span className="mono">npm run buy -- {briefId}</span>; the order appears here as soon as the ledger opens it.</span>
+          <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>The paid resource answered 402 with PAYMENT-REQUIRED. No wallet signed it here. An agent can buy the same resource with <span className="mono">npm run buy -- {briefId}</span>; it prints its own order id, and this console shows only purchases made from this browser.</span>
           <span className="mono" style={{ fontSize: 11, color: "var(--ink-secondary)", overflowWrap: "anywhere" }} title={challenge}>{challenge.slice(0, 96)}…</span>
         </div>
       )}
