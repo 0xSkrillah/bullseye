@@ -195,7 +195,11 @@ export class Checkout {
 
     if (order.state === "PAYMENT_PENDING" && this.inFlight.has(order.id)) return { status: 409, headers: { "retry-after": "3", "content-type": "application/json" }, body: { error: "payment_in_progress", orderId, state: order.state } };
     if (order.state === "PAYMENT_PENDING") order = ledger.transition(order.id, "PAYMENT_UNKNOWN", "settlement was interrupted before an outcome was recorded", this.evidence(order, null, null, "outcome unknown"));
-    if (order.state === "PAYMENT_UNKNOWN" || order.state === "RECONCILIATION_REQUIRED") order = (await this.reconcile(order.id)) ?? order;
+    if (order.state === "PAYMENT_UNKNOWN" || order.state === "RECONCILIATION_REQUIRED") {
+      // a reconcile is shared between callers, and another of them may have delivered by now: read the row, not the promise's snapshot
+      await this.reconcile(order.id);
+      order = ledger.get(order.id) ?? order;
+    }
     if (order.state === "PAID" || order.state === "DELIVERING" || order.state === "DELIVERY_FAILED" || order.state === "DELIVERED") return this.deliver(order, brief, null);
     if (order.state === "PAYMENT_FAILED") return json(409, { error: "payment_failed", orderId, state: order.state, detail: "This order's payment failed and nothing was charged. A new purchase needs a new quote." });
     return this.unknownReply(order);
@@ -390,7 +394,8 @@ export class Checkout {
 
   private deliver(order: Order, brief: Brief, settle: SettleResponse | null): HttpReply {
     const { ledger } = this.deps;
-    let current = order;
+    // the caller's order may have been read before an await; the row is what the transitions below are judged against
+    let current = ledger.get(order.id) ?? order;
     try {
       if (current.state === "PAID" || current.state === "DELIVERY_FAILED") current = ledger.transition(current.id, "DELIVERING", "assembling delivery envelope");
       if (current.state === "DELIVERING") {

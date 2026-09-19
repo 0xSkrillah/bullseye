@@ -152,6 +152,24 @@ describe("recovering a purchase with the claim token alone", () => {
     expect(c.ledger.list()).toHaveLength(1);
   });
 
+  it("delivers to both of two collects that overlap while one reconcile runs for them", async () => {
+    const { c, app, path, sign } = await shop(PUBLIC);
+    const claim = "m".repeat(43);
+    c.fixtureFacilitator!.mode = "settle_timeout";
+    const unknown = await request(app).get(path).set(await sign()).set("x-bullseye-claim", claim);
+    expect(unknown.status).toBe(503);
+    const orderId = unknown.body.orderId as string;
+
+    c.fixtureFacilitator!.mode = "ok";
+    c.fixtureFacilitator!.reconcileOutcome = "used";
+    // two tabs: both wait on the same reconcile, and the first to continue delivers before the second looks
+    const replies = await Promise.all([c.checkout.collect(orderId, claim), c.checkout.collect(orderId, claim)]);
+    expect(replies.map((r) => r.status)).toEqual([200, 200]);
+    for (const r of replies) expect(r.body).toMatchObject({ orderId, state: "DELIVERED" });
+    expect(c.ledger.get(orderId)!.state).toBe("DELIVERED");
+    expect(c.fixtureFacilitator!.settleCalls).toHaveLength(1);
+  });
+
   it("answers a failed payment with its state, not with a fresh challenge to sign", async () => {
     const { c, app, path, sign } = await shop(PUBLIC);
     const claim = "h".repeat(43);

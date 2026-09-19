@@ -260,7 +260,7 @@ who holds the token but no longer the signed authorization. By order state:
 | --- | --- |
 | `PAYMENT_PENDING`, settlement running in this process | `409 payment_in_progress`, `Retry-After: 3` |
 | `PAYMENT_PENDING`, nobody working on it | moved to `PAYMENT_UNKNOWN`, then as the next row |
-| `PAYMENT_UNKNOWN`, `RECONCILIATION_REQUIRED` | reconciled (chain and facilitator record are read; `settle` is not called), then answered by the state it reached |
+| `PAYMENT_UNKNOWN`, `RECONCILIATION_REQUIRED` | reconciled (chain and facilitator record are read; `settle` is not called), then answered by the state the order's row is in once that finishes: overlapping requests share one reconcile, and another of them may have delivered by then |
 | `PAID`, `DELIVERING`, `DELIVERY_FAILED`, `DELIVERED` | `200` and the delivery envelope, with no `PAYMENT-RESPONSE` header; counted when written |
 | `PAYMENT_FAILED` | `409 payment_failed` with the state. Not a challenge. |
 | still unknown after reconciliation | `503 payment_outcome_unknown`, nothing delivered |
@@ -394,16 +394,22 @@ issuer's own figures are public and stay. The public projection (`projections.ts
 | Route | Kept | Withheld |
 | --- | --- | --- |
 | `GET /api/investigations` | Every summary field: ids, symbol, status, stop reason, times, `briefId`, the gate's decision and cap, `draftsJudged`. `usage.modelCalls`, `usage.toolCalls`. | What the run cost, its cost bases and the models it was routed to. `usage.costsWithheld` is `true`. |
-| `GET /api/investigations/:id`, and `investigation` in `GET /api/signals/:id` | Every timeline entry with its time, type, label, evidence id and `ok`. The gate's decision, version, cap, and each finding's rule and `passed`. `budget`, `budgetAtStart`. | `detail` of `EVIDENCE`, `CHECKS`, `MODEL_CALL` and `TOOL_CALL` entries, on every run. For a run that may still sell, also `detail` of `GATE` entries and the `detail` of every failed finding in `gate` and `gateAttempts`, replaced by a sentence saying it is withheld. Usage as above. |
-| `GET /api/investigations/:id/chain` | `network`, `token`, `symbol`, the issuer's multipliers and effective time, `activationSearched`; for each read its `key`, `evidenceId` and `mode`; for the activation its `evidenceId` and `mode`. | For a run that may still sell: `blockNumber`, `blockTime` and `multiplier` of every read, and `blockNumber` and `blockTime` of the activation, all `null`, with `withheld: true`. |
+| `GET /api/investigations/:id`, and `investigation` in `GET /api/signals/:id` | Every timeline entry with its time, type, evidence id and `ok`, and its label (the `CHECKS` entry's label only on a run with nothing to protect). The gate's decision, version, cap, and each finding's rule and `passed`. `budget`, `budgetAtStart`. | `detail` of `EVIDENCE`, `CHECKS`, `MODEL_CALL` and `TOOL_CALL` entries, on every run. For a run of a signal that may still sell, also `detail` of `GATE` entries; the `detail` of every failed finding, and of `FAILED_CHECKS_DISCLOSED` passed or not, in `gate` and `gateAttempts`, replaced by a sentence saying it is withheld; and the counts in the `CHECKS` entry's label, replaced by "Consistency checks computed". Usage as above. |
+| `GET /api/investigations/:id/chain` | `network`, `token`, `symbol`, the issuer's multipliers and effective time, `activationSearched`; for each read its `key`, `evidenceId` and `mode`; for the activation its `evidenceId` and `mode`. | For a run of a signal that may still sell: `blockNumber`, `blockTime` and `multiplier` of every read, and `blockNumber` and `blockTime` of the activation, all `null`, with `withheld: true`. |
 | `GET /api/activity` | Every event, its time, kind, symbol, summary, rail and state. Signal and investigation ids. | The `refId` of `QUOTE_ISSUED` and `ORDER_STATE` events, replaced by a stand-in. |
 
-"May still sell" is `mayStillSell` in `projections.ts`: the run has a Brief, or it is still
-`RUNNING`. A run has something to protect while it may still publish, and once it has, so a run
-is not readable in full during the minutes before its Brief exists. Only a run that finished
-with no Brief (`REJECTED`, `STOPPED`) has nothing to sell, and its rejection is the point: its
-gate findings and its on-chain figures are shown in full (`withheld: false`). Its evidence and
-check details stay withheld like any other run's. A rejected first draft of a run whose revision
+"May still sell" follows the signal, not the run (`signalMayStillSell` in `investigator.ts`): some
+run of the signal has a Brief, or is still `RUNNING`. Every run of a signal reads the same event
+at the same blocks, so an earlier `REJECTED` or `STOPPED` run holds what a later run of that
+signal sells. A signal has something to protect while a run of it may still publish, and once
+one has, so a run is not readable in full during the minutes before its Brief exists. Only a
+run that finished with no Brief (`REJECTED`, `STOPPED`), of a signal with no Brief and no run in
+progress, has nothing to sell, and its rejection is the point: its gate findings, its `CHECKS`
+label ("N passed, M failed, K unknown") and its on-chain figures are shown in full
+(`withheld: false`). Its evidence and check details stay withheld like any other run's. On a
+protected run the passed finding `FAILED_CHECKS_DISCLOSED` names the checks that failed, and the
+`CHECKS` label counts the verdicts, so both are withheld; the `CHECKS` entry itself stays, with
+a neutral label. A rejected first draft of a run whose revision
 was published can quote the very figures the Brief sells, so the detail of its failed findings
 is withheld.
 

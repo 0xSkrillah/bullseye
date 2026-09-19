@@ -9,7 +9,7 @@ import { toPreview } from "../briefs.js";
 import { ACTIVITY_KINDS, recentActivity } from "./activity.js";
 import { buildReceipt } from "../economics/receipt.js";
 import { deskEconomics } from "../economics/deskEconomics.js";
-import { mayStillSell, projectChain, projectInvestigation, projectUsage, type Audience } from "./projections.js";
+import { projectChain, projectInvestigation, projectUsage, type Audience } from "./projections.js";
 import { RailNotReadyError } from "../commerce/checkout.js";
 import { SDK_VERSIONS } from "../commerce/rail.js";
 import { SourceUnavailableError } from "../adapters/transport.js";
@@ -143,7 +143,7 @@ export function createApp(c: Container) {
     const signal = c.signals.get(req.params.id);
     if (!signal) return res.status(404).json({ error: "signal_not_found" });
     const latest = c.investigations.latestForSignal(signal.id);
-    res.json({ signal, investigation: latest ? projectInvestigation(latest, audienceOf(req)) : null });
+    res.json({ signal, investigation: latest ? projectInvestigation(latest, audienceOf(req), c.investigations.signalMayStillSell(signal.id)) : null });
   });
 
   app.post("/api/signals/:id/investigate", operator, (req, res) => {
@@ -183,7 +183,7 @@ export function createApp(c: Container) {
     if (!view) return res.status(404).json({ error: "investigation_not_found" });
     const audience = audienceOf(req);
     // `budget` is today's configuration; `investigation.budgetAtStart` is what this run was held to
-    res.json({ audience, investigation: projectInvestigation(view, audience), budget: c.config.budget, usage: projectUsage(usageSummary(view.id), audience) });
+    res.json({ audience, investigation: projectInvestigation(view, audience, c.investigations.signalMayStillSell(view.signalId)), budget: c.config.budget, usage: projectUsage(usageSummary(view.id), audience) });
   });
 
   /** the on-chain reads of a rebase investigation as numbers; `chain` is null until the first read exists */
@@ -191,7 +191,7 @@ export function createApp(c: Container) {
     const view = c.investigations.view(String(req.params.id));
     if (!view) return res.status(404).json({ error: "investigation_not_found" });
     const audience = audienceOf(req);
-    res.json({ audience, chain: projectChain(c.investigations.chain(view.id), audience, mayStillSell(view)) });
+    res.json({ audience, chain: projectChain(c.investigations.chain(view.id), audience, c.investigations.signalMayStillSell(view.signalId)) });
   });
 
   app.get("/api/desk/status", (_req, res) => {

@@ -30,18 +30,26 @@ export function mayStillSell(view: Pick<InvestigationView, "status" | "briefId">
 function publicGate(gate: GateResult, protect: boolean): GateResult {
   // a rejected draft of a run that later publishes can quote figures the Brief sells
   if (!protect) return gate;
-  return { ...gate, findings: gate.findings.map((f) => (f.passed ? f : { ...f, detail: WITHHELD })) };
+  // passed, the disclosure rule names the checks that failed, and a check's verdict is part of the Brief
+  return { ...gate, findings: gate.findings.map((f) => (f.passed && f.rule !== "FAILED_CHECKS_DISCLOSED" ? f : { ...f, detail: WITHHELD })) };
 }
 
-export function projectInvestigation(view: InvestigationView, audience: Audience): InvestigationView & { audience: Audience } {
+/** what the CHECKS row says to a visitor while the counts are for sale; the row and a label stay, the wall display reads them */
+const CHECKS_LABEL_PUBLIC = "Consistency checks computed";
+
+/** `protect` is the caller's to widen: another run of the same signal may be what is on sale */
+export function projectInvestigation(view: InvestigationView, audience: Audience, protect = mayStillSell(view)): InvestigationView & { audience: Audience } {
   if (audience === "DIAGNOSTIC") return { ...view, audience };
-  const protect = mayStillSell(view);
   return {
     ...view,
     audience,
     gate: view.gate ? publicGate(view.gate, protect) : null,
     gateAttempts: view.gateAttempts ? view.gateAttempts.map((g) => publicGate(g, protect)) : null,
-    timeline: view.timeline.map((t) => (DETAIL_IS_DIAGNOSTIC.has(t.type) || (t.type === "GATE" && protect) ? { ...t, detail: null } : t)),
+    timeline: view.timeline.map((t) => {
+      // "N passed, M failed, K unknown" is every verdict when M and K are zero
+      if (t.type === "CHECKS" && protect) return { ...t, label: CHECKS_LABEL_PUBLIC, detail: null };
+      return DETAIL_IS_DIAGNOSTIC.has(t.type) || (t.type === "GATE" && protect) ? { ...t, detail: null } : t;
+    }),
   };
 }
 

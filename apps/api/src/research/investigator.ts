@@ -241,6 +241,14 @@ export class InvestigationService {
     return row ? this.view(row.id) : null;
   }
 
+  /**
+   * Every run of a signal reads the same event at the same blocks, so an old run that published nothing
+   * still holds what a later run of that signal sells, or is about to.
+   */
+  signalMayStillSell(signalId: string): boolean {
+    return this.deps.db.prepare("SELECT 1 FROM investigations WHERE signal_id = ? AND (brief_id IS NOT NULL OR status = 'RUNNING') LIMIT 1").get(signalId) !== undefined;
+  }
+
   usage(id: string): UsageRecord[] {
     return (this.deps.db.prepare("SELECT json FROM usage WHERE investigation_id = ? ORDER BY seq").all(id) as { json: string }[]).map((r) => UsageRecord.parse(JSON.parse(r.json)));
   }

@@ -119,6 +119,66 @@ describe("what a visitor may read of an investigation", () => {
     expect(body.investigation.timeline.filter((t: { type: string }) => t.type === "EVIDENCE").every((t: { detail: unknown }) => t.detail === null)).toBe(true);
   });
 
+  it("closes an earlier rejected run of a signal once a later run of that signal has a Brief on sale", async () => {
+    const c = await testContainer(PUBLIC);
+    c.setFixtureBehaviour("unevidenced_number");
+    const first = (await investigateFirstSignal(c)).view;
+    expect(first.status).toBe("REJECTED");
+    c.setFixtureBehaviour("good");
+    const second = (await investigateFirstSignal(c)).view;
+    expect(second.status).toBe("PUBLISHED");
+    expect(second.signalId).toBe(first.signalId);
+    expect(second.id).not.toBe(first.id);
+    const app = createApp(c);
+
+    // the same event, the same blocks: the old run's reads are the new Brief's verification
+    const { chain } = (await request(app).get(`/api/investigations/${first.id}/chain`)).body;
+    expect(chain.withheld).toBe(true);
+    for (const r of chain.reads) expect(r).toMatchObject({ blockNumber: null, blockTime: null, multiplier: null });
+    expect(chain.activation).toMatchObject({ blockNumber: null, blockTime: null });
+
+    const body = (await request(app).get(`/api/investigations/${first.id}`)).body;
+    expect(body.investigation.status).toBe("REJECTED");
+    expect(JSON.stringify(body)).not.toContain("41250");
+    expect(body.investigation.gate.findings.find((f: { rule: string }) => f.rule === "NUMBERS_IN_TEXT_ARE_EVIDENCED").detail).toMatch(/withheld/i);
+    for (const row of body.investigation.timeline.filter((t: { type: string }) => t.type === "GATE")) expect(row.detail).toBeNull();
+
+    // were the rejected run ever the signal's latest again, the signal's page must not open it either
+    c.db.prepare("UPDATE investigations SET started_at = '2999-01-01T00:00:00.000Z' WHERE id = ?").run(first.id);
+    const onSignal = (await request(app).get(`/api/signals/${first.signalId}`)).body;
+    expect(onSignal.investigation.id).toBe(first.id);
+    expect(JSON.stringify(onSignal)).not.toContain("41250");
+  });
+
+  it("does not say which checks failed, or how many passed, of a run whose Brief is on sale", async () => {
+    const c = await testContainer({ ...PUBLIC, VIEWER_TOKEN: VIEWER });
+    const { view } = await investigateFirstSignal(c);
+    const stored = c.investigations.view(view.id)!;
+    const disclosed = "all failed checks disclosed: CHK-ACTIVATION-TIME";
+    const gate = { ...stored.gate!, findings: stored.gate!.findings.map((f) => (f.rule === "FAILED_CHECKS_DISCLOSED" ? { ...f, passed: true, detail: disclosed } : f)) };
+    expect(gate.findings.some((f) => f.detail === disclosed)).toBe(true);
+    c.db.prepare("UPDATE investigations SET gate_json = ?, gate_attempts_json = ? WHERE id = ?").run(JSON.stringify(gate), JSON.stringify([gate]), view.id);
+    const app = createApp(c);
+
+    const body = (await request(app).get(`/api/investigations/${view.id}`)).body;
+    expect(body.audience).toBe("PUBLIC");
+    expect(JSON.stringify(body)).not.toContain("CHK-ACTIVATION-TIME");
+    expect(body.investigation.gate.findings.find((f: { rule: string }) => f.rule === "FAILED_CHECKS_DISCLOSED")).toMatchObject({ passed: true, detail: expect.stringMatching(/withheld/i) });
+    // the row stays, with a label: the wall display reads it
+    const row = body.investigation.timeline.find((t: { type: string }) => t.type === "CHECKS");
+    expect(row.label).toEqual(expect.any(String));
+    expect(row.label.length).toBeGreaterThan(0);
+    expect(row.label).not.toMatch(/\d/);
+    expect(row.detail).toBeNull();
+    expect(JSON.stringify((await request(app).get(`/api/signals/${view.signalId}`)).body)).not.toMatch(/CHK-ACTIVATION-TIME|\d+ passed/);
+
+    const full = (await request(app).get(`/api/investigations/${view.id}`).set({ authorization: `Bearer ${VIEWER}` })).body;
+    expect(full.audience).toBe("DIAGNOSTIC");
+    expect(full.investigation).toMatchObject(JSON.parse(JSON.stringify(c.investigations.view(view.id))));
+    expect(full.investigation.timeline.find((t: { type: string }) => t.type === "CHECKS").label).toMatch(/^\d+ passed, \d+ failed, \d+ unknown$/);
+    expect(JSON.stringify(full.investigation.gate)).toContain(disclosed);
+  });
+
   it("withholds the detail of a rejected first draft once a revision of it is on sale", async () => {
     const c = await testContainer(PUBLIC);
     const { view } = await investigateFirstSignal(c);
