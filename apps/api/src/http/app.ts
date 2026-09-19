@@ -397,7 +397,7 @@ export function createApp(c: Container) {
   if (existsSync(webDist)) {
     app.use(express.static(webDist));
     // `root` keeps the dotfile rule to the file name: an absolute path is refused when any directory above it starts with a dot,
-    // which is every git worktree under .claude/ and any checkout below a hidden folder
+    // which is any checkout or worktree that sits below a hidden folder
     app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile("index.html", { root: webDist }));
   }
 

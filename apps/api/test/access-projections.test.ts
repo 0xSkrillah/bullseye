@@ -206,7 +206,8 @@ describe("desk economics", () => {
 
   it("counts a mainnet order as revenue only when its transfer was read back from the chain", () => {
     const e = deskEconomics(runs, [order("ord_1", "brf_a", "DELIVERED", "OKX_X402_MAINNET", true), order("ord_2", "brf_a", "DELIVERED", "OKX_X402_MAINNET", false)], allowances);
-    expect(e.sales).toMatchObject({ revenueOrders: 1, revenueUsd: 3, testOrders: 1 });
+    // the unconfirmed mainnet order is not revenue, and it is not a test payment either
+    expect(e.sales).toMatchObject({ revenueOrders: 1, revenueUsd: 3, testOrders: 0, testPaymentsUsd: 0, unverifiedMainnetOrders: 1, unverifiedMainnetUsd: 3 });
   });
 
   it("is served as a labelled aggregate with no run, order or buyer in it", async () => {

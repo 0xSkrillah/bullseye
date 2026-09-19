@@ -47,9 +47,13 @@ function readAll(dir: string): { file: string; entry: PurchaseEntry }[] {
   return out.sort((a, b) => (a.entry.createdAt < b.entry.createdAt ? 1 : -1));
 }
 
-/** the newest purchase of this Brief, at this seller, by this payer, that may have been paid and has not been delivered */
-export function findOpen(dir: string, base: string, briefId: string, payer: string): { file: string; entry: PurchaseEntry } | null {
-  return readAll(dir).find(({ entry }) => same(entry.base, base) && entry.briefId === briefId && entry.payer.toLowerCase() === payer.toLowerCase() && (entry.state === "SIGNED" || entry.state === "UNKNOWN")) ?? null;
+/**
+ * The newest purchase at this seller, by this payer, that may have been paid and has not been delivered.
+ * With a Brief id, of that Brief; with null, of any Brief: a buyer who asked for "latest" and was cut off
+ * must get back to that purchase even if a newer Brief has been published since.
+ */
+export function findOpen(dir: string, base: string, briefId: string | null, payer: string): { file: string; entry: PurchaseEntry } | null {
+  return readAll(dir).find(({ entry }) => same(entry.base, base) && (briefId === null || entry.briefId === briefId) && entry.payer.toLowerCase() === payer.toLowerCase() && (entry.state === "SIGNED" || entry.state === "UNKNOWN")) ?? null;
 }
 
 export function findByOrder(dir: string, orderId: string): { file: string; entry: PurchaseEntry } | null {

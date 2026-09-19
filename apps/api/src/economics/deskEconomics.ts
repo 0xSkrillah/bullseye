@@ -45,9 +45,13 @@ export function deskEconomics(runs: RunCost[], orders: Order[], allowances: Esti
   const round = (b: Bucket): Bucket => ({ runs: b.runs, measuredUsd: usd(b.measuredUsd), upperBoundUsd: usd(b.upperBoundUsd) });
 
   const paid = orders.filter(isPaid);
-  // the same test a receipt applies: mainnet, paid, and the transfer read back from the chain
-  const revenueOrders = paid.filter((o) => o.terms.rail === "OKX_X402_MAINNET" && o.payment?.chainVerified === true);
-  const testOrders = paid.filter((o) => !revenueOrders.includes(o));
+  // revenue needs both: the mainnet rail, and the transfer read back from the chain. A paid order whose
+  // delivery failed still counts, because the payment stands.
+  const mainnet = paid.filter((o) => o.terms.rail === "OKX_X402_MAINNET");
+  const revenueOrders = mainnet.filter((o) => o.payment?.chainVerified === true);
+  // a mainnet order the chain has not confirmed is neither revenue nor a test payment; it is reported as what it is
+  const unverifiedOrders = mainnet.filter((o) => o.payment?.chainVerified !== true);
+  const testOrders = paid.filter((o) => o.terms.rail !== "OKX_X402_MAINNET");
   const sum = (list: Order[]) => usd(list.reduce((s, o) => s + Number(o.terms.priceUsd), 0));
   const perOrderAllowanceUsd = usd(allowances.paymentFeeReserveUsd + allowances.reworkReserveUsd + allowances.dataToolAllowanceUsd);
   const estimatedDeliveryUsd = usd(perOrderAllowanceUsd * paid.length);
@@ -71,7 +75,9 @@ export function deskEconomics(runs: RunCost[], orders: Order[], allowances: Esti
       revenueUsd,
       testOrders: testOrders.length,
       testPaymentsUsd: sum(testOrders),
-      note: testOrders.length > 0 && revenueOrders.length === 0 ? "Every paid order so far used test tokens or the fixture rail. Revenue is zero." : "Revenue counts only mainnet orders whose transfer was read back from the chain.",
+      unverifiedMainnetOrders: unverifiedOrders.length,
+      unverifiedMainnetUsd: sum(unverifiedOrders),
+      note: paid.length > 0 && mainnet.length === 0 ? "Every paid order so far used test tokens or the fixture rail. Revenue is zero." : "Revenue counts only mainnet orders whose transfer was read back from the chain.",
     },
     delivery: {
       basis: "ESTIMATED",

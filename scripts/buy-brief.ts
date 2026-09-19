@@ -80,7 +80,10 @@ client.registerPolicy((_version, offers) => offers.filter((o) => acceptable(o, l
 const http = new x402HTTPClient(client);
 
 let briefId = target;
-if (target === "latest") {
+// "latest" may point at a newer Brief than the one an interrupted run was buying: finish that purchase first
+const interrupted = target === "latest" ? findOpen(JOURNAL_DIR, base, null, account.address) : null;
+if (interrupted) briefId = interrupted.entry.briefId;
+else if (target === "latest") {
   const catalog = (await (await api(base, "/api/v1/catalog")).json()) as { items: { id: string; headline: string }[] };
   if (catalog.items.length === 0) {
     console.error("nothing for sale: the catalogue is empty");
