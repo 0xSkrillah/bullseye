@@ -168,6 +168,39 @@ export class Checkout {
     return withClaim(await this.resume(order, brief, payload), token);
   }
 
+  /**
+   * Does this caller hold the order's claim token? The token is the only secret in a purchase: the
+   * payer, the nonce and, once settled, the signature are all public. So the token alone is enough
+   * to read, reconcile or collect the order it belongs to, and nothing else ever is.
+   */
+  holdsClaim(orderId: string, claimToken: string | undefined): boolean {
+    if (claimToken === undefined || claimToken.length === 0 || claimToken.length > 256) return false;
+    const buyerHash = this.deps.ledger.claimHash(orderId);
+    if (buyerHash?.startsWith("buyer:")) return digestEqual(`buyer:${sha256(claimToken)}`, buyerHash);
+    return digestEqual(claimToken, this.serverClaim(orderId));
+  }
+
+  /**
+   * Delivery for a buyer who holds the claim token but no longer the signed authorization: a reload,
+   * another tab, or an authorization long past its validBefore. Never settles and never issues a
+   * challenge, so collecting what was bought can never turn into a second purchase.
+   */
+  async collect(orderId: string, claimToken: string | undefined): Promise<HttpReply> {
+    const { ledger } = this.deps;
+    let order = ledger.get(orderId);
+    // the same answer whether or not the order exists, so ids cannot be probed
+    if (!order || !this.holdsClaim(orderId, claimToken)) return json(403, { error: "claim_token_required", detail: "This order is answered only to its buyer. Send the X-Bullseye-Claim token it was opened with." });
+    const brief = this.deps.getBrief(order.terms.briefId);
+    if (!brief) return json(404, { error: "brief_not_found", orderId });
+
+    if (order.state === "PAYMENT_PENDING" && this.inFlight.has(order.id)) return { status: 409, headers: { "retry-after": "3", "content-type": "application/json" }, body: { error: "payment_in_progress", orderId, state: order.state } };
+    if (order.state === "PAYMENT_PENDING") order = ledger.transition(order.id, "PAYMENT_UNKNOWN", "settlement was interrupted before an outcome was recorded", this.evidence(order, null, null, "outcome unknown"));
+    if (order.state === "PAYMENT_UNKNOWN" || order.state === "RECONCILIATION_REQUIRED") order = (await this.reconcile(order.id)) ?? order;
+    if (order.state === "PAID" || order.state === "DELIVERING" || order.state === "DELIVERY_FAILED" || order.state === "DELIVERED") return this.deliver(order, brief, null);
+    if (order.state === "PAYMENT_FAILED") return json(409, { error: "payment_failed", orderId, state: order.state, detail: "This order's payment failed and nothing was charged. A new purchase needs a new quote." });
+    return this.unknownReply(order);
+  }
+
   /** cheap checks that need no network: the authorization must be for this quote and carry a signature */
   private malformed(payload: PaymentPayload, auth: Eip3009Authorization, terms: QuoteTerms): string | null {
     const signature = (payload.payload as { signature?: unknown } | undefined)?.signature;
@@ -390,10 +423,11 @@ export class Checkout {
       headers: { "retry-after": "10", "content-type": "application/json", "x-bullseye-order": order.id },
       body: {
         error: "payment_outcome_unknown",
-        message: "The payment was submitted but its outcome is not known. Do not sign a new authorization. Retry this request with the same PAYMENT-SIGNATURE header, or check the order.",
+        message: "The payment was submitted but its outcome is not known. Do not sign a new authorization. Retry this request with the same PAYMENT-SIGNATURE header, or collect the order with its X-Bullseye-Claim token.",
         orderId: order.id,
         state: order.state,
         orderUrl: `${this.deps.publicBaseUrl}/api/orders/${order.id}`,
+        deliveryUrl: `${this.deps.publicBaseUrl}/api/orders/${order.id}/delivery`,
       },
     };
   }

@@ -37,15 +37,27 @@ export function createApp(c: Container) {
   // a production build is never treated as local, whatever PUBLIC_BASE_URL was left at
   const isLocal = process.env.NODE_ENV !== "production" && ["localhost", "127.0.0.1", "[::1]"].includes(new URL(c.config.PUBLIC_BASE_URL).hostname);
   const digest = (v: string) => createHash("sha256").update(v).digest();
-  const operator = (req: Request, res: Response, next: NextFunction) => {
+  const operatorAccess = (req: Request): "GRANTED" | "DISABLED" | "TOKEN_REQUIRED" => {
     const token = c.config.OPERATOR_TOKEN;
-    if (!token) {
-      if (isLocal) return next();
-      return res.status(403).json({ error: "operator_routes_disabled", detail: "operator actions are not available on this deployment" });
-    }
+    if (!token) return isLocal ? "GRANTED" : "DISABLED";
     const given = /^Bearer (.+)$/i.exec(req.header("authorization") ?? "")?.[1] ?? "";
-    if (!timingSafeEqual(digest(given), digest(token))) return res.status(401).json({ error: "operator_token_required" });
+    return timingSafeEqual(digest(given), digest(token)) ? "GRANTED" : "TOKEN_REQUIRED";
+  };
+  const operator = (req: Request, res: Response, next: NextFunction) => {
+    const access = operatorAccess(req);
+    if (access === "DISABLED") return res.status(403).json({ error: "operator_routes_disabled", detail: "operator actions are not available on this deployment" });
+    if (access === "TOKEN_REQUIRED") return res.status(401).json({ error: "operator_token_required" });
     next();
+  };
+  /**
+   * One order belongs to one buyer. It is answered to whoever holds its claim token (sent as
+   * X-Bullseye-Claim, never in the URL) and to the operator; to nobody else, whatever they know about it.
+   */
+  const orderOwner = (req: Request, res: Response, next: NextFunction) => {
+    const id = String(req.params.id);
+    if (operatorAccess(req) === "GRANTED" || c.checkout.holdsClaim(id, req.header("x-bullseye-claim") ?? undefined)) return next();
+    // the same answer whether or not the order exists, so ids cannot be probed
+    res.status(403).json({ error: "claim_token_required", detail: "This order is answered only to its buyer. Send the X-Bullseye-Claim token it was opened with." });
   };
 
   /** fixed one-minute windows per client address; enough to stop one caller flooding the facilitator, the quote table or the read routes */
@@ -263,20 +275,61 @@ export function createApp(c: Container) {
     return { order: { ...order, paymentKey: null }, receipt: buildReceipt(order, usage, brief?.synthesis.model ?? "unknown", allowances), briefHeadline: brief?.draft.headline ?? null };
   };
 
-  app.get("/api/orders", (_req, res) => {
+  // every buyer's order in one list: payer addresses, transaction hashes, the desk's cost per sale. Operator only.
+  app.get("/api/orders", operator, (_req, res) => {
     res.json({ orders: c.ledger.list().map((o) => receiptFor(o.id)) });
   });
 
-  app.get("/api/orders/:id", (req, res) => {
-    const found = receiptFor(req.params.id);
+  /**
+   * What anyone may know about sales: how many orders reached which state, per Brief. No order id,
+   * quote id, payer, transaction hash or amount paid by anyone in particular. Labelled, because a
+   * count of testnet or fixture orders is not a sales figure.
+   */
+  app.get("/api/commerce/summary", (_req, res) => {
+    const rail = c.rail.status();
+    const byBrief = new Map<string, { briefId: string; symbol: string | null; orders: number; byState: Record<string, number>; delivered: number; chainVerified: number; newestState: string; newestStateAt: string }>();
+    const byState: Record<string, number> = {};
+    const orders = c.ledger.list(500);
+    for (const o of orders) {
+      byState[o.state] = (byState[o.state] ?? 0) + 1;
+      const row = byBrief.get(o.terms.briefId) ?? { briefId: o.terms.briefId, symbol: c.briefs.get(o.terms.briefId)?.signal.asset.symbol ?? null, orders: 0, byState: {}, delivered: 0, chainVerified: 0, newestState: o.state, newestStateAt: o.updatedAt };
+      row.orders += 1;
+      row.byState[o.state] = (row.byState[o.state] ?? 0) + 1;
+      if (o.state === "DELIVERED") row.delivered += 1;
+      if (o.payment?.chainVerified === true) row.chainVerified += 1;
+      if (o.updatedAt > row.newestStateAt) [row.newestState, row.newestStateAt] = [o.state, o.updatedAt];
+      byBrief.set(o.terms.briefId, row);
+    }
+    res.json({
+      label: "AGGREGATE",
+      note: rail.rail === "OKX_X402_MAINNET" ? "Counts of orders by state. No buyer, order or payment identifiers." : "Counts of orders by state. No buyer, order or payment identifiers. These are test payments: not revenue, and not evidence of demand.",
+      rail: rail.rail,
+      isTestnet: rail.isTestnet,
+      countsAsRevenue: rail.rail === "OKX_X402_MAINNET",
+      totals: { orders: orders.length, byState, delivered: byState.DELIVERED ?? 0, chainVerified: orders.filter((o) => o.payment?.chainVerified === true).length },
+      byBrief: [...byBrief.values()].sort((a, b) => (a.newestStateAt < b.newestStateAt ? 1 : -1)),
+    });
+  });
+
+  app.get("/api/orders/:id", orderOwner, (req, res) => {
+    const found = receiptFor(String(req.params.id));
     if (!found) return res.status(404).json({ error: "order_not_found" });
     res.json(found);
   });
 
-  app.post("/api/orders/:id/reconcile", operator, async (req, res) => {
+  // reads the chain and the facilitator's record, and never settles: safe to hand to the buyer, and rate-limited because it calls out
+  app.post("/api/orders/:id/reconcile", limited, orderOwner, async (req: Request, res: Response) => {
     const order = await c.checkout.reconcile(String(req.params.id));
     if (!order) return res.status(404).json({ error: "order_not_found" });
     res.json(receiptFor(order.id));
+  });
+
+  // the Brief again for a buyer who kept the claim token but not the signed authorization: a reload, another tab, a week later
+  app.get("/api/orders/:id/delivery", limited, async (req: Request, res: Response) => {
+    const reply = await c.checkout.collect(String(req.params.id), req.header("x-bullseye-claim") ?? undefined);
+    for (const [k, v] of Object.entries(reply.headers)) res.setHeader(k, v);
+    if (reply.onSent) res.once("finish", reply.onSent);
+    res.status(reply.status).json(reply.body);
   });
 
   if (c.fixtureFacilitator) {

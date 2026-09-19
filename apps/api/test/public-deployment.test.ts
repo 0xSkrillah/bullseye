@@ -15,11 +15,16 @@ describe("operator routes on a public deployment", () => {
     const c = await testContainer(PUBLIC);
     const scan = await c.signals.scan();
     const app = createApp(c);
-    for (const path of ["/api/signals/scan", `/api/signals/${scan.signals[0]!.id}/investigate`, "/api/orders/ord_0000000000000000/reconcile", "/api/_fixture/control"]) {
+    for (const path of ["/api/signals/scan", `/api/signals/${scan.signals[0]!.id}/investigate`, "/api/_fixture/control"]) {
       const res = await request(app).post(path).set("authorization", "Bearer anything");
       expect(res.status, path).toBe(403);
       expect(res.body.error).toBe("operator_routes_disabled");
     }
+    // reconcile belongs to the order's buyer as well as the operator; a bearer token that is not the operator's opens neither door
+    const reconcile = await request(app).post("/api/orders/ord_0000000000000000/reconcile").set("authorization", "Bearer anything");
+    expect(reconcile.status).toBe(403);
+    expect(reconcile.body.error).toBe("claim_token_required");
+    expect((await request(app).get("/api/orders").set("authorization", "Bearer anything")).body.error).toBe("operator_routes_disabled");
     expect(investigations(c)).toBe(0);
     expect((await request(app).get("/api/health")).body.operatorRoutes).toBe("DISABLED");
   });
