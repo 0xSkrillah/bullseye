@@ -45,7 +45,7 @@ export function EventTimes({ signal, publishedAt, now, withdrawn = null, brief =
   return (
     <section data-testid="event-times" data-retrospective={retrospective} aria-label="Event times">
       <h2>When</h2>
-      <dl className="be-kv" style={{ gridTemplateColumns: "minmax(140px, 200px) 1fr", rowGap: 6 }}>
+      <dl className="be-kv" style={{ gridTemplateColumns: "minmax(88px, 34%) minmax(0, 1fr)", rowGap: 6 }}>
         <div style={row}>
           <dt>Issuer effective time</dt>
           <dd><Timestamp iso={signal.observedAt} full /> · {span(instantMs(now) - effective)} ago</dd>

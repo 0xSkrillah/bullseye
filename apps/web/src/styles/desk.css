@@ -35,7 +35,9 @@ body { min-height: 100vh; }
   line-height: 20px;
 }
 
-.be-doc { max-width: var(--measure); position: relative; display: grid; gap: var(--space-8); }
+/* the one column may shrink below its longest unbreakable run (a full-precision multiplier, a timestamp); an auto column would push the page wider than a phone */
+.be-doc { max-width: var(--measure); position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+.be-doc > * { min-width: 0; overflow-wrap: anywhere; }
 
 /* the paywall sits over the locked part of the Brief */
 .be-doc-locked {
