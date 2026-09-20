@@ -95,7 +95,23 @@ All repository links are pinned, not moving main:
 - [tokens.css](https://github.com/0xSkrillah/bullseye/blob/f590f5a8085c8f8b2833bdb227ee6c50163ade0b/apps/web/src/styles/tokens.css)
 - [market.css](https://github.com/0xSkrillah/bullseye/blob/f590f5a8085c8f8b2833bdb227ee6c50163ade0b/apps/web/src/market/market.css)
 
-## Resolution log — fill after implementation
-| ID | Current reproduction | Files/lines changed | Test and artifact | Status | Remaining limitation |
+## Resolution log
+
+Filled on 20 September 2026 on branch `claude/frontend-journey`. HEAD was still
+`f590f5a8085c8f8b2833bdb227ee6c50163ade0b` when the work started, so every finding was reproduced
+against the commit it was written about. Commands, evidence and limits are in
+[QA_REPORT.md](QA_REPORT.md); screenshots are in
+[`artifacts/frontend-2026-09-20/`](../../artifacts/frontend-2026-09-20).
+
+| ID | Current reproduction | Files changed | Test and artifact | Status | Remaining limitation |
 |---|---|---|---|---|---|
-| BF-01 … BF-09 | Pending actual checkout validation | None by this audit | See isolated evidence only | NOT FIXED BY THIS PACK | Full browser coverage pending |
+| BF-01 | BROWSER. `/?brief=<id>` rendered the unselected desk | `lib/route.ts` (new), `App.tsx`, `lib/usePoll.ts`, `lib/api.ts`, `screens/Brief.tsx` | `journey.spec.ts`, proven to fail pre-fix; `before/after/brief-link-1280.png` | FIXED | — |
+| BF-02 | BROWSER. +112 px at 1200, +32 px at 1280; required width 1312 px | `styles/desk.css`, `layout/Desk.tsx` | `journey.spec.ts` width matrix, proven to fail pre-fix; `before/after/desk-1200.png`, `desk-1280.png` | FIXED | — |
+| BF-03 | BROWSER. Focus never entered the dialog | `lib/dialogFocus.ts` (new), `market/Comparison.tsx`, `components/EvidenceDrawer.tsx` | `journey.spec.ts` keyboard test, proven to fail pre-fix; `after/evidence-dialog-1280.png` | FIXED | Background siblings are not `inert`; `aria-modal` plus a focus trap and a full-page backdrop. No screen-reader session. |
+| BF-04 | SOURCE + BROWSER. No `popstate`; picker only before a choice | `market/MarketDesk.tsx`, `market/market.css` | `journey.spec.ts` Back/Forward and picker tests | FIXED | — |
+| BF-05 | COMPUTED. 4.05:1 and 4.27:1 | `styles/tokens.css`, `market/market.css` | contrast computed for the token pair; 5.12:1 and 5.39:1 | FIXED | Token pair only; no rendered-page contrast scan. |
+| BF-06 | BROWSER. First viewport held no offer, price or action | `market/MarketDesk.tsx`, `components/BriefOffer.tsx` (new) | `market-desk.spec.ts`; `before/after/market-1280.png` | FIXED | Judged against the acceptance wording, not a session with real people. |
+| BF-07 | SOURCE + BROWSER. No network, no testnet label | `components/BriefOffer.tsx`, `lib/networks.ts` (new), `market/data.ts` | `journey.spec.ts` asserts USD, X Layer testnet and TESTNET before checkout | FIXED | Rail comes from `/api/health`; an unanswered health check reads "Payment availability not confirmed". |
+| BF-08 | SOURCE. "Start apps/api on :4402" | `App.tsx`, `screens/Feed.tsx`, `market/MarketDesk.tsx` | manual fault injection | FIXED | No automated coverage of each failure state. |
+| BF-09 | SOURCE. `theme=light` had no stylesheet; no catch on the lazy import | `styles/tokens.css`, `main.tsx` | `after/light-market-1280.png` | FIXED | Light spot-checked on two routes at 1280 px only. |
+| BF-10 (found during this work) | BROWSER. `/room` rendered the ordinary desk: no such route on `main` | `components/SiteNav.tsx` | — | FIXED by removing the link | The Situation Room is on `claude/bullseye-situation-room-a091ef`, unmerged. Re-add the link when that lands. |

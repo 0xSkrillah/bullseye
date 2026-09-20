@@ -3,6 +3,39 @@
 State of the build on 18 September 2026 (build day 2 of 9). Submission closes 25 September 2026,
 23:59 UTC. Read [docs/CLAIM_LEDGER.md](docs/CLAIM_LEDGER.md) before repeating any claim.
 
+## 20 September: the customer journey through the frontend
+
+On branch `claude/frontend-journey`, not yet merged. A frontend design pack reviewed `f590f5a` and
+published nine findings; all nine were reproduced against that commit — in a browser where a
+browser could show them — and all nine are fixed, along with one more found on the way. The pack
+itself is in [docs/frontend-pack](docs/frontend-pack); the evidence, the limits and what was **not**
+tested are in [docs/frontend-pack/QA_REPORT.md](docs/frontend-pack/QA_REPORT.md).
+
+**The one that mattered.** The Market Desk offered `/?brief=<id>` and the desk read no such thing:
+the button promising one specific paid report landed the buyer on an empty desk, which then locked
+whichever event was newest. The query now says what is on screen, `?brief=` resolves through the
+existing preview route to the Brief's own event, and Back, Forward, a reload and a pasted link all
+agree. An id that resolves to nothing says so rather than quietly showing a different report.
+
+**Second: the desk did not fit a laptop.** Three columns needed 1312 px and switched to two at
+1199, so at 1200 and at 1280 the console was pushed off the side of the page. Three columns now
+start where three columns fit. Measured at ten widths on three routes: no page scrolls sideways
+anywhere.
+
+The rest: the Market Desk leads with the event and the offer — what the document contains, what it
+costs, on which rail and network, and that a testnet payment is not revenue — instead of burying it
+under the machinery; the event picker stays on the page and works from the keyboard; the evidence
+dialog takes the keyboard and gives it back, on one shared implementation with the desk drawer;
+`--ink-muted` went from 4.05:1 to 5.12:1; failure states tell a visitor what happened instead of
+telling them to start an API; `?theme=light` is a theme the app has rather than one it advertised;
+and the `/room` link, which rendered the ordinary desk because there is no such route on `main`, is
+gone until the Situation Room branch lands.
+
+Six new browser tests, each run against the code before its fix and observed to fail there. Node
+26.7.0: `npm run typecheck` clean; `npm test` API **294 in 21**, web **81 in 6** — unchanged, with
+nothing skipped or weakened; `PW_CHANNEL=msedge npm run test:e2e` **17** (was 11); `npm run build`
+ok. Nothing was deployed, no wallet was used and no real payment was made.
+
 ## 20 September: the Market Desk
 
 A customer-facing, read-only screen at `/market` that reads one verified event as money and answers
