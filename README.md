@@ -21,7 +21,7 @@ tokenised stocks (xStocks).
 | **Integration URL** | `POST /api/v1/briefs/latest` — an x402 resource on the OKX seller SDK. An unpaid call answers `402` with a `PAYMENT-REQUIRED` header: `exact` / `eip155:1952` / `3000000` to the quoted pay-to address. That is OKX's own listing self-test, passing on the deployed address. |
 | **Demo video** | Not yet recorded. There is no URL, and this file will not pretend there is one. |
 | **One proof** | On 20 September the unattended desk published a QQQx Brief at 10:31:50Z and it was bought from the deployed address at 18:38 — and the payment went **`PAYMENT_UNKNOWN` and recovered to `PAID` without a second charge**, on the real OKX facilitator. [`artifacts/evidence/deployed-purchase-2026-09-20.json`](artifacts/evidence/deployed-purchase-2026-09-20.json), ledger V53. |
-| **Limits** | Testnet only; two settlements, both by the owner; no stranger has bought anything; no demand evidence; runs counted in ones and twos. The full list is [docs/SUBMISSION.md](docs/SUBMISSION.md) §5 and the ledger below. |
+| **Limits** | Testnet only; three settlements, all made by the project itself; no stranger has bought anything; no demand evidence; runs counted in ones and twos. The full list is [docs/SUBMISSION.md](docs/SUBMISSION.md) §5 and the ledger below. |
 
 > **Read this first.** [docs/CLAIM_LEDGER.md](docs/CLAIM_LEDGER.md) lists what is verified, what is
 > only partly done and what is blocked. On 18 September 2026 the whole path ran live once: a real
@@ -31,10 +31,13 @@ tokenised stocks (xStocks).
 > nothing here is evidence of demand. That purchase was made by the agent buyer against a server
 > on localhost. A second one has since been made **from the deployed address**: on 20 September a
 > QQQx Brief was bought there for 3 testnet USD₮0 and delivered, and the payment was recovered from
-> an unknown outcome before delivery (CLAIM_LEDGER V53). That is two settlements, both on testnet,
-> both by the owner, who reports making the second one from the browser with a wallet extension —
-> the chain and the desk's public record show the settlement and the delivery, not which client
-> signed (CLAIM_LEDGER V34, P6). Nobody outside the project has bought anything.
+> an unknown outcome before delivery (CLAIM_LEDGER V53). The owner reports making that one from the
+> browser with a wallet extension; the chain and the desk's public record show the settlement and
+> the delivery, not which client signed (V34, P6). A third has since been made by the **agent
+> buyer** against the same deployed address — a DTEx Brief, which also answered
+> `payment_outcome_unknown` first and was recovered by re-sending the same authorization (V54). That
+> is three settlements, all on testnet, all made by the project itself. Nobody outside the project
+> has bought anything, and revenue is zero.
 
 ## What it does
 

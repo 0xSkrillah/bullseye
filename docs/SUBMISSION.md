@@ -131,6 +131,19 @@ Evidence: `artifacts/evidence/deployed-purchase-2026-09-20.json` (9 checks, all 
 JSON-RPC reads of the receipt and its block, the seller's own `PAYMENT-REQUIRED` terms, and the
 deployment's public aggregates). Ledger V52, V53.
 
+**And the agent buyer did the same thing, an hour later.** `npm run buy` against the deployed HTTPS
+address bought a DTEx Brief for 3.00 testnet USD₮0. Its **first attempt also answered
+`503 payment_outcome_unknown`**; it re-sent the same authorization and reached DELIVERED. Tx
+[`0x430525a8…95c4`](https://www.oklink.com/x-layer-testnet/tx/0x430525a87991a33efd6c88eeafdad5fd0dae6783308cfdada447f91e301495c4),
+block 41472731 at 19:12:48Z, receipt success, 3000000 base units. Collecting the order again
+afterwards returned the same document and signed and paid nothing. The payer's balance went **4 → 1**
+USD₮0 — one charge, not two — and the deployment now reports `total 2, DELIVERED 2, chainVerified 2`.
+Evidence: `artifacts/evidence/delivery-ord_3e49405a17afe27a.json`, ledger V54.
+
+So **both** halves of the buyer story — browser and agent — have now settled against the deployed
+service, and both recovered from a genuine uncertain payment on the real facilitator without a
+second charge. That case did not have to be staged on fixtures.
+
 **The exact form of the claim.** The owner confirms this purchase was made from the browser with a
 wallet extension. Keep the split: **the settlement is verified, the client is reported.** The chain
 and the desk's public record show the payment and the delivery; they cannot show which client
@@ -182,8 +195,8 @@ Nothing is skipped and no test was weakened to pass. CI runs Node 22 and 24 on G
 
 Stated plainly, because the ledger is the point of this project.
 
-- **Testnet only.** Two settlements, both testnet, both by the owner. No mainnet payment has ever
-  been made. Testnet payments are not revenue and revenue is £0/$0.
+- **Testnet only.** Three settlements, all testnet, all made by the project itself. No mainnet
+  payment has ever been made. Testnet payments are not revenue and revenue is $0.
 - **No stranger has bought anything.** The one browser-wallet purchase is owner-reported; the public
   record does not establish which client signed (P6). Nobody outside the project has bought anything.
 - **No demand evidence.** No interviews, no usability sessions, no customer metrics (B4).
@@ -249,14 +262,11 @@ Nothing below can be done by an agent. Ordered by what blocks the submission.
 1. **Record and upload the 2–4 minute demo video.** It does not exist. Run sheet:
    [DEMO_RUN_SHEET.md](DEMO_RUN_SHEET.md). Upload publicly, then **check the link signed out and on
    another device**.
-2. **Decide whether to deploy the Situation Room.** `main` is ahead of `origin/main` and **pushing
-   `main` deploys to Railway**. Nothing has been pushed.
-   *If you do not push:* `/room` exists in the repo but not at the product URL — and note that the
-   deployed build answers `200` for `/room` while rendering **the ordinary desk**, because the
-   server serves `index.html` for every path and the live bundle has no such route. Nothing links to
-   it there, but do not put `/room` in the video or the form unless it has been deployed.
-   *If you do push:* wait for CI green, then re-check `/`, `/market`, `/room` and a `?brief=` link
-   signed out.
+2. ~~Deploy.~~ **Done, on your approval, 20 September.** `main` was pushed as a fast-forward
+   `3d005c1..4eb94c0`, CI passed (run 35531401515), Railway rebuilt, and `/`, `/market`, `/room` and
+   a `?brief=` link were re-checked signed out. `/room` renders the Situation Room populated from
+   the live service. The repository a judge clones and the service a judge opens are now the same
+   build.
 3. **Confirm the finale date.** The supplied PDF says **In-Person, 7 October 2026**; the terms page
    read on 19 September said **6 October, 10:00–14:00 SGT**. Unresolved. Do not book travel on it.
    This is question 2 in [SUBMISSION_DRAFTS.md](SUBMISSION_DRAFTS.md).
@@ -266,9 +276,10 @@ Nothing below can be done by an agent. Ordered by what blocks the submission.
    marketplace listing, and it is silent on testnet vs mainnet. A drafted <150-word question is in
    SUBMISSION_DRAFTS.md. Log submitted / pending / approved separately — **pending is neither
    approval nor disqualification.**
-5. **Decide on an agent purchase against the deployed host** (optional, see §8). The buyer wallet
-   holds **4 test USD₮0**, read on chain after the last purchase — exactly one more 3.00 purchase
-   and no more without a faucet top-up.
+5. **Top up the buyer wallet before the demo if you intend to buy on camera.** The agent purchase is
+   done (V54) and the wallet now holds **1 test USD₮0**, below the 3.00 price. Any further purchase
+   needs the [X Layer faucet](https://www.okx.com/xlayer/faucet/xlayerfaucet). The run sheet's
+   fallback covers recording without a live purchase.
 6. **Optional, one minute: paste the order id** for the QQQx purchase. Your browser holds the
    purchase record for `brf_0d55468f0c4045ef`. The **order id alone is inert** — an order is answered
    only to its buyer — so it can be pasted safely and would let the ledger name the order the way
@@ -287,18 +298,18 @@ Nothing below can be done by an agent. Ordered by what blocks the submission.
 
 ## 8. What remains to finish the release
 
-- [ ] `npm ci && npm run typecheck && npm test && npm run build && npm run test:e2e` once more on the
-      final tree, after the last doc commit, so the submitted SHA is the tested SHA.
-- [ ] Record the submitted commit here: **`[FILL IN: git rev-parse HEAD after the final commit]`**
-- [ ] **[OWNER]** push `main` (= deploy) or decide not to; if pushed, wait for CI green and re-check
-      the public routes signed out.
-- [ ] **[OWNER]** optional: one agent purchase against the deployed host, to pair with the browser-side
-      purchase already recorded. Bounded: **one** order, 3.00 testnet USD₮0, `eip155:1952`, against an
-      already-published Brief. Verify quoted amount, network and recipient before signing; then the
-      on-chain receipt, the delivery JSON, and retrieval after reload without a second charge.
-      **If the outcome is uncertain, reconcile the same authorization — never sign a fresh payment.**
-- [ ] **[OWNER]** video recorded, uploaded, link checked signed out.
-- [ ] **[OWNER]** form submitted, receipt retained.
+- [x] `npm ci && npm run typecheck && npm test && npm run build && npm run test:e2e` — all clean on
+      `4eb94c0`, which is the code that was pushed and deployed.
+- [x] **Pushed and deployed** — `3d005c1..4eb94c0`, CI run 35531401515 passed, public routes
+      re-checked signed out.
+- [x] **Agent purchase against the deployed host** — done and verified (V54). Both buyer paths have
+      now settled against the deployed service.
+- [ ] Record the **submitted commit** here once the last doc commit lands: the code was verified at
+      `4eb94c0`; anything after it is documentation only, and `git log --oneline 4eb94c0..HEAD`
+      shows exactly what.
+- [ ] **[OWNER]** video recorded, uploaded, link checked signed out. **This is the last real blocker.**
+- [ ] **[OWNER]** finale date resolved (6 vs 7 October), organiser question asked about the testnet
+      integration, form submitted, receipt retained.
 
 ### Done condition
 
