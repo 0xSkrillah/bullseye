@@ -162,12 +162,24 @@ test("the insufficient-data fallback: no price, so no figure in money, and the b
   // the recording holds no reference price for this asset
   await expect(row(page, "Issuer reference price")).toContainText("none published");
 
+  // Both figures in this section are absent for the same one reason, so the section says it once
+  // rather than each card repeating it — three statements of one fact read as noise, not an answer.
+  const why = page.getByTestId("market-section-why");
+  await expect(why).toHaveCount(1);
+  await expect(why).toContainText("Nothing in this section can be computed");
+  await expect(why).toContainText("no reference price");
+
   for (const key of ["POSITION_VALUE", "IMPLIED_REINVESTMENT_PRICE"]) {
     const f = figureByKey(page, key);
     await expect(f, key).toHaveAttribute("data-label", "INSUFFICIENT_DATA");
     await expect(f, key).toContainText("Not shown");
-    await expect(f, key).toContainText("no reference price");
+    // the card still says what it cannot state, and keeps its inputs; it just does not repeat the cause
+    await expect(f, key).not.toContainText("no reference price");
+    await expect(f, key).toContainText("Inputs");
   }
+
+  // where the reasons differ, every card keeps its own list: the de-duplication is not a blanket rule
+  await expect(figureByKey(page, "QUOTED_SPREAD")).toContainText("no buy-side ask price");
 
   // and the part of the event that needs no price is unaffected
   const impact = figureByKey(page, "BALANCE_IMPACT");

@@ -180,7 +180,18 @@
 .mk-figure.is-missing {
   background: var(--canvas-inset);
   border-style: dashed;
+  padding: 14px 16px;
+  gap: 8px;
 }
+/*
+ * An absent figure is a footnote, not a headline. Four of them at full weight - which is what a
+ * section reads like when the issuer publishes no price, and what the last two sections always read
+ * like because no executable quote exists anywhere - made the screen look broken rather than honest.
+ * They stay on screen, in full, with their inputs and limitations: only their weight drops.
+ */
+.mk-figure.is-missing .mk-figure-head { font-size: 14px; line-height: 20px; font-weight: 400; color: var(--ink-secondary); }
+.mk-figure.is-missing .mk-value.is-none { font-size: 15px; }
+.mk-figure.is-missing .mk-missing { font-size: 13px; line-height: 19px; }
 
 .mk-label {
   font-family: var(--font-mono);
@@ -347,7 +358,9 @@ details.mk-more[open] > summary {
   width: 2px;
   height: 12px;
   border-radius: 0;
-  background: var(--invalid);
+  /* matches the marker on the chart, and for the same reason: the effective time is the anchor
+     the chart is read against, not a failure, so it is never `--invalid` */
+  background: var(--ink);
 }
 
 /* ---------------------------------------------------------------- tables */
@@ -810,7 +823,7 @@ details.mk-more[open] > summary {
 .mk-spread-row {
   width: 100%;
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr) 72px;
+  grid-template-columns: 78px 88px minmax(0, 1fr) 62px;
   align-items: center;
   gap: 12px;
   padding: 7px 10px;
@@ -829,6 +842,9 @@ details.mk-more[open] > summary {
 .mk-spread-bar { display: block; height: 8px; background: var(--canvas-inset); border-radius: var(--radius-full); overflow: hidden; }
 .mk-spread-bar > span { display: block; height: 100%; min-width: 2px; background: var(--ink-secondary); border-radius: var(--radius-full); }
 .mk-spread-x { font-size: 14px; color: var(--ink); text-align: right; }
+.mk-spread-when { font-size: 12px; color: var(--ink-secondary); }
+/* no amplification to draw: the words, not an empty track that reads as a failed chart */
+.mk-spread-same { font-size: 13px; color: var(--ink-secondary); }
 
 @media (max-width: 1023px) {
   .mk-assets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -838,5 +854,6 @@ details.mk-more[open] > summary {
   .mk-compare { grid-template-columns: minmax(0, 1fr); }
   .mk-fan { grid-template-columns: minmax(0, 1fr); }
   .mk-band-h { font-size: 22px; line-height: 28px; }
-  .mk-spread-row { grid-template-columns: 68px minmax(0, 1fr) 58px; gap: 8px; }
+  .mk-spread-row { grid-template-columns: 62px minmax(0, 1fr) 52px; gap: 8px; }
+  .mk-spread-when { display: none; }
 }

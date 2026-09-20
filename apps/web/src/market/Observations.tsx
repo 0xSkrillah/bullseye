@@ -71,8 +71,14 @@ export function Observations({ points, eventMarkerAt, note, chainWithheld, chain
 
         {marker !== null && (
           <g>
-            <line x1={x(marker)} x2={x(marker)} y1={PAD.top - 12} y2={H - PAD.bottom} stroke="var(--invalid)" strokeWidth="2" />
-            <text x={x(marker)} y={PAD.top - 16} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--invalid)">
+            {/*
+              Not `--invalid`. Red means a thing failed or is not to be trusted — a failed check,
+              stale evidence, a rejected gate. The issuer's effective time is none of those: it is
+              the anchor the whole chart is read against, and drawing it in red made an ordinary
+              dividend look like an error.
+            */}
+            <line x1={x(marker)} x2={x(marker)} y1={PAD.top - 12} y2={H - PAD.bottom} stroke="var(--ink)" strokeWidth="1.5" />
+            <text x={x(marker)} y={PAD.top - 16} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink-secondary)">
               EFFECTIVE
             </text>
           </g>
@@ -91,21 +97,39 @@ export function Observations({ points, eventMarkerAt, note, chainWithheld, chain
           );
         })}
 
-        <text x={PAD.left} y={H - PAD.bottom + 16} fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink-muted)">
-          {fullTime(new Date(tMin).toISOString())}
-        </text>
-        <text x={W - PAD.right} y={H - PAD.bottom + 16} textAnchor="end" fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink-muted)">
-          {fullTime(new Date(tMax).toISOString())}
-        </text>
+        {/*
+          When every observation shares one instant — the issuer's before-and-after step, with no
+          on-chain read recorded — `tMin` and `tMax` are a minute invented either side so the dots
+          have somewhere to sit. Labelling the axis with those two times put clock readings on
+          screen that nothing was observed at, on a screen whose whole point is not showing what was
+          not observed. One instant gets one label, under the points it belongs to.
+        */}
+        {span > 0 ? (
+          <>
+            <text x={PAD.left} y={H - PAD.bottom + 16} fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink-muted)">
+              {fullTime(new Date(tMin).toISOString())}
+            </text>
+            <text x={W - PAD.right} y={H - PAD.bottom + 16} textAnchor="end" fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink-muted)">
+              {fullTime(new Date(tMax).toISOString())}
+            </text>
+          </>
+        ) : (
+          <text x={x(tMinRaw)} y={H - PAD.bottom + 16} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink-muted)">
+            {fullTime(new Date(tMinRaw).toISOString())} · one instant
+          </text>
+        )}
       </svg>
 
       <div className="mk-chart-legend">
         <span className="mk-key is-issuer">
           <i /> Issuer published
         </span>
-        <span className="mk-key is-chain">
-          <i /> multiplier() on X Layer
-        </span>
+        {/* a key for a series with no members advertises a read that was never recorded */}
+        {(usable.some((p) => p.source !== "ISSUER") || chainReadCount > 0) && (
+          <span className="mk-key is-chain">
+            <i /> multiplier() on X Layer
+          </span>
+        )}
         <span className="mk-key is-event">
           <i /> Effective time
         </span>

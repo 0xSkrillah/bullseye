@@ -323,3 +323,30 @@ describe("how much counting it twice costs, asset by asset", () => {
     expect(html).toContain('aria-current="true"');
   });
 });
+
+describe("a section where every figure is absent for the same reason", () => {
+  const noPrice: Figure = {
+    ...missing,
+    key: "POSITION_VALUE",
+    headline: "What the rebase is worth cannot be stated without a price.",
+    missing: ["the issuer is publishing no reference price for this asset right now"],
+    inputs: [{ name: "reference price", value: null, unit: "USD", evidenceId: "EV-PRICE", observedAt: null }],
+  };
+
+  it("states the reason once and drops the bullet that would repeat it", () => {
+    const repeated = render(createElement(FigureCard, { figure: noPrice, onOpenEvidence: noop }));
+    expect(repeated).toContain("the issuer is publishing no reference price");
+    const deduped = render(createElement(FigureCard, { figure: noPrice, onOpenEvidence: noop, reasonShownAbove: true }));
+    expect(deduped).not.toContain("the issuer is publishing no reference price");
+    // everything else the card carries stays: the label, the absence and the disclosures
+    expect(deduped).toContain("INSUFFICIENT DATA");
+    expect(deduped).toContain("Not shown");
+    expect(deduped).toContain(noPrice.headline);
+    expect(deduped).toContain("Inputs (1)"); // the disclosure is uppercased by CSS, not in the markup
+  });
+
+  it("keeps the missing inputs when the section has not said them, which is the normal case", () => {
+    const html = render(createElement(FigureCard, { figure: missing, onOpenEvidence: noop }));
+    for (const m of missing.missing) expect(html).toContain(m);
+  });
+});

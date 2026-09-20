@@ -238,7 +238,13 @@ export function MarketDesk() {
 
       {sections
         .filter((s) => s.figures.length > 0)
-        .map((s) => (
+        .map((s) => {
+          // every figure in this section absent for the same one reason: say it once, at the top,
+          // and let the cards drop the bullet that would repeat it
+          const reasons = new Set(s.figures.flatMap((f) => f.missing));
+          const only = [...reasons][0];
+          const shared = s.figures.every((f) => f.label === "INSUFFICIENT_DATA") && reasons.size === 1 && only !== undefined ? only : null;
+          return (
           <section className="mk-section" key={s.title} data-testid="market-figure-section">
             <h2 className="mk-h2">{s.title}</h2>
             {s.note && <p className="mk-note">{s.note}</p>}
@@ -248,13 +254,24 @@ export function MarketDesk() {
                 venue, so everything in this section is a valuation and none of it is a quote.
               </p>
             )}
+            {/*
+              Every figure in this section is absent for the same one reason, so the reason is worth
+              saying once at the top rather than repeating it inside each card. The cards keep their
+              own missing-input lists: this states the shared cause, it does not replace them.
+            */}
+            {shared !== null && (
+              <p className="mk-note mk-section-why" data-testid="market-section-why">
+                Nothing in this section can be computed: {shared}.
+              </p>
+            )}
             <div className="mk-figures">
               {s.figures.map((f) => (
-                <FigureCard key={f.key} figure={f} onOpenEvidence={openEvidence} />
+                <FigureCard key={f.key} figure={f} onOpenEvidence={openEvidence} reasonShownAbove={shared !== null} />
               ))}
             </div>
           </section>
-        ))}
+          );
+        })}
 
       <section className="mk-verdict" data-testid="market-verdict" data-verdict={m.stillInteresting.verdict}>
         <p className="mk-verdict-q">Separately: is there a trade in this event, once the data, the adjustments and the costs have been checked?</p>

@@ -174,9 +174,12 @@ function Spread({ rows, onChoose, chosenId }: { rows: MarketSignalRow[]; onChoos
       const o = Number(r.signal.facts?.multiplierOld);
       const n = Number(r.signal.facts?.multiplierNew);
       if (!Number.isFinite(o) || !Number.isFinite(n) || n === o || o <= 0) return null;
-      return { id: r.signal.id, symbol: r.signal.asset.symbol, ratio: ((n - 1) * o) / (n - o) };
+      // several events can share an asset, so each row is dated: four SATAx rows with nothing to
+      // tell them apart read as duplicated data rather than as four separate dividends
+      const when = r.signal.observedAt.slice(0, 10);
+      return { id: r.signal.id, symbol: r.signal.asset.symbol, when, ratio: ((n - 1) * o) / (n - o) };
     })
-    .filter((x): x is { id: string; symbol: string; ratio: number } => x !== null)
+    .filter((x): x is { id: string; symbol: string; when: string; ratio: number } => x !== null)
     .sort((a, b) => b.ratio - a.ratio);
   const worst = scored[0];
   if (worst === undefined) return null;
@@ -198,9 +201,20 @@ function Spread({ rows, onChoose, chosenId }: { rows: MarketSignalRow[]; onChoos
               aria-current={s.id === chosenId ? "true" : undefined}
             >
               <span className="mono mk-spread-sym">{s.symbol}</span>
-              <span className="mk-spread-bar" aria-hidden="true">
-                <span style={{ width: `${(Math.log10(s.ratio) / Math.log10(worst.ratio || 10)) * 100}%` }} />
-              </span>
+              <span className="mono mk-spread-when">{s.when}</span>
+              {/*
+                An asset whose multiplier is still 1 has no amplification to draw, and a bar of zero
+                width in a full-width track reads as a chart that failed rather than as "none". It
+                gets the words instead. Above 1 the scale is logarithmic, because the spread runs
+                across two orders of magnitude and a linear bar would flatten everything below 10×.
+              */}
+              {s.ratio < 1.05 ? (
+                <span className="mk-spread-same">same as the event</span>
+              ) : (
+                <span className="mk-spread-bar" aria-hidden="true">
+                  <span style={{ width: `${(Math.log10(s.ratio) / Math.log10(worst.ratio || 10)) * 100}%` }} />
+                </span>
+              )}
               <span className="mono mk-spread-x">{s.ratio < 1.05 ? "1×" : `${s.ratio.toFixed(1)}×`}</span>
             </button>
           </li>

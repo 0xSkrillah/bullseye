@@ -10,7 +10,12 @@ import { Timestamp } from "../primitives/Timestamp";
  * No value on this screen is rendered in the verified colour. None of them is an amount anyone
  * offered, so none of them earns it.
  */
-export function FigureCard({ figure, onOpenEvidence }: { figure: Figure; onOpenEvidence: (id: string) => void }) {
+/**
+ * `reasonShownAbove` is set when every figure in the section is absent for the same single reason
+ * and the section has already said so once. Repeating it inside each card then states one fact
+ * three times, which is what made a section of absences read as noise rather than as an answer.
+ */
+export function FigureCard({ figure, onOpenEvidence, reasonShownAbove = false }: { figure: Figure; onOpenEvidence: (id: string) => void; reasonShownAbove?: boolean }) {
   const label = LABELS[figure.label];
   const missing = figure.label === "INSUFFICIENT_DATA";
   return (
@@ -32,7 +37,7 @@ export function FigureCard({ figure, onOpenEvidence }: { figure: Figure; onOpenE
 
       <p className="mk-figure-head">{figure.headline}</p>
 
-      {missing && figure.missing.length > 0 && (
+      {missing && figure.missing.length > 0 && !reasonShownAbove && (
         <ul className="mk-missing">
           {figure.missing.map((m) => (
             <li key={m}>{m}</li>
