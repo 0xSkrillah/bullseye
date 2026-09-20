@@ -113,9 +113,21 @@ export interface MarketSignalRow {
   investigation: { id: string; briefId: string | null } | null;
 }
 
+/**
+ * The public part of `/api/health`: what the desk is running on and which rail a purchase would
+ * use. It carries no buyer detail and nothing that is only in a Brief, so the free screen may read
+ * it to say what a report costs and on what network.
+ */
+export interface MarketHealth {
+  priceUsd: string;
+  paymentRail: { rail: string; network: string; ready: boolean; isTestnet: boolean; detail: string };
+  dataSource: { mode: string; asOf: string };
+}
+
 export const marketApi = {
-  view: (signalId: string) => getJson<MarketResponse>(`/api/market/${signalId}`),
+  view: (signalId: string) => getJson<MarketResponse>(`/api/market/${encodeURIComponent(signalId)}`),
   signals: () => getJson<{ dataMode: string; signals: MarketSignalRow[] }>("/api/signals"),
+  health: () => getJson<MarketHealth>("/api/health"),
 };
 
 /** How each label reads on screen, and the one sentence that says what kind of claim it is. */

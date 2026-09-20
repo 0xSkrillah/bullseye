@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { CheckoutIssue, PurchaseRecord } from "../checkout/purchase";
+import { networkName } from "../lib/networks";
 import { AUTO_CHECKS } from "../checkout/usePurchase";
 import { Id } from "../primitives/Id";
 import { Timestamp } from "../primitives/Timestamp";
@@ -18,7 +19,7 @@ export interface CheckoutNoticeProps {
   onDismiss(): void;
 }
 
-const NETWORK_NAMES: Record<string, string> = { "eip155:196": "X Layer", "eip155:1952": "X Layer testnet" };
+
 const SAFE = "Doing this re-sends the authorization you already signed, or reads the order. It cannot charge you twice.";
 
 /** true while a purchase of this Brief is unresolved, so the screen shows this notice instead of asking for a new quote */
@@ -27,7 +28,7 @@ export function purchaseIsOpen(record: PurchaseRecord | null): boolean {
 }
 
 function issueText(issue: CheckoutIssue, record: PurchaseRecord | null, origin: string): ReactNode {
-  const network = record ? (NETWORK_NAMES[record.quote.terms.network] ?? record.quote.terms.network) : "the quoted network";
+  const network = record ? networkName(record.quote.terms.network) : "the quoted network";
   switch (issue.kind) {
     case "NO_WALLET":
       return (

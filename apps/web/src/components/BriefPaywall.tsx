@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef } from "react";
 import type { Quote } from "@bullseye/domain";
+import { networkName } from "../lib/networks";
 import { countdown, instantMs } from "../format";
 import { Enum } from "../primitives/Enum";
 import { Id } from "../primitives/Id";
@@ -18,7 +19,7 @@ export interface BriefPaywallProps {
   onRequote?(): void;
 }
 
-const NETWORK_NAMES: Record<string, string> = { "eip155:196": "X Layer", "eip155:1952": "X Layer testnet" };
+
 const actions = { display: "flex", gap: 8, flexWrap: "wrap" } as const;
 
 export function BriefPaywall({ quote, now, paying = false, onPay, onViewEvidence, onRequote }: BriefPaywallProps) {
@@ -34,12 +35,12 @@ export function BriefPaywall({ quote, now, paying = false, onPay, onViewEvidence
   // Terms are rendered once per termsHash and never rebuilt from later props.
   const frozen = useMemo(() => {
     const t = quote.terms;
-    const networkName = NETWORK_NAMES[t.network];
+    const network = networkName(t.network);
     return {
       price: <Money usd={t.priceUsd} basis="PRICE" />,
       notRevenue: t.rail !== "OKX_X402_MAINNET",
       fixtureRail: t.rail === "FIXTURE",
-      payAria: `Pay ${t.priceUsd} US dollars via OKX x402 on ${networkName ?? t.network}`,
+      payAria: `Pay ${t.priceUsd} US dollars via OKX x402 on ${network}`,
       list: (
         <dl className="be-kv" style={{ gridTemplateColumns: "88px 1fr" }}>
           <dt>Amount</dt>
@@ -49,7 +50,7 @@ export function BriefPaywall({ quote, now, paying = false, onPay, onViewEvidence
           <dt>Network</dt>
           <dd>
             {t.network}
-            {networkName ? ` · ${networkName}` : ""}
+            {network !== t.network ? ` · ${network}` : ""}
           </dd>
           <dt>Pay to</dt>
           <dd>

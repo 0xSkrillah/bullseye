@@ -20,63 +20,6 @@
   margin: 0 auto;
 }
 
-.mk-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 16px;
-}
-
-.mk-wordmark {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-secondary);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* the darts mark: three rings, the smallest filled. Drawn, not an image. */
-.mk-bull {
-  width: 14px;
-  height: 14px;
-  border-radius: var(--radius-full);
-  border: 2px solid var(--ink-secondary);
-  position: relative;
-  flex: none;
-}
-.mk-bull::after {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  border-radius: var(--radius-full);
-  background: var(--invalid);
-}
-
-.mk-links {
-  display: flex;
-  gap: 16px;
-  font-size: 13px;
-}
-.mk-links a {
-  color: var(--ink-secondary);
-  text-decoration: none;
-  border-bottom: 1px solid var(--line-strong);
-  padding-bottom: 2px;
-}
-.mk-links a:hover {
-  color: var(--ink);
-}
-.mk-links a:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 3px;
-}
-
 /* ---------------------------------------------------------------- the event */
 
 .mk-hero {
@@ -162,7 +105,7 @@
 }
 .mk-clock-label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-muted);
@@ -224,7 +167,7 @@
 
 .mk-label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 3px 8px;
@@ -264,7 +207,7 @@
 }
 .mk-unit {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-muted);
   text-transform: none;
   letter-spacing: 0.04em;
@@ -412,7 +355,7 @@ details.mk-more[open] > summary {
 }
 .mk-table th {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-muted);
@@ -616,4 +559,166 @@ details.mk-more[open] > summary {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ---------------------------------------------------------------- picker */
+
+/*
+ * The event picker stays on the page after an event has been chosen, so a second one is one
+ * control away rather than a trip back to /market. It is a disclosure, not a menu: it opens with
+ * the keyboard, and its entries are real links a reader can copy or open in a new tab.
+ */
+.mk-picker {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--canvas-raised);
+}
+.mk-picker > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink);
+  list-style-position: inside;
+}
+.mk-picker > summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+.mk-picker-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.mk-picker[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+.mk-picker .mk-pick {
+  padding: 12px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.mk-picker .mk-pick a[aria-current="page"] {
+  border-color: var(--line-strong);
+  background: var(--canvas-overlay);
+}
+
+/* ---------------------------------------------------------------- lead */
+
+/*
+ * The event and the offer share the first screen: what happened on the left, what is for sale on
+ * the right. Below 1000px the offer follows the event in one column. It is never sticky, so it
+ * cannot cover the page or sit over a control.
+ */
+.mk-lead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: 24px;
+  align-items: start;
+}
+.mk-when {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ink-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ---------------------------------------------------------------- offer */
+
+.mk-offer {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--canvas-raised);
+  padding: 18px 20px 20px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.mk-offer.is-empty {
+  background: var(--canvas-inset);
+  border-style: dashed;
+}
+.mk-offer-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+.mk-offer-line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ink-secondary);
+}
+.mk-offer-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 5px;
+  font-size: 13px;
+  line-height: 19px;
+}
+.mk-offer-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+}
+.mk-offer-price strong {
+  font-size: 18px;
+  font-weight: 500;
+}
+.mk-offer-rail {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-secondary);
+}
+.mk-offer-cta {
+  justify-self: start;
+  text-decoration: none;
+  min-height: 44px;
+}
+.mk-offer-id {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+  word-break: break-all;
+}
+.mk-offer-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-muted);
+}
+
+@media (max-width: 999px) {
+  .mk-lead {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.mk-drawer-title {
+  display: inline;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.mk-drawer-title:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
 }
