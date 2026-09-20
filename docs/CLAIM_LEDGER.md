@@ -89,6 +89,8 @@ over, once to the schema and once to the read ceiling (SF-8, fixed).
 
 | V51 | A closed underlying market is handled as what it is: the issuer publishes no reference price, the desk records that observation with its provenance and hash, and no figure in money is computed from it. Two compounding faults were fixed — the schema rejected a null quote, and the 20 s per-read ceiling abandoned an answer that arrives at about 20.1 s and served the last price in its place. | `apps/api/test/transport.test.ts` ("the issuer publishes no price while its market is closed", 4 tests) and `apps/api/test/market.test.ts` ("a closed market publishes no price", 4 tests). The first was written before the fix and confirmed failing against the old code; anything that is not a positive number and not null is still refused, so the schema did not become permissive, and a genuine timeout stays CACHED with its reason. Verified live through the adapter on 20 Sep 2026: `quote=null`, mode LIVE, 20.8 s (QSRx) and 20.2 s (IFFx). SF-8. |
 
+| V52 | Gate 2.0.0 has judged live model drafts on the deployed service, and both outcomes have happened there. | Read from the public service on 20 Sep 2026 with no credentials: `GET /api/investigations/inv_57b371ae1d712dc1` reports `PUBLISHED` / `COMPLETED` with `gate.gateVersion` 2.0.0, decision `PUBLISH`, all 11 rules evaluated, confidence cap HIGH, one draft judged and 4 model calls; `GET /api/investigations/inv_b8f7a07744768c9a` reports `STOPPED` / `MODEL_OUTPUT_INVALID` with no gate result, so a live draft also failed to reach the gate at all. Four Briefs from live runs are on sale there. This is a handful of runs, not a rejection rate. |
+
 ## Partial
 
 | # | Claim | What exists | What is missing |
@@ -123,7 +125,7 @@ in one unit or scope) · that a forward tracker exists ·
 real-time detection or early warning (no latency has been measured; the detector polls; the one
 live Brief was first detected 21 h 29 min after the event took effect, and the desk labels such a
 case retrospective) · that a browser purchase has been made with a real wallet · that anyone has
-bought from the deployed address · that gate 2.0.0 has judged a live model's draft · comprehensive market
+bought from the deployed address · comprehensive market
 coverage (one signal type, one issuer, one chain) · that a content hash proves a source was
 truthful (it proves the Brief and the stored responses have not changed) · marketplace approval.
 
