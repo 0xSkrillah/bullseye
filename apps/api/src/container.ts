@@ -45,7 +45,7 @@ export function buildContainer(config: Config, overrides: ContainerOverrides = {
   const transport: SourceTransport =
     overrides.transport ??
     (config.DATA_SOURCE === "live"
-      ? new LiveTransport({ db, allowCached: true, recordDir: process.env.RECORD_DIR || undefined })
+      ? new LiveTransport({ db, allowCached: true, timeoutMs: config.SOURCE_TIMEOUT_MS, recordDir: process.env.RECORD_DIR || undefined })
       : config.DATA_SOURCE === "recorded"
         ? new RecordedTransport(config.RECORDING_DIR)
         : new FixtureTransport(buildFixtureResponses(), () => FIXTURE_CLOCK));

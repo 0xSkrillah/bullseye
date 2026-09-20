@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
 import { openDb } from "../src/db.js";
-import { FixtureTransport, LiveTransport, RecordedTransport, SourceUnavailableError } from "../src/adapters/transport.js";
+import { DEFAULT_SOURCE_TIMEOUT_MS, FixtureTransport, LiveTransport, RecordedTransport, SourceUnavailableError } from "../src/adapters/transport.js";
 import { SchemaMismatchError, XStocksAdapter } from "../src/adapters/xstocks.js";
 import { XLayerAdapter } from "../src/adapters/xlayer.js";
 import { SignalService } from "../src/signals/signalService.js";
@@ -76,5 +76,48 @@ describe("recorded replay of real source responses", () => {
   it("refuses to answer for anything that was not recorded", async () => {
     const xstocks = new XStocksAdapter(new RecordedTransport(dir), "https://api.xstocks.fi/api/v2");
     await expect(xstocks.price("TSLAx")).rejects.toBeInstanceOf(SourceUnavailableError);
+  });
+});
+
+/**
+ * SF-8. The issuer's price endpoint answers `{"quote": null}` while its market is closed, and takes
+ * about 20.1 s to do it. Two separate faults kept that answer from ever being recorded: the schema
+ * rejected the body, and the read was abandoned at 20 s and served the last price instead.
+ */
+describe("the issuer publishes no price while its market is closed (SF-8)", () => {
+  const adapter = (fetchImpl: typeof fetch, db?: ReturnType<typeof openDb>) => new XStocksAdapter(new LiveTransport({ db, allowCached: db !== undefined, fetchImpl }), "https://api.xstocks.fi/api/v2");
+
+  it("carries a null quote through as a null, labelled LIVE", async () => {
+    const p = await adapter(ok({ quote: null })).price("QSRx");
+    expect(p.data.quote).toBeNull();
+    expect(p.provenance.mode).toBe("LIVE");
+    // it is a real response and still hashes to what arrived
+    expect(p.provenance.sha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("still refuses anything else that is not a positive number", async () => {
+    for (const bad of [{ quote: "72.75" }, { quote: 0 }, { quote: -1 }, {}]) {
+      await expect(adapter(ok(bad)).price("QSRx"), JSON.stringify(bad)).rejects.toBeInstanceOf(SchemaMismatchError);
+    }
+  });
+
+  it("leaves headroom over the slowest endpoint the issuer is known to have", () => {
+    // measured twice on 20 Sep 2026: price-data answered in 20.1 s. At a 20 s ceiling the read was
+    // aborted and, with caching on, a stale price was served in place of "there is no price".
+    expect(DEFAULT_SOURCE_TIMEOUT_MS).toBeGreaterThan(25_000);
+  });
+
+  it("does not let a timeout masquerade as a published null", async () => {
+    const db = openDb(":memory:");
+    await adapter(ok({ quote: 72.75 }), db).price("QSRx");
+    const timedOut = (async () => {
+      throw Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" });
+    }) as unknown as typeof fetch;
+    const after = await adapter(timedOut, db).price("QSRx");
+    // a read that never answered is CACHED with the reason, and never a null quote: "no price was
+    // published" and "we did not get an answer" are different states and are labelled differently
+    expect(after.provenance.mode).toBe("CACHED");
+    expect(after.data.quote).toBe(72.75);
+    expect(after.provenance.note).toMatch(/timeout/i);
   });
 });

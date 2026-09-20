@@ -258,6 +258,24 @@ INSUFFICIENT DATA for this reason.
 rather than a bare null, document the field as nullable, and say in the OpenAPI description that
 the value is a reference price rather than an executable quote.
 
+**Fixed on our side, 20 September 2026.** Both faults, because they compounded: `XsPrice` now reads
+`quote` as a nullable positive number and the evidence item records "the issuer publishes no
+reference price at this time" with its provenance and hash, and the per-read ceiling moved from 20 s
+to 30 s (`SOURCE_TIMEOUT_MS`, `DEFAULT_SOURCE_TIMEOUT_MS`). The second half mattered as much as the
+first: at 20 s the answer never arrived, so the read was abandoned and — with caching on — the last
+price was served in its place, labelled CACHED. A stale price is a worse answer than "there is no
+price". A read that genuinely times out is still CACHED with the reason and never a null quote:
+"no price was published" and "we did not get an answer" are different states.
+
+Verified live the same day, through the adapter: `quote=null`, mode LIVE, in 20.8 s (QSRx) and
+20.2 s (IFFx) — both of which the old ceiling would have aborted. Tests:
+`apps/api/test/transport.test.ts` ("the issuer publishes no price while its market is closed",
+4 tests) and `apps/api/test/market.test.ts` ("a closed market publishes no price", 4 tests); the
+first of those was written before the fix and confirmed failing against the old code. Anything that
+is not a positive number and not null is still refused, so the schema did not become permissive.
+The finding above still stands for the sponsor: the response would be far easier to consume with a
+stated `asOf`, `currency` and `reason`.
+
 ## SF-9 · The three supply figures are not in one unit or one scope
 
 **Reproduce.** For QSRx on 20 September 2026:

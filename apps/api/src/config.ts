@@ -2,6 +2,7 @@ import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import type { ResearchBudget } from "@bullseye/domain";
+import { DEFAULT_SOURCE_TIMEOUT_MS } from "./adapters/transport.js";
 
 /** repository root; relative paths in the environment are resolved against it, not the process cwd */
 export const REPO_ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../..");
@@ -15,6 +16,8 @@ const Env = z.object({
   // data sources
   XSTOCKS_BASE_URL: z.string().url().default("https://api.xstocks.fi/api/v2"),
   XLAYER_RPC_URL: z.string().url().default("https://rpc.xlayer.tech"),
+  /** per-read ceiling for a source fetch; the issuer has an endpoint that answers in ~20 s (SF-8) */
+  SOURCE_TIMEOUT_MS: z.coerce.number().int().positive().default(DEFAULT_SOURCE_TIMEOUT_MS),
   XLAYER_TESTNET_RPC_URL: z.string().url().default("https://testrpc.xlayer.tech"),
   /** live | recorded | fixture. "recorded" replays artifacts/recorded as HISTORICAL. */
   DATA_SOURCE: z.enum(["live", "recorded", "fixture"]).default("live"),

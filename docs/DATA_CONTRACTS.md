@@ -40,10 +40,16 @@ rather than assumed:
 
 - **`price-data` is a bare, nullable number.** `{ "quote": 72.75 }` while the underlying market is
   open, `{ "quote": null }` after ~20 s while it is closed. No currency, no observation time, no
-  venue, no side. `XsPrice` reads `quote` as a positive number, so a closed-market response fails
-  the schema and `get_reference_price` records a tool error rather than an absent price; the
-  investigation continues without `EV-PRICE`. It is a reference price, never an executable quote,
-  and no endpoint publishes a bid, an ask, a size or an expiry for any asset.
+  venue, no side. `XsPrice` reads `quote` as a **nullable** positive number, and `EV-PRICE` records
+  a null as "the issuer publishes no reference price at this time" with its provenance and hash —
+  an observation, not a failed read. Anything else that is not a positive number still raises
+  `SchemaMismatchError`. Because the endpoint answers at about 20.1 s, the per-read ceiling is 30 s
+  (`SOURCE_TIMEOUT_MS`); below roughly 25 s the answer is abandoned and, with caching on, the last
+  price is served in its place. A read that does time out stays CACHED with its reason and never
+  becomes a null quote. A null cannot ground a figure in a draft (`typeof value === "number"` in
+  `numericGrounding.ts`), and `CHK-REBASE-SIZE-PLAUSIBLE`, which divides by the price, reports
+  UNKNOWN. It is a reference price, never an executable quote, and no endpoint publishes a bid, an
+  ask, a size or an expiry for any asset.
 - **The supply figures are not in one unit or one scope.** `total-supply`, `circulating-supply` and
   `proof-of-reserves.circulatingSupply` disagree by six orders of magnitude, and reserves are
   issuer-wide while `totalSupply()` is one deployment. Shares backing a token is not computable

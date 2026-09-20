@@ -21,13 +21,15 @@ the public service now runs this code and serves the new read contract. It does 
 it has been exercised there with a wallet extension or on a real rail: nobody has bought from
 the deployed address. B5 is the list of what that would take.
 
-Rows V45 to V50 were added on 20 September 2026 with the Market Desk
+Rows V45 to V51 were added on 20 September 2026 with the Market Desk
 ([MARKET_DESK.md](MARKET_DESK.md)), which reads one verified event as money. Its central finding is
 a negative one and is the reason none of those rows claims an opportunity: the sources Bullseye may
 read publish no bid, ask, size or expiry for any asset, so no spread can be quoted, and the costs
 that would have to be netted against one are unknown. The desk shows that absence by name instead
-of estimating around it. They are verified offline, against recorded real responses, except V48,
-whose data feasibility was established from live responses the same day.
+of estimating around it. They are verified offline, against recorded real responses, except V48 and
+V51, which were also checked against live responses the same day. V51 is the one defect the Market
+Desk turned up in the existing pipeline: a closed underlying market lost the price response twice
+over, once to the schema and once to the read ceiling (SF-8, fixed).
 
 ## Verified
 
@@ -84,6 +86,8 @@ whose data feasibility was established from live responses the same day.
 | V48 | The desk refuses to show a figure whose inputs are missing or stale, names what is missing, and never treats an unknown cost as zero. No spread and no net edge has ever been shown: the permitted sources publish no bid, ask, size, expiry, venue or fee schedule. Established from live responses, not from documentation. | `npm run market-probe`, artifact `artifacts/integration/market-probe-2026-09-20T13-17-24-494Z.json` (10 checks, 4 blocked; `/quote`, `/quotes`, `/orderbook`, `/book`, `/depth` all 404; `price-data` returned `{"quote": null}` while the market was closed). `apps/api/test/market.test.ts` ("missing and stale inputs", "costs and the absence of a spread", 9 tests); `tests/e2e/market-desk.spec.ts`. Blockers written up as SF-8 to SF-11. |
 | V49 | The Market Desk changes no access rule. A visitor reading a signal that may still sell gets the issuer's public figures and no chain values — not the reads, not the block numbers, and not any figure derived from them — while still being told how many reads exist. | `apps/api/test/market.test.ts` ("the paywall boundary", 3 tests), including that a chain value the issuer never published appears nowhere in a public body, by value or block number, and that the operator's view does carry it. It reuses `projectChain` from `apps/api/src/http/projections.ts` unchanged. |
 | V50 | Opening the Market Desk makes no external call and spends nothing. `GET /api/market/:signalId` reads only stored evidence and stored chain reads. | `apps/api/src/http/app.ts` (the route takes nothing but the container's stores and `transport.now()`); `apps/api/src/market/marketView.ts` has no adapter or transport import. The 36 API tests run with no network. |
+
+| V51 | A closed underlying market is handled as what it is: the issuer publishes no reference price, the desk records that observation with its provenance and hash, and no figure in money is computed from it. Two compounding faults were fixed — the schema rejected a null quote, and the 20 s per-read ceiling abandoned an answer that arrives at about 20.1 s and served the last price in its place. | `apps/api/test/transport.test.ts` ("the issuer publishes no price while its market is closed", 4 tests) and `apps/api/test/market.test.ts` ("a closed market publishes no price", 4 tests). The first was written before the fix and confirmed failing against the old code; anything that is not a positive number and not null is still refused, so the schema did not become permissive, and a genuine timeout stays CACHED with its reason. Verified live through the adapter on 20 Sep 2026: `quote=null`, mode LIVE, 20.8 s (QSRx) and 20.2 s (IFFx). SF-8. |
 
 ## Partial
 

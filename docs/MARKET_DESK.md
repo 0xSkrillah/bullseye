@@ -107,7 +107,7 @@ as SF-8 to SF-11 in [SPONSOR_FEEDBACK.md](SPONSOR_FEEDBACK.md)). Ten checks, fou
 | Currency | PASS | The issuer states `USD` for trading and for the underlying on the asset record. |
 | Deployment identity | PASS | X Layer `0xc6437a26…`. The issuer lists 10 deployments over 3 distinct addresses, in no documented order — it must be looked up by network, never by index. |
 | Market status and size | **BLOCKED** | At the time of the probe the issuer reported period `closed` with a maximum order value of **0**: no accessible transaction path at any size. |
-| Reference price | **BLOCKED** | `{"quote": null}` after 20.1 s while the market is closed, and `{"quote": 72.75}` while it is open. No currency, no observation time, no venue and no side in the response. |
+| Reference price | **BLOCKED** | `{"quote": null}` after 20.1 s while the market is closed, and `{"quote": 72.75}` while it is open. No currency, no observation time, no venue and no side in the response. The desk now records that null as an observation rather than losing the response; see SF-8, fixed 20 Sep. |
 | Executable quote | **BLOCKED** | `/quote`, `/quotes`, `/orderbook`, `/book` and `/depth` all 404. Nothing publishes a bid, an ask, a size or an expiry. |
 | Supply units | **BLOCKED** | Total supply `814558.32` against circulating supply `0.43` — 6.3 orders of magnitude apart — and reserves of 3 QSR shares, issuer-wide, against one deployment's chain read. **Shares backing a token is not computable**, so the desk does not divide them. |
 | Event impact inputs | PASS | Exact decimal strings for both multipliers, the effective time, the cashflows and the withholding rate. |
@@ -177,11 +177,12 @@ economics are separate ledgers; the desk's own totals stay at `GET /api/desk/eco
 
 | Suite | Count | What it covers here |
 | --- | --- | --- |
-| `apps/api/test/market.test.ts` | 36 | The arithmetic against the real QSRx numbers; refusing values that do not parse; rounding once; missing and stale inputs; the double-application case where the two figures diverge; unknown costs staying unknown; quote expiry; the paywall boundary in both directions; a source that changes shape. |
+| `apps/api/test/market.test.ts` | 40 | The arithmetic against the real QSRx numbers; refusing values that do not parse; rounding once; missing and stale inputs; the double-application case where the two figures diverge; unknown costs staying unknown; quote expiry; the paywall boundary in both directions; a source that changes shape; a closed market publishing no price (SF-8). |
+| `apps/api/test/transport.test.ts` | 4 of 11 | The null quote the issuer publishes while its market is closed: carried through as LIVE, still refused when it is neither null nor a positive number, a ceiling with headroom over the issuer's slowest endpoint, and a genuine timeout that stays CACHED rather than becoming a null. |
 | `apps/web/test/market.test.tsx` | 22 | The label before the number; no figure in the verified colour; missing inputs shown where the number would be; the chart drawing marks and nothing joining them; the direction of the headline; sections that cannot drop a figure. |
 | `tests/e2e/market-desk.spec.ts` | 4 | In a browser: the existing desk still offers this one; a genuine-data path with real recorded figures; the insufficient-data fallback; an event with no investigation. |
 
-Totals at the end of this slice, Node 26.7.0: `npm run typecheck` clean; `npm test` API **286 in
+Totals at the end of this slice, Node 26.7.0: `npm run typecheck` clean; `npm test` API **294 in
 21 files**, web **81 in 6**; `PW_CHANNEL=msedge npm run test:e2e` **11 browser tests**;
 `npm run build` ok. Baseline before the slice: API 250 in 20, web 59 in 5, 7 browser tests.
 

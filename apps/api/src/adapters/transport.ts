@@ -44,6 +44,19 @@ function fileFor(dir: string, key: string): string {
   return join(dir, `${key.replace(/[^a-zA-Z0-9._-]+/g, "_")}.json`);
 }
 
+/**
+ * How long a single source read may take before it is abandoned.
+ *
+ * The issuer's `price-data` endpoint answers in about 20.1 s while its market is closed — measured
+ * twice on 20 September 2026, see SPONSOR_FEEDBACK SF-8 — and what it answers is
+ * `{"quote": null}`, meaning no price is published. At a 20 s ceiling that answer never arrived:
+ * the read was aborted, and with `allowCached` on it fell back to the last price it had, labelled
+ * CACHED. A stale price is a worse answer than "there is no price", so the ceiling leaves headroom
+ * over the slowest endpoint the issuer is known to have. One slow read still sits well inside the
+ * investigation's 180 s latency budget, which the governor enforces separately.
+ */
+export const DEFAULT_SOURCE_TIMEOUT_MS = 30_000;
+
 export interface LiveTransportOptions {
   db?: Db;
   /** serve the last good response, labelled CACHED, when the live source fails */
@@ -69,7 +82,7 @@ export class LiveTransport implements SourceTransport {
     try {
       const res = await (this.opts.fetchImpl ?? fetch)(url, {
         headers: { accept: "application/json" },
-        signal: AbortSignal.timeout(this.opts.timeoutMs ?? 20_000),
+        signal: AbortSignal.timeout(this.opts.timeoutMs ?? DEFAULT_SOURCE_TIMEOUT_MS),
       });
       const text = await res.text();
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);

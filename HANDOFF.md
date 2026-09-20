@@ -35,7 +35,7 @@ were observed nineteen hours apart.
 | Cost to run | A page load makes no external call and spends nothing. The probe makes ten free unauthenticated reads and one free `eth_call`. No model, no payment, nothing signed. |
 | Scope | Read-only. No brokerage, execution, leverage, key custody or new contract. The Situation Room, the detector, the gates, the buyer flow and the paid Briefs are untouched. |
 
-Tests at the end of the slice, Node 26.7.0: `npm run typecheck` clean; `npm test` API **286 in 21
+Tests at the end of the slice, Node 26.7.0: `npm run typecheck` clean; `npm test` API **294 in 21
 files**, web **81 in 6**; `PW_CHANNEL=msedge npm run test:e2e` **11 browser tests**; `npm run build`
 ok. Baseline before it, at `e0b9892`: API 250 in 20, web 59 in 5, 7 browser tests. Layout checked at
 375, 768 and 1440 px with no horizontal overflow.
@@ -46,13 +46,26 @@ the submission closes on 25 September, and it would need new persistence during 
 tracker that could not produce an outcome series before the deadline would look like evidence
 without being any.
 
-**One thing the owner should know, unrelated to this screen.** `XsPrice` reads `price-data.quote` as
-a positive number, and the live endpoint returns `{"quote": null}` whenever the underlying market is
-closed — which is most of the week. The investigator survives it (the tool call is recorded as an
-error and the run continues without `EV-PRICE`), so this is degradation, not breakage, and it has
-been left alone: making the schema nullable changes what evidence an investigation records, and that
-is the frozen publication path. It is SF-8, and it is the owner's call whether to touch it before
-the freeze.
+**SF-8 is fixed, at the owner's instruction.** The live `price-data` endpoint returns
+`{"quote": null}` whenever the underlying market is closed, which is most of the week, and two
+faults compounded to lose that answer: `XsPrice` read `quote` as a positive number, so the body was
+rejected; and the read was abandoned at the transport's 20 s ceiling, because the endpoint answers at
+about 20.1 s, after which — with caching on — the last price was served in its place, labelled
+CACHED. A stale price is a worse answer than "there is no price".
+
+Both are fixed. `quote` is a nullable positive number, `EV-PRICE` records a null as "the issuer
+publishes no reference price at this time" with its provenance and hash, and the per-read ceiling is
+now 30 s (`SOURCE_TIMEOUT_MS`, default `DEFAULT_SOURCE_TIMEOUT_MS`). Anything that is not a positive
+number and not null is still refused, so the schema did not become permissive, and a read that
+genuinely times out is still CACHED with its reason rather than becoming a null quote. A null cannot
+ground a figure in a draft, and `CHK-REBASE-SIZE-PLAUSIBLE`, which divides by the price, reports
+UNKNOWN instead of failing; the four core checks are untouched.
+
+Verified live through the adapter on 20 September: `quote=null`, mode LIVE, in 20.8 s (QSRx) and
+20.2 s (IFFx), both of which the old ceiling would have aborted. Eight tests cover it, four in
+`transport.test.ts` and four in `market.test.ts`; the first was written before the fix and confirmed
+failing against the old code. No stored record changes shape: `EvidenceValue` already allowed null,
+and only new runs are affected.
 
 **The Situation Room is still not on `main`,** and it is not in this branch either. It exists only
 as uncommitted work in the worktree at `.claude/worktrees/bullseye-situation-room-a091ef`, based on

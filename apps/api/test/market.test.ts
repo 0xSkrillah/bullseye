@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/http/app.js";
-import { FIXTURE_CLOCK } from "../src/adapters/fixtures.js";
+import { FIXTURE_CLOCK, FIXTURE_SYMBOL } from "../src/adapters/fixtures.js";
 import { investigateFirstSignal, testContainer } from "./helpers.js";
 import { DecimalError, format, formatTrimmed, from, parse, pctChange, ratio, signedDiff } from "../src/market/decimal.js";
 import { assessRebase, costAssumptions, doubleAdjustmentError, impliedReinvestmentPrice, positionValue, quotedSpread, type RebaseInputs } from "../src/market/impact.js";
@@ -520,5 +520,71 @@ describe("a source that changes shape", () => {
     });
     expect(m.figures.find((f) => f.key === "POSITION_VALUE")?.label).toBe("INSUFFICIENT_DATA");
     expect(m.comparison.find((r) => r.what === "Issuer reference price")?.value).toBeNull();
+  });
+});
+
+/**
+ * SF-8. The issuer's price endpoint answers `{"quote": null}` whenever the underlying market is
+ * closed, which is most of the week. `XsPrice` read `quote` as a positive number, so the whole
+ * response was rejected and the investigation lost the evidence item rather than learning that no
+ * price is published. A closed market is a normal state, not a source failure.
+ */
+describe("a closed market publishes no price (SF-8)", () => {
+  async function investigateWithNoPrice() {
+    const c = await testContainer();
+    // exactly what api.xstocks.fi returns while the NYSE session is closed
+    c.fixtureTransport.set(`xstocks.price.${FIXTURE_SYMBOL}`, { quote: null });
+    const { signal, view } = await investigateFirstSignal(c);
+    return { c, signal, view };
+  }
+
+  it("records that no price was published, instead of losing the response", async () => {
+    const { c, view } = await investigateWithNoPrice();
+    const price = c.investigations.evidence(view.id).find((e) => e.id === "EV-PRICE");
+    expect(price, "EV-PRICE should exist: a null quote is an observation, not a failed read").toBeDefined();
+    expect(price!.values.quoteUsd).toBeNull();
+    expect(price!.values.impliedRebasePctAtCurrentPrice).toBeNull();
+    expect(price!.summary).toMatch(/no reference price/i);
+    // the response was still fetched, so it still has provenance and a hash of what arrived
+    expect(price!.provenance.sha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("leaves the investigation able to finish, and the plausibility check unknown rather than failed", async () => {
+    const { c, view } = await investigateWithNoPrice();
+    expect(view.status).not.toBe("FAILED");
+    expect(view.briefId, "the run should still be able to publish without a price").not.toBeNull();
+    const checks = c.briefs.get(view.briefId!)!.checks;
+    const check = checks.find((x) => x.id === "CHK-REBASE-SIZE-PLAUSIBLE");
+    // the check divides the net cashflow by the price. With no price it cannot conclude, and it
+    // says so rather than reporting a failure the issuer is not responsible for.
+    expect(check).toBeDefined();
+    expect(check!.status).toBe("UNKNOWN");
+    expect(check!.detail).toMatch(/needs EV-PRICE and a net cashflow figure/);
+    // and no other check is dragged down with it: the core four are about the multiplier
+    for (const id of ["CHK-BEFORE-MATCHES-OLD", "CHK-AFTER-MATCHES-NEW", "CHK-LATEST-MATCHES-NEW", "CHK-ACTION-STILL-CURRENT"]) {
+      expect(checks.find((x) => x.id === id)?.status, id).toBe("PASS");
+    }
+  });
+
+  it("gives the Market Desk a named absence rather than a figure", async () => {
+    const { c, signal } = await investigateWithNoPrice();
+    const res = await request(createApp(c)).get(`/api/market/${signal.id}`).set("Authorization", "Bearer x");
+    const m = res.body.market;
+    for (const key of ["POSITION_VALUE", "IMPLIED_REINVESTMENT_PRICE"]) {
+      const f = m.figures.find((x: { key: string }) => x.key === key);
+      expect(f.label, key).toBe("INSUFFICIENT_DATA");
+      expect(f.missing.join(" "), key).toMatch(/no reference price/i);
+    }
+    expect(m.comparison.find((r: { what: string }) => r.what === "Issuer reference price").value).toBeNull();
+    // and the arithmetic that needs no price is unaffected
+    expect(m.figures.find((f: { key: string }) => f.key === "BALANCE_IMPACT").value).toBe("0.25");
+  });
+
+  it("still refuses a price that is neither a positive number nor null", async () => {
+    const c = await testContainer();
+    c.fixtureTransport.set(`xstocks.price.${FIXTURE_SYMBOL}`, { quote: "72.75" });
+    const { view } = await investigateFirstSignal(c);
+    // a string where a number belongs is a contract change, not a closed market
+    expect(c.investigations.evidence(view.id).find((e) => e.id === "EV-PRICE")).toBeUndefined();
   });
 });

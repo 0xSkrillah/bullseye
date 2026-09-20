@@ -255,12 +255,19 @@ export class EvidenceToolbox {
   private async referencePrice(): Promise<EvidenceItem> {
     const price = await this.xstocks.price(this.signal.asset.symbol);
     const net = this.signal.facts.netCashflowUsd === null ? null : Number(this.signal.facts.netCashflowUsd);
+    // the issuer publishes no price while its market is closed (SF-8). That is an observation worth
+    // recording, with its provenance and hash, and not a figure: a null cannot ground a number in a
+    // draft, and the plausibility check that divides by it reports UNKNOWN rather than failing.
+    const quote = price.data.quote;
     return this.put("EV-PRICE", "REFERENCE_PRICE", price.provenance, price.provenance.fetchedAt, {
-      summary: `Issuer reference price for ${this.signal.asset.symbol} is ${price.data.quote} USD (current quote, not the ex-date price).`,
+      summary:
+        quote === null
+          ? `Issuer publishes no reference price for ${this.signal.asset.symbol} at this time: the price endpoint answered with a null quote, which it does while the underlying market is closed.`
+          : `Issuer reference price for ${this.signal.asset.symbol} is ${quote} USD (current quote, not the ex-date price).`,
       values: {
-        quoteUsd: price.data.quote,
+        quoteUsd: quote,
         netCashflowUsd: net,
-        impliedRebasePctAtCurrentPrice: net === null ? null : round((net / price.data.quote) * 100, 6),
+        impliedRebasePctAtCurrentPrice: net === null || quote === null ? null : round((net / quote) * 100, 6),
       },
     });
   }

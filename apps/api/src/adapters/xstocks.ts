@@ -74,7 +74,13 @@ export const XsProofOfReserves = z
   .passthrough();
 export type XsProofOfReserves = z.infer<typeof XsProofOfReserves>;
 
-export const XsPrice = z.object({ quote: z.number().positive() }).passthrough();
+/**
+ * `quote` is null whenever the underlying market is closed, which is most of the week, and the
+ * endpoint takes around 20 s to say so (SPONSOR_FEEDBACK SF-8). A closed market is a normal state,
+ * so null is part of the contract and is carried through as "no price is published". Anything else
+ * that is not a positive number still fails: that would be a contract change, not a closed market.
+ */
+export const XsPrice = z.object({ quote: z.number().positive().nullable() }).passthrough();
 export const XsSupply = z.object({ value: z.number().nonnegative() }).passthrough();
 export const XsTradingStatus = z
   .object({ symbol: z.string(), isMarketTradingHalted: z.boolean(), isAtomicTradingHalted: z.boolean() })
