@@ -31,8 +31,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - run: npm test
+      # build first: apps/api/test/public-deployment.test.ts skips itself when apps/web/dist is
+      # absent, so running the suite before the build silently drops the test that covers serving
+      # index.html for a deep link. That is the /?brief= route, so the skip hid the most
+      # release-critical path in the product on every run this workflow has ever made.
       - run: npm run build
+      - run: npm test
 
   browser:
     runs-on: ubuntu-latest
