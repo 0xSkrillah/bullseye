@@ -15,11 +15,14 @@ tokenised stocks (xStocks).
 > only partly done and what is blocked. On 18 September 2026 the whole path ran live once: a real
 > xStocks event, X Layer reads, a model investigation through OpenRouter, a Brief published by the
 > gate, and a purchase settled through the OKX facilitator on X Layer **testnet** and confirmed
-> on-chain. That is one investigation and one settlement. Testnet payments are not revenue, and
+> on-chain. That was one investigation and one settlement. Testnet payments are not revenue, and
 > nothing here is evidence of demand. That purchase was made by the agent buyer against a server
-> on localhost; nobody has yet bought from the deployed address, and no purchase has been made
-> from a browser with a real wallet. The browser and recovery paths below are verified offline,
-> and the deployed service has been read back serving them (CLAIM_LEDGER V43); that is not a sale.
+> on localhost. A second one has since been made **from the deployed address**: on 20 September a
+> QQQx Brief was bought there for 3 testnet USD₮0 and delivered, and the payment was recovered from
+> an unknown outcome before delivery (CLAIM_LEDGER V53). That is two settlements, both on testnet,
+> both by the owner, who reports making the second one from the browser with a wallet extension —
+> the chain and the desk's public record show the settlement and the delivery, not which client
+> signed (CLAIM_LEDGER V34, P6). Nobody outside the project has bought anything.
 
 ## What it does
 
@@ -177,12 +180,14 @@ event, because the permitted sources publish no two-sided quote, no size and no 
 is a limit of the data, established from live responses (`npm run market-probe`) and not worked
 around. It computes no shares-backing-per-token figure either, because the issuer's supply figures
 are not in one unit or scope. There is no forward tracker: an honest one needs observations
-accumulated over days, and this slice does not pretend to have them. One live investigation and one live testnet settlement:
-no quality evaluation, no rejection rate, no measured detector recall. In the one live run the
+accumulated over days, and this slice does not pretend to have them. Live runs are counted in ones
+and twos rather than hundreds, and settlements in twos:
+no quality evaluation, no rejection rate, no measured detector recall. In the first live run the
 routed endpoint did not enforce strict structured output: the first draft failed the schema and cost a revision. No
 demand evidence yet ([docs/DEMAND.md](docs/DEMAND.md)). The one live Brief was first detected
 21 h 29 min after the event took effect: a look back, not an early warning, and the desk labels
-it so. No live model draft has been judged by the current gate, so its rejection rate is unknown.
+it so. Gate 2.0.0 has now judged live model drafts on the deployed service, and has both published
+and refused (CLAIM_LEDGER V52); a handful of runs is still not a rejection rate.
 The free view shows that each step of an investigation happened and what the issuer announced;
 what the chain showed, each check's verdict and per-run cost are in the Brief or behind a
 read-only viewer token; a buyer reads one order with its claim token; the routes that start paid

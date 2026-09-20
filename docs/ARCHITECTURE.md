@@ -424,8 +424,11 @@ confidence rationale.
 
 Status: the claim-token order routes, the browser and agent purchase records, and the
 projections in this section have been on `main` and deployed since 19 September 2026
-(CLAIM_LEDGER V43). Deployed is not exercised: nobody has bought from the deployed address. See
-`DEPLOYMENT.md`.
+(CLAIM_LEDGER V43). One purchase has been made there since, on 20 September 2026: it was paid for
+on the real facilitator, recovered from an unknown outcome and delivered (V53). The owner reports
+making it from the browser with a wallet extension, so the claim-token purchase record in this
+section has now been used outside the offline configuration; the evidence kept here shows the
+settlement, not the client. See `DEPLOYMENT.md`.
 
 SQLite through `node:sqlite`. Quotes are insert-only, `orders.quote_id` and `orders.terms_hash`
 are frozen, `order_events` is append-only; all three are enforced by triggers as well as by code.

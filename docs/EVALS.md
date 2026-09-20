@@ -192,8 +192,10 @@ From the module's own header and from reading the code:
 
 ## Live runs
 
-One investigation and one settlement have been run live, both on 2026-09-18. Each is a single
-observation, not a rate.
+The investigation and the settlement below were run live on 2026-09-18. Each is a single
+observation, not a rate. The unattended desk has published live Briefs since, and a second
+settlement was made against the deployed address on 2026-09-20 (CLAIM_LEDGER V52, V53); neither
+is written up here, and a handful of runs is still not a sample.
 
 **Investigation.** Signal `sig_24ecf336903c1da1`: QSRx, CashDividend, multiplier 1 →
 1.0066516577977895. All data LIVE; synthesis through `openrouter/auto` at the medium tier. 10 tool

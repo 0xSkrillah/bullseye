@@ -139,10 +139,14 @@ skipped in 16 files, web 27 in 3, 3 browser tests.
 
 **What is proved where.** Everything above is proved offline: recorded data, fixture synthesiser,
 fixture rail, a stand-in wallet. The deployed service has been read back and serves the new
-contract (V43), which is not the same as anyone buying from it. On a real rail there is still
-exactly one settlement, by the agent buyer, against localhost (18 September). Nothing has been
-bought from the deployed address,
-no browser purchase has used a wallet extension, and no live model draft has met gate 2.0.0. An
+contract (V43), which is not the same as anyone buying from it. That was the state on 19
+September. Since then there are two settlements on a real rail: the agent buyer against localhost
+on 18 September, and one against the deployed address on 20 September, recovered from an unknown
+outcome and delivered (V53). The owner reports making that one from the browser with a wallet
+extension, which is the first use of that path outside the offline configuration; what the
+repository evidences is the settlement and the delivery, not the client. Nobody outside the
+project has bought anything. Live model drafts have since met gate 2.0.0 on the deployed service,
+in both directions (V52). An
 unknown outcome cannot be forced on the real facilitator; if it does not recur by itself that
 case stays a fixture-rail demonstration and has to be labelled as one.
 
@@ -159,12 +163,14 @@ case stays a fixture-rail demonstration and has to be labelled as one.
 3. Decide whether the wall gets a `VIEWER_TOKEN` on Railway (read-only; without it a public wall
    shows steps and counts, not on-chain figures or cost). None is set. This is a change to
    production configuration and is the owner's to make.
-4. Approve a bounded testnet spend (each purchase is 3 test USD₮0; the buyer held 7) and run, from
-   the main checkout where `.env` holds the buyer key: one agent purchase
+4. The browser purchase is done: 20 September, from the deployed address, with a wallet extension
+   (V53). What is left of this step is one agent purchase against the same address, from the main
+   checkout where `.env` holds the buyer key
    (`npm run buy -- latest --base https://bullseye-production-5d0c.up.railway.app`), then
-   `npm run verify-payment -- <orderId>`, then one browser purchase with a wallet extension on X
-   Layer testnet. Keep the delivery envelopes; they carry no key, signature or claim token.
-   `data/purchases/` does carry them and must never be committed.
+   `npm run verify-payment -- <orderId>`, which writes the delivery envelope and the independent
+   on-chain check. It needs approval for the spend and it is the last one the wallet funds: the
+   payer holds 4 test USD₮0 and a purchase is 3. Keep the delivery envelopes; they carry no key,
+   signature or claim token. `data/purchases/` does carry them and must never be committed.
 5. Start the ASP registration by 23 September if the organisers' answer makes it useful.
 6. Record the video only after step 4 works.
 7. Interviews and usability sessions: the guides are in [docs/DEMAND.md](docs/DEMAND.md). Record
@@ -243,9 +249,15 @@ payment attempts in a minute from one machine, each with a different forged `X-R
 `CLIENT_IP_HEADER=x-real-ip` was set, all 14 passed. Later that day, with the keys entered on the
 host, the auto desk published `brf_9aac63b6842fb78e` and `POST /api/v1/briefs/latest` on the
 deployed address returned `402` with a complete `PAYMENT-REQUIRED` header (OKX's self-test). A
-payment through the deployed address is still to do:
-`npm run buy -- latest --base https://bullseye-production-5d0c.up.railway.app` from the main
-checkout, where `.env` holds the buyer key (3 testnet USD₮0; the buyer held 7).
+That payment has since been made. On 20 September 2026 at 18:38 UTC the QQQx Brief
+`brf_0d55468f0c4045ef` was bought from the deployed address for 3 testnet USD₮0 and delivered —
+from the browser with a wallet extension, the owner reports:
+transaction `0x30313b87921dd68f07ae95320442ac5510fd89be371b8200bded84912573b726`, block 41470689,
+and the order went QUOTED → PAYMENT_PENDING → PAYMENT_UNKNOWN → PAID → DELIVERED in twelve
+seconds, so the unknown-outcome recovery happened there too. Checked against the chain and
+against what the deployment says in public: `artifacts/evidence/deployed-purchase-2026-09-20.json`
+(V53). The buyer wallet held 4 testnet USD₮0 afterwards, read on chain the same evening:
+enough for one more purchase, and no more.
 
 To repeat the live run, and keep the artifacts:
 
