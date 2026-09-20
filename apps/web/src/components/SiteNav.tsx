@@ -28,7 +28,13 @@ export function SiteNav({ place, status = null }: { place: NavPlace; status?: Re
   );
 }
 
-/** three rings and a red centre: drawn from tokens, never an image, and never animated on its own */
-export function TargetMark({ size = 16 }: { size?: number }) {
-  return <span className="be-target" style={{ width: size, height: size }} aria-hidden="true" />;
+/**
+ * Three rings and a red centre, drawn from tokens rather than an image.
+ *
+ * `hit` draws the centre once, and is for one thing only: a Brief that the gate actually
+ * published. It never marks a page load, a poll or an investigation still running, and a reader
+ * who asks for reduced motion gets the same mark without the draw.
+ */
+export function TargetMark({ size = 16, hit = false }: { size?: number; hit?: boolean }) {
+  return <span className={`be-target${hit ? " is-hit" : ""}`} style={{ width: size, height: size }} aria-hidden="true" />;
 }

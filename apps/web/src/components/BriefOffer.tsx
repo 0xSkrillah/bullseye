@@ -56,7 +56,7 @@ export function BriefOffer({ briefId, withdrawn, priceUsd, rail, resourcePath, e
   return (
     <aside className="mk-offer" data-testid="brief-offer" aria-label="Report for sale">
       <span className="mk-offer-eyebrow">
-        <TargetMark size={14} />
+        <TargetMark size={14} hit />
         Evidence brief
       </span>
 
