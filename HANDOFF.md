@@ -8,8 +8,8 @@ State of the build on 18 September 2026 (build day 2 of 9). Submission closes 25
 A customer-facing, read-only screen at `/market` that reads one verified event as money and answers
 one question: is this still interesting once the data, the adjustments and the costs have been
 checked. Written up in [docs/MARKET_DESK.md](docs/MARKET_DESK.md); claims are CLAIM_LEDGER V45 to
-V50. On branch `claude/market-desk`, **not merged and not deployed** — that is the owner's call,
-and the feature freeze is 24 September.
+V51. **Merged to `main` and deployed on 20 September** at the owner's instruction, together with the
+SF-8 fix below. Feature freeze is still 24 September.
 
 **The answer it gives is no, and that is the deliverable.** Two hours were budgeted for proving the
 data first. Inside that box, `npm run market-probe` established from live responses that the
