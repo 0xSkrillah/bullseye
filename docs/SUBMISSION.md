@@ -131,12 +131,19 @@ Evidence: `artifacts/evidence/deployed-purchase-2026-09-20.json` (9 checks, all 
 JSON-RPC reads of the receipt and its block, the seller's own `PAYMENT-REQUIRED` terms, and the
 deployment's public aggregates). Ledger V52, V53.
 
-**What that does not say.** It is testnet with test tokens, so it is payment and delivery mechanics,
-not revenue. The owner reports making this purchase from the browser with a wallet extension, and
-that report is worth stating — but the chain and the desk's public record show the settlement and
-the delivery, **not which client signed**, and the payer is the same address as the 18 September
-agent buyer. So the browser-wallet path is owner-reported, not independently established, and no
-stranger has bought anything (ledger V34, P6). The transaction is joined to the order by
+**The exact form of the claim.** The owner confirms this purchase was made from the browser with a
+wallet extension. Keep the split: **the settlement is verified, the client is reported.** The chain
+and the desk's public record show the payment and the delivery; they cannot show which client
+signed, because the payer is the project's own buyer address — the same one as the 18 September
+agent run. The strongest sentence the evidence supports is:
+
+> The browser purchase path has been exercised end to end on the deployed service, by the project
+> itself, on testnet.
+
+**What it does not say.** It is testnet with test tokens, so this is payment and delivery mechanics,
+not revenue. **No stranger has bought anything** (ledger P6) — so no "a customer bought one", no
+"users can buy" in the past tense, and no conversion or demand framing anywhere in the pitch. The
+transaction is joined to the order by
 network, asset, amount, pay-to and time, because operator routes are disabled on the deployment and
 the seller's own record of the order was deliberately not read.
 
@@ -148,7 +155,7 @@ Run on the submitted tree. Node **26.7.0**, Windows 11.
 
 | Command | Result |
 | --- | --- |
-| `npm ci` | **[to run on the final tree — see §8]** |
+| `npm ci` | clean, from `package-lock.json` |
 | `npm run typecheck` | clean |
 | `npm test` | API **294 passed** (21 files) · web **222 passed** (12 files) |
 | `npm run build` | ok — `/market` and `/room` are separate chunks; the desk at `/` loads neither |
@@ -187,10 +194,21 @@ Stated plainly, because the ledger is the point of this project.
 - **The Market Desk deliberately shows no tradable edge.** The permitted sources publish no bid, no
   ask, no size, no expiry and no fee schedule, so no spread and no net edge is computable. It ships
   EVENT IMPACT ONLY with missing-data states rather than manufacturing an opportunity (V45–V51).
-- **`/room` has no automated browser coverage.** Its 141 unit tests pass and it was checked by hand
-  at 1920/1440/1280/390 px and with the API stopped, where it degrades honestly. Nothing in CI would
-  catch a visual regression there. It is also a deliberately non-interactive wall display, so it has
-  no link out: reach it from the header and leave with the browser's Back button.
+- **`/room` has no Playwright coverage, so CI would not catch a visual regression there.** What it
+  does have: 141 unit tests, including a suite that holds four rendered walls to nine honesty rules,
+  and those tests were proven to bite by planting 25 violations one at a time and confirming each
+  one failed at least one test. Its request budget was measured at 0.55 requests/second against the
+  deployed address. It was checked by hand at 1920/1440/1280/390 px, against a populated server, an
+  empty database and the deployed address, and with the API stopped — where it degrades honestly
+  rather than blanking. It makes no POST and never calls operator routes.
+- **`/room` has no link out**: reach it from the header and leave with the browser's Back button.
+  The wall is deliberately non-interactive — it starts nothing, and `PAYMENT_UNKNOWN` offers no
+  pay-again — and the test enforcing that currently forbids *all* anchors, so making the wordmark a
+  link back to `/` fails it. Its author has since confirmed the rule is about **command, not
+  movement**, and that the blanket assertion was wider than intended; the exact narrowing (allow
+  exactly one anchor, whose `href` must be `/`) is agreed and recorded, and is a two-minute change.
+  It was deliberately **not** made on release night, because weakening a green safety test to land a
+  navigation convenience is the wrong trade at the wrong hour.
 - **No ASP marketplace listing.** Not registered, not submitted, not approved (B3).
 - **One browser engine.** Edge 153. No screen reader, no axe scan, no real phone.
 - **The OKX mock merchant is still blocked** — its challenge arrives with no `PAYMENT-REQUIRED`
@@ -231,10 +249,14 @@ Nothing below can be done by an agent. Ordered by what blocks the submission.
 1. **Record and upload the 2–4 minute demo video.** It does not exist. Run sheet:
    [DEMO_RUN_SHEET.md](DEMO_RUN_SHEET.md). Upload publicly, then **check the link signed out and on
    another device**.
-2. **Decide whether to deploy the Situation Room.** `main` is 2 commits ahead of `origin/main` and
-   **pushing `main` deploys to Railway**. Nothing has been pushed. Deploying re-runs CI and replaces
-   the live frontend; not deploying means `/room` exists in the repo but not at the product URL, and
-   the submission must not claim otherwise.
+2. **Decide whether to deploy the Situation Room.** `main` is ahead of `origin/main` and **pushing
+   `main` deploys to Railway**. Nothing has been pushed.
+   *If you do not push:* `/room` exists in the repo but not at the product URL — and note that the
+   deployed build answers `200` for `/room` while rendering **the ordinary desk**, because the
+   server serves `index.html` for every path and the live bundle has no such route. Nothing links to
+   it there, but do not put `/room` in the video or the form unless it has been deployed.
+   *If you do push:* wait for CI green, then re-check `/`, `/market`, `/room` and a `?brief=` link
+   signed out.
 3. **Confirm the finale date.** The supplied PDF says **In-Person, 7 October 2026**; the terms page
    read on 19 September said **6 October, 10:00–14:00 SGT**. Unresolved. Do not book travel on it.
    This is question 2 in [SUBMISSION_DRAFTS.md](SUBMISSION_DRAFTS.md).
@@ -247,7 +269,13 @@ Nothing below can be done by an agent. Ordered by what blocks the submission.
 5. **Decide on an agent purchase against the deployed host** (optional, see §8). The buyer wallet
    holds **4 test USD₮0**, read on chain after the last purchase — exactly one more 3.00 purchase
    and no more without a faucet top-up.
-6. **Confirm registration contact, team name spelling, and personally accept the terms.** No agent
+6. **Optional, one minute: paste the order id** for the QQQx purchase. Your browser holds the
+   purchase record for `brf_0d55468f0c4045ef`. The **order id alone is inert** — an order is answered
+   only to its buyer — so it can be pasted safely and would let the ledger name the order the way
+   V20 names `ord_8a2102084ad69dab`, instead of joining the transaction to it by network, asset,
+   amount, pay-to and time. **Do not paste the claim token**, which sits beside it; nobody will ask
+   for it.
+7. **Confirm registration contact, team name spelling, and personally accept the terms.** No agent
    submits the form. Retain the email receipt; organisers may ask about inaccessible links and the
    form requires a reply within 24 hours.
 7. **Send the sponsor reports** (SF-1 mock merchant, SF-7 `syncSettle` timeout) if not already sent.

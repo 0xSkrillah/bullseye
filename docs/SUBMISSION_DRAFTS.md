@@ -1,5 +1,11 @@
 # Submission drafts
 
+> **Final form answers live in [SUBMISSION.md](SUBMISSION.md), not here.** That file supersedes this
+> one for the fields, the URLs, the test results, the limitations and the reuse disclosure. This file
+> is kept for what it alone holds: the drafted question to the organisers, the ASP/A2MCP metadata
+> table, the integration diagram, the two sponsor reports, and the working checklist. Where the two
+> disagree, SUBMISSION.md and the claim ledger win.
+
 **These are drafts for the owner.** Nothing in this file has been sent, submitted, registered or
 accepted by anyone. No message below has gone to OKX. No listing exists. No form has been opened
 or filled in. The owner reviews, edits and sends everything himself. Where a fact is the owner's
