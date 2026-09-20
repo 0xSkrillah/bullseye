@@ -149,8 +149,8 @@ export const LABELS = {
  */
 export const FIGURE_SECTIONS = [
   {
-    title: "The event, in exact decimals",
-    note: "Arithmetic on the issuer's published multipliers. No price is involved, so none of these figures can be stale for want of one. A rebase percentage is a change in the number of tokens, not a price return.",
+    title: "The event, and the two ways a book gets it wrong",
+    note: "Arithmetic on the issuer's published multipliers. No price is involved, so none of these figures can be stale for want of one. A rebase percentage is a change in the number of tokens, not a price return. Two of these are the size of an error rather than the size of the event: what a balance cached before the change now understates by, and what applying the multiplier to an already-scaled balance overstates by.",
     keys: ["BALANCE_IMPACT", "DOUBLE_ADJUSTMENT_ERROR", "STALE_BALANCE_ERROR", "ISSUER_VERSUS_CHAIN"],
   },
   { title: "What it is worth, at a reference price", note: null, keys: ["POSITION_VALUE", "IMPLIED_REINVESTMENT_PRICE"] },

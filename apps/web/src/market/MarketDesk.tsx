@@ -172,6 +172,11 @@ export function MarketDesk() {
           </span>
           <h1 className="mk-title" data-testid="market-headline">{plainHeadline(m)}</h1>
           <p className="mk-lede">{m.headline}</p>
+          <p className="mk-for" data-testid="market-for">
+            <strong>For whoever has to explain this balance change in someone else&rsquo;s books.</strong> The holding moved with no transaction against it, so a ledger rebuilt from transfers will
+            not show it, and the issuer&rsquo;s own record can be revised later. The arithmetic below is free to read. The Brief is the dated, hashed record of what the issuer announced, what X Layer
+            actually did and what was not checked &mdash; one document to attach to a close, a reconciliation or a support ticket.
+          </p>
           <p className="mk-when">
             Event took effect {m.clocks.effectiveAt ? <Timestamp iso={m.clocks.effectiveAt} full /> : <span className="mk-none">not stated by the issuer</span>} · first detected by Bullseye{" "}
             <Timestamp iso={m.clocks.firstDetectedAt} full />
@@ -205,17 +210,6 @@ export function MarketDesk() {
         />
       </section>
 
-      <section className="mk-verdict" data-testid="market-verdict" data-verdict={m.stillInteresting.verdict}>
-        <p className="mk-verdict-q">Is this opportunity still interesting after checking the data, the adjustments and the costs?</p>
-        <p className="mk-verdict-a">{m.stillInteresting.verdict === "NO_TRANSACTABLE_OPPORTUNITY" ? "No transactable opportunity" : "Insufficient data"}</p>
-        <ul>
-          {m.stillInteresting.because.map((b) => (
-            <li key={b}>{b}</li>
-          ))}
-        </ul>
-        <p className="mk-note">This is an answer about the data, not a forecast. Event analysis only: no executable price is published for this asset, so none is shown.</p>
-      </section>
-
       <section className="mk-section">
         <h2 className="mk-h2">What was observed</h2>
         <Observations points={m.observations.points} eventMarkerAt={m.observations.eventMarkerAt} note={m.observations.note} chainWithheld={m.observations.chainWithheld} chainReadCount={m.observations.chainReadCount} />
@@ -240,6 +234,20 @@ export function MarketDesk() {
             </div>
           </section>
         ))}
+
+      <section className="mk-verdict" data-testid="market-verdict" data-verdict={m.stillInteresting.verdict}>
+        <p className="mk-verdict-q">Separately: is there a trade in this event, once the data, the adjustments and the costs have been checked?</p>
+        <p className="mk-verdict-a">{m.stillInteresting.verdict === "NO_TRANSACTABLE_OPPORTUNITY" ? "No transactable opportunity" : "Insufficient data"}</p>
+        <ul>
+          {m.stillInteresting.because.map((b) => (
+            <li key={b}>{b}</li>
+          ))}
+        </ul>
+        <p className="mk-note">
+          This is an answer about the data, not a forecast. Event analysis only: no executable price is published for this asset, so none is shown. It does not qualify the figures above, which are
+          arithmetic on the issuer&rsquo;s published multipliers and need no price.
+        </p>
+      </section>
 
       <section className="mk-section">
         <h2 className="mk-h2">Four clocks, kept apart</h2>

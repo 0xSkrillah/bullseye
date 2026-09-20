@@ -138,6 +138,8 @@
 .be-price .numeral { font-family: var(--font-mono); font-size: 26px; line-height: 30px; font-weight: 500; }
 .be-quote-meta { font-family: var(--font-mono); font-size: 11px; line-height: 14px; color: var(--ink-secondary); }
 .be-paywall p { margin: 0; font-size: 14px; line-height: 21px; color: var(--ink); }
+/* what the money buys, above the terms rather than below them */
+.be-paywall .be-paywall-what { font-size: 13px; line-height: 20px; color: var(--ink-secondary); border-left: 2px solid var(--line-strong); padding-left: var(--space-3); }
 .be-paywall.is-expired .numeral { color: var(--ink-muted); text-decoration: line-through; }
 .be-paywall.is-expired .be-quote-meta { color: var(--invalid); }
 

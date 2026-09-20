@@ -60,13 +60,19 @@ export function BriefOffer({ briefId, withdrawn, priceUsd, rail, resourcePath, e
         Evidence brief
       </span>
 
-      <p className="mk-offer-line">Issuer announcement, the X Layer reads that check it, and the uncertainties that remain — written as one document for a person or an agent.</p>
+      <p className="mk-offer-line">
+        One dated document that answers <em>what actually happened here, and who says so</em> — to file with a close, attach to a reconciliation, or send to whoever asked why the number moved. The
+        issuer can revise or cancel its own record later; this one is hashed and does not change.
+      </p>
       <ul className="mk-offer-list">
         <li>What happened, and why it may matter</li>
-        <li>The on-chain observations, with their values</li>
+        <li>The X Layer reads either side of the effective time, and the block the change activated at</li>
         <li>Every evidence item with its source URL, fetch time and sha256</li>
-        <li>Confidence, unknowns, conflicts and limitations</li>
+        <li>What was checked, what it found, and what stayed unknown</li>
       </ul>
+      <p className="mk-offer-line mk-offer-quiet">
+        Readable as it stands, or parsed: the same document is one JSON object with a stable schema and a content hash.
+      </p>
 
       <div className="mk-offer-price" data-testid="brief-offer-price">
         <strong className="mono">{priceUsd} USD</strong>
@@ -86,6 +92,10 @@ export function BriefOffer({ briefId, withdrawn, priceUsd, rail, resourcePath, e
       <a className="be-btn be-btn-primary mk-offer-cta" href={`/?brief=${encodeURIComponent(briefId)}`} data-testid="brief-offer-cta">
         View this brief
       </a>
+      <p className="mk-offer-recovery">
+        You see the exact terms and their hash before you approve anything. If a payment cannot be confirmed, nothing is delivered and pressing pay again cannot charge you twice; this browser
+        keeps a claim for the order, so closing the page does not lose a purchase already made.
+      </p>
       <p className="mk-offer-id mono">{briefId}</p>
 
       {resourcePath && (

@@ -108,6 +108,10 @@ export function BriefPaywall({ quote, now, paying = false, onPay, onViewEvidence
         </>
       ) : (
         <>
+          <p className="be-paywall-what" data-testid="paywall-what">
+            What you are buying: the findings of this investigation — the issuer&rsquo;s record, the X Layer reads either side of the effective time, the block the change activated at, every check
+            with its result, and what stayed unknown. One document, readable or parsed, hashed so it can be filed as it stands.
+          </p>
           {frozen.list}
           <span className="be-quote-meta" aria-live="off">
             Issued <Timestamp iso={quote.terms.issuedAt} /> · expires <Timestamp iso={quote.terms.expiresAt} /> ({countdown(remainingMs)})
