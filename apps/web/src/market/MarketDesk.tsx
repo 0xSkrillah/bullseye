@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { humanAge, LABELS, marketApi, plainHeadline, type EvidenceRef, type MarketResponse, type MarketSignalRow } from "./data";
+import { groupFigures, humanAge, LABELS, marketApi, plainHeadline, type EvidenceRef, type MarketResponse, type MarketSignalRow } from "./data";
 import { Costs, FigureCard } from "./Figures";
 import { Comparison, EvidenceDrawer } from "./Comparison";
 import { Observations } from "./Observations";
@@ -98,9 +98,7 @@ export function MarketDesk() {
 
   const m = view.data.market;
   const audience = view.data.audience;
-  const impact = m.figures.filter((f) => f.label === "EVENT_IMPACT");
-  const priced = m.figures.filter((f) => f.key === "POSITION_VALUE" || f.key === "IMPLIED_REINVESTMENT_PRICE");
-  const cannot = m.figures.filter((f) => f.key === "QUOTED_SPREAD" || f.key === "NET_EDGE");
+  const sections = groupFigures(m.figures);
   const openEvidence = (id: string) => setOpen(m.evidence.find((e) => e.id === id) ?? null);
 
   return shell(
@@ -111,7 +109,7 @@ export function MarketDesk() {
           {badge(m.dataMode) && <ProvenanceBadge kind={badge(m.dataMode)!} />}
           {audience === "PUBLIC" ? <span title="On-chain figures are part of the Brief in this view.">free view</span> : <span title="Operator or viewer token: the desk's own working detail.">diagnostic view</span>}
         </span>
-        <h1 className="mk-title">{plainHeadline(m)}</h1>
+        <h1 className="mk-title" data-testid="market-headline">{plainHeadline(m)}</h1>
         <p className="mk-lede">{m.headline}</p>
         <p className="mk-note">
           {m.asset.symbol} is {m.asset.tokenIsin ? <>ISIN {m.asset.tokenIsin}, </> : null}a token tracking {m.asset.underlyingSymbol}. They are not the same instrument, and a shared ticker root is not shared exposure.
@@ -127,7 +125,7 @@ export function MarketDesk() {
         </p>
       </section>
 
-      <section className="mk-verdict">
+      <section className="mk-verdict" data-testid="market-verdict" data-verdict={m.stillInteresting.verdict}>
         <p className="mk-verdict-q">Is this opportunity still interesting after checking the data, the adjustments and the costs?</p>
         <p className="mk-verdict-a">{m.stillInteresting.verdict === "NO_TRANSACTABLE_OPPORTUNITY" ? "No transactable opportunity" : "Insufficient data"}</p>
         <ul>
@@ -139,7 +137,7 @@ export function MarketDesk() {
 
       <section className="mk-section">
         <h2 className="mk-h2">Four clocks, kept apart</h2>
-        <div className="mk-clocks">
+        <div className="mk-clocks" data-testid="market-clocks">
           <div className="mk-clock">
             <span className="mk-clock-label">Effective</span>
             <span className="mk-clock-value">{m.clocks.effectiveAt ? <Timestamp iso={m.clocks.effectiveAt} full /> : "not set"}</span>
@@ -175,39 +173,25 @@ export function MarketDesk() {
         <Observations points={m.observations.points} eventMarkerAt={m.observations.eventMarkerAt} note={m.observations.note} chainWithheld={m.observations.chainWithheld} chainReadCount={m.observations.chainReadCount} />
       </section>
 
-      <section className="mk-section">
-        <h2 className="mk-h2">The event, in exact decimals</h2>
-        <p className="mk-note">
-          Arithmetic on the issuer's published multipliers. No price is involved, so none of these figures can be stale for want of one. A rebase percentage is a change in the number of tokens, not a price return.
-        </p>
-        <div className="mk-figures">
-          {impact.map((f) => (
-            <FigureCard key={f.key} figure={f} onOpenEvidence={openEvidence} />
-          ))}
-        </div>
-      </section>
-
-      <section className="mk-section">
-        <h2 className="mk-h2">What it is worth, at a reference price</h2>
-        <p className="mk-note">
-          Computed for a stated holding of {m.statedHoldingTokens} {m.asset.symbol}. The desk does not know any reader's balance and does not ask. A reference price has no side, no size and no venue, so
-          everything in this section is a valuation and none of it is a quote.
-        </p>
-        <div className="mk-figures">
-          {priced.map((f) => (
-            <FigureCard key={f.key} figure={f} onOpenEvidence={openEvidence} />
-          ))}
-        </div>
-      </section>
-
-      <section className="mk-section">
-        <h2 className="mk-h2">What the desk cannot tell you</h2>
-        <div className="mk-figures">
-          {cannot.map((f) => (
-            <FigureCard key={f.key} figure={f} onOpenEvidence={openEvidence} />
-          ))}
-        </div>
-      </section>
+      {sections
+        .filter((s) => s.figures.length > 0)
+        .map((s) => (
+          <section className="mk-section" key={s.title} data-testid="market-figure-section">
+            <h2 className="mk-h2">{s.title}</h2>
+            {s.note && <p className="mk-note">{s.note}</p>}
+            {s.title === "What it is worth, at a reference price" && (
+              <p className="mk-note">
+                Computed for a stated holding of {m.statedHoldingTokens} {m.asset.symbol}. The desk does not know any reader's balance and does not ask. A reference price has no side, no size and no
+                venue, so everything in this section is a valuation and none of it is a quote.
+              </p>
+            )}
+            <div className="mk-figures">
+              {s.figures.map((f) => (
+                <FigureCard key={f.key} figure={f} onOpenEvidence={openEvidence} />
+              ))}
+            </div>
+          </section>
+        ))}
 
       <section className="mk-section">
         <h2 className="mk-h2">Both sides, with their sources</h2>

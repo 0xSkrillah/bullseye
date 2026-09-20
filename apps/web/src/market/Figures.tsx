@@ -14,7 +14,7 @@ export function FigureCard({ figure, onOpenEvidence }: { figure: Figure; onOpenE
   const label = LABELS[figure.label];
   const missing = figure.label === "INSUFFICIENT_DATA";
   return (
-    <article className={`mk-figure${missing ? " is-missing" : ""}`} aria-label={figure.key}>
+    <article className={`mk-figure${missing ? " is-missing" : ""}`} aria-label={figure.key} data-testid="market-figure" data-key={figure.key} data-label={figure.label}>
       <span className="mk-label" data-tone={label.tone} title={label.meaning}>
         {label.text}
       </span>
@@ -92,7 +92,7 @@ export function FigureCard({ figure, onOpenEvidence }: { figure: Figure; onOpenE
  */
 export function Costs({ costs }: { costs: CostAssumption[] }) {
   return (
-    <div className="mk-scroll">
+    <div className="mk-scroll" data-testid="market-costs">
       <table className="mk-table">
         <thead>
           <tr>

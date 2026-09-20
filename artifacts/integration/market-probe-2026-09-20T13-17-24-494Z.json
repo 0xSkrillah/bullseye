@@ -1,0 +1,326 @@
+{
+  "ranAt": "2026-09-20T13:17:24.494Z",
+  "node": "v26.7.0",
+  "symbol": "QSRx",
+  "sources": {
+    "xstocks": "https://api.xstocks.fi/api/v2",
+    "xlayer": "https://rpc.xlayer.tech"
+  },
+  "checks": [
+    {
+      "check": "INSTRUMENT_IDENTITY",
+      "verdict": "PASS",
+      "finding": "QSRx is ISIN CH1580497118 (the token) over QSR ISIN US76131D1037 (the listed share): two different instruments, so a shared ticker root is not shared exposure",
+      "evidence": {
+        "symbol": "QSRx",
+        "name": "Restaurant Brands International xStock",
+        "tokenIsin": "CH1580497118",
+        "underlyingSymbol": "QSR",
+        "underlyingIsin": "US76131D1037",
+        "listingCountry": "US",
+        "exchange": {
+          "mic": "XNYS",
+          "abbreviation": "NYSE",
+          "name": "New York Stock Exchange",
+          "timezone": "America/New_York"
+        },
+        "source": {
+          "mode": "LIVE",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx",
+          "fetchedAt": "2026-09-20T13:17:00.678Z",
+          "sha256": "2c8679dbf903887f2828efb1e91dbfc46c973936164282f09e2a7a744c7184ea"
+        }
+      }
+    },
+    {
+      "check": "CURRENCY",
+      "verdict": "PASS",
+      "finding": "the issuer states USD for trading and USD for the underlying",
+      "evidence": {
+        "tradingCurrency": "USD",
+        "underlyingCurrency": "USD",
+        "source": {
+          "mode": "LIVE",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx",
+          "fetchedAt": "2026-09-20T13:17:00.678Z",
+          "sha256": "2c8679dbf903887f2828efb1e91dbfc46c973936164282f09e2a7a744c7184ea"
+        }
+      }
+    },
+    {
+      "check": "DEPLOYMENT_IDENTITY",
+      "verdict": "PASS",
+      "finding": "QSRx on X Layer is 0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046; the issuer lists 10 deployments across 3 distinct addresses, and the array is not in a documented order, so it must be looked up by network and never by index",
+      "evidence": {
+        "xLayer": {
+          "network": "XLayer",
+          "address": "0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046",
+          "wrapperAddressV2": "0x91c76bc8a25738b9d75b3785cbdbe3c09dc33396",
+          "supportsAtomicSwaps": true,
+          "stablecoins": [
+            {
+              "symbol": "USDG",
+              "currency": "USD",
+              "network": "XLayer",
+              "address": "0x4ae46a509f6b1d9056937ba4500cb143933d2dc8",
+              "decimals": 6,
+              "issuance": true,
+              "redemption": true,
+              "supportsAtomicSwaps": true
+            },
+            {
+              "symbol": "USDC",
+              "currency": "USD",
+              "network": "XLayer",
+              "address": "0xb6ceceab302e2e4948951ee7843fc24e92933061",
+              "decimals": 6,
+              "issuance": true,
+              "redemption": true,
+              "supportsAtomicSwaps": true
+            }
+          ]
+        },
+        "networks": [
+          "Ton",
+          "XLayer",
+          "Optimism",
+          "Ethereum",
+          "Mantle",
+          "BinanceSmartChain",
+          "Solana",
+          "Ink",
+          "Arbitrum",
+          "HyperEVM"
+        ],
+        "distinctAddresses": [
+          "eqbyp66iouqqlmlscopefnsnunvkeoievxnccbl8gqjxoqu4",
+          "0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046",
+          "xsg3elvlbhwyqp3r7tszne6bevca2ko1tpywbyd6rqk"
+        ],
+        "source": {
+          "mode": "LIVE",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx",
+          "fetchedAt": "2026-09-20T13:17:00.678Z",
+          "sha256": "2c8679dbf903887f2828efb1e91dbfc46c973936164282f09e2a7a744c7184ea"
+        }
+      }
+    },
+    {
+      "check": "MARKET_STATUS_AND_SIZE",
+      "verdict": "BLOCKED",
+      "finding": "the issuer reports period \"closed\" (openNow=false) with a maximum order value of 0: there is no accessible transaction path at any size right now, next change 2026-09-21T00:00:00.000Z",
+      "evidence": {
+        "currentPeriod": "closed",
+        "openNow": false,
+        "nextChangeAt": "2026-09-21T00:00:00.000Z",
+        "tradingHoursMode": "TwentyFourFive",
+        "limitsForCurrentPeriod": {
+          "minOrderFiatValue": 1000,
+          "maxOrderFiatValue": 0
+        },
+        "allPeriods": {
+          "market": {
+            "minOrderFiatValue": 1000,
+            "maxOrderFiatValue": 10000000
+          },
+          "extended": {
+            "minOrderFiatValue": 1000,
+            "maxOrderFiatValue": 10000000
+          },
+          "overnight": {
+            "minOrderFiatValue": 1000,
+            "maxOrderFiatValue": 1000000
+          },
+          "closed": {
+            "minOrderFiatValue": 1000,
+            "maxOrderFiatValue": 0
+          }
+        },
+        "source": {
+          "mode": "LIVE",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx",
+          "fetchedAt": "2026-09-20T13:17:00.678Z",
+          "sha256": "2c8679dbf903887f2828efb1e91dbfc46c973936164282f09e2a7a744c7184ea"
+        }
+      }
+    },
+    {
+      "check": "REFERENCE_PRICE",
+      "verdict": "BLOCKED",
+      "finding": "the endpoint answered 200 with quote=null after 20121 ms: while the market is closed there is no reference price at all, and the repository schema (XsPrice, quote: number().positive()) rejects this body",
+      "evidence": {
+        "quote": null,
+        "fields": [
+          "quote"
+        ],
+        "latencyMs": 20121,
+        "statedCurrency": null,
+        "statedObservationTime": null,
+        "statedVenue": null,
+        "statedSide": null,
+        "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx/price-data",
+        "fetchedAt": "2026-09-20T13:17:01.143Z",
+        "sha256": "4585ec0ad610b16a2a87f54c6db9262704b90430af71138e47d170a203484970"
+      }
+    },
+    {
+      "check": "EXECUTABLE_QUOTE",
+      "verdict": "BLOCKED",
+      "finding": "none of 5 probed routes exists (quote=404, quotes=404, orderbook=404, book=404, depth=404): the permitted sources publish no bid, no ask, no size and no expiry, so a quoted spread cannot be computed and must not be estimated",
+      "evidence": {
+        "probed": [
+          {
+            "path": "/public/assets/QSRx/quote",
+            "status": 404
+          },
+          {
+            "path": "/public/assets/QSRx/quotes",
+            "status": 404
+          },
+          {
+            "path": "/public/assets/QSRx/orderbook",
+            "status": 404
+          },
+          {
+            "path": "/public/assets/QSRx/book",
+            "status": 404
+          },
+          {
+            "path": "/public/assets/QSRx/depth",
+            "status": 404
+          }
+        ],
+        "conclusion": "no two-sided quote source in the permitted set"
+      }
+    },
+    {
+      "check": "SUPPLY_UNITS",
+      "verdict": "BLOCKED",
+      "finding": "total-supply reports 814558.3231943906 and circulating-supply 0.4329033180347051, 6.3 orders of magnitude apart, while proof-of-reserves holds 3 QSR shares against a circulating figure of 0.432903322893486089: the three are not in one unit or one scope, so shares backing a token is not computable and the desk must not divide them",
+      "evidence": {
+        "issuerTotalSupply": 814558.3231943906,
+        "issuerCirculatingSupply": 0.4329033180347051,
+        "ordersOfMagnitudeApart": 6.274531271155759,
+        "porSharesHeld": "3",
+        "porCirculatingSupply": "0.432903322893486089",
+        "porTimestamp": "2026-09-20T13:06:08.184Z",
+        "note": "proof-of-reserves and the supply endpoints are issuer-wide; the chain read below is one deployment",
+        "sources": {
+          "total": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx/total-supply",
+            "sha256": "b82effccb1245adc258d88e9085d5660e26df53bbe0de44d57e2b954f68be43e"
+          },
+          "circulating": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx/circulating-supply",
+            "sha256": "3a110ea18e2b4b25eadb9e3bc0db95e5eeb77e82c746d2f55d1b38f29a85c052"
+          },
+          "reserves": {
+            "mode": "LIVE",
+            "source": "api.xstocks.fi",
+            "url": "https://api.xstocks.fi/api/v2/public/proof-of-reserves/QSRx",
+            "fetchedAt": "2026-09-20T13:17:21.914Z",
+            "sha256": "979b052c53f8c1531a23f95bc6c10ddaaf27c6e66e09d654d98c88bb09b2d004"
+          }
+        }
+      }
+    },
+    {
+      "check": "EVENT_IMPACT_INPUTS",
+      "verdict": "PASS",
+      "finding": "CashDividend 7b14c6dc-1532-4d64-908f-3c98b05efe94 v2 moves the multiplier 1 to 1.0066516577977895 (0.665165779779% on a holder's balance), effective 2026-09-18T00:30:00.000Z, announced 2026-09-17T20:12:09.875Z, net cashflow 0.4875 with withholding 0: exact decimal strings, so the balance effect is computable without a price",
+      "evidence": {
+        "action": {
+          "eventId": "7b14c6dc-1532-4d64-908f-3c98b05efe94",
+          "version": 2,
+          "xstockSymbol": "QSRx",
+          "spvSymbol": "QSR",
+          "caType": "CashDividend",
+          "effectiveTimeUtc": "2026-09-18T00:30:00.000Z",
+          "multiplierOld": "1",
+          "multiplierNew": "1.0066516577977895",
+          "grossCashflowUsd": "0.4875",
+          "netCashflowUsd": "0.4875",
+          "withholdingTaxRate": "0",
+          "createdTimeUtc": "2026-09-17T20:12:09.875Z",
+          "status": "Initial",
+          "notes": null,
+          "fromUnits": null,
+          "toUnits": null,
+          "redemptionPriceUsd": null,
+          "xstockIsin": "CH1580497118",
+          "spvIsin": "US76131D1037"
+        },
+        "balanceImpactPct": "0.665165779779",
+        "rejectedRecords": [],
+        "source": {
+          "mode": "LIVE",
+          "source": "api.xstocks.fi",
+          "url": "https://api.xstocks.fi/api/v2/public/corporate-actions/history?pageSize=50&sortBy=createdTimeUtc&sortOrder=desc&symbol=QSRx",
+          "fetchedAt": "2026-09-20T13:17:21.983Z",
+          "sha256": "200cd8d5f5f05edc3b5872f78b1ce6c404be363069277edd939e1132c9d94ca6"
+        }
+      }
+    },
+    {
+      "check": "FRESHNESS_BOUND",
+      "verdict": "PASS",
+      "finding": "the asset response carries cache-control \"public, s-maxage=30, stale-while-revalidate=60\" and no body-level observation time; the price response carries none either, so every observation is dated by fetch time and an edge cache may make it older than that",
+      "evidence": {
+        "assetCacheControl": "public, s-maxage=30, stale-while-revalidate=60",
+        "priceCacheControl": null,
+        "priceAge": null,
+        "bodyObservationTimes": {
+          "asset": null,
+          "price": null,
+          "proofOfReserves": "2026-09-20T13:06:08.184Z"
+        }
+      }
+    },
+    {
+      "check": "ISSUER_VERSUS_CHAIN",
+      "verdict": "PASS",
+      "finding": "multiplier() on X Layer at block 71141207 returns 1.0066516577977895 and the issuer API reports 1.0066516577977895: equal at 18 decimals, so the two sides of the event are comparable",
+      "evidence": {
+        "onchain": {
+          "chainId": 196,
+          "tokenAddress": "0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046",
+          "blockNumber": 71141207,
+          "blockTimestamp": "2026-09-20T13:17:23.000Z",
+          "multiplierRaw": "1006651657797789500",
+          "multiplier": "1.0066516577977895"
+        },
+        "issuerCurrent": "1.0066516577977895",
+        "issuerPending": 0,
+        "pendingIsSentinel": true,
+        "ratio": "1",
+        "sources": {
+          "chain": {
+            "mode": "LIVE",
+            "source": "rpc.xlayer.tech",
+            "url": "https://rpc.xlayer.tech",
+            "fetchedAt": "2026-09-20T13:17:22.812Z",
+            "sha256": "cdd6a29b5f6e924190a07d65fb2e8feaee5ea21dc3045254712b6c96e4ba039f"
+          },
+          "issuer": {
+            "mode": "LIVE",
+            "source": "api.xstocks.fi",
+            "url": "https://api.xstocks.fi/api/v2/public/assets/QSRx/multiplier?network=XLayer",
+            "fetchedAt": "2026-09-20T13:17:24.217Z",
+            "sha256": "341c6d5311689060111ce92a56e9f86dc1c0c7d77239248c89fefe46a0ca6635"
+          }
+        }
+      }
+    }
+  ],
+  "verdict": {
+    "EVENT_IMPACT": "AVAILABLE",
+    "REFERENCE_DISCREPANCY": "INSUFFICIENT_DATA: no reference price is being published right now",
+    "ESTIMATED_QUOTED_SPREAD": "INSUFFICIENT_DATA: no bid, ask, size, fee schedule or quote expiry exists in the permitted sources",
+    "NET_EDGE": "SUPPRESSED: unknown costs are unknown, and no executable quote exists to net them against",
+    "scope": "One asset, one issuer, one chain. This probe reads; it does not trade, and no source here is a venue."
+  }
+}

@@ -27,7 +27,7 @@ export function Observations({ points, eventMarkerAt, note, chainWithheld, chain
   const usable = points.filter((p) => Number.isFinite(Date.parse(p.at)) && /^\d+(\.\d+)?$/.test(p.multiplier));
   if (usable.length === 0) {
     return (
-      <div className="mk-chart">
+      <div className="mk-chart" data-testid="market-chart">
         <p className="mk-note">No observation of this multiplier has been recorded, so there is nothing to draw.</p>
       </div>
     );
@@ -56,7 +56,7 @@ export function Observations({ points, eventMarkerAt, note, chainWithheld, chain
   const distinct = [...new Set(usable.map((p) => p.multiplier))].sort((a, b) => Number(a) - Number(b));
 
   return (
-    <div className="mk-chart">
+    <div className="mk-chart" data-testid="market-chart">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Multiplier observations for this event. ${usable.length} recorded observations. ${note}`}>
         {distinct.map((v) => (
           <g key={v}>

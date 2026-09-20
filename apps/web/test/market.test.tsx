@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Costs, FigureCard } from "../src/market/Figures";
 import { Comparison } from "../src/market/Comparison";
 import { Observations } from "../src/market/Observations";
-import { humanAge, LABELS, plainHeadline, type ComparisonRow, type CostAssumption, type Figure, type MarketObservation, type MarketView } from "../src/market/data";
+import { FIGURE_SECTIONS, groupFigures, humanAge, LABELS, plainHeadline, type ComparisonRow, type CostAssumption, type Figure, type MarketObservation, type MarketView } from "../src/market/data";
 
 const render = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el);
 const noop = () => undefined;
@@ -200,5 +200,31 @@ describe("an age a reader has to judge freshness by", () => {
     expect(humanAge(3600)).toBe("60 min");
     expect(humanAge(68246)).toBe("18 h 57 min");
     expect(humanAge(-58)).toBe("58 s");
+  });
+});
+
+describe("how figures are grouped into sections", () => {
+  const fig = (key: string, label: Figure["label"] = "EVENT_IMPACT"): Figure => ({ ...impact, key, label });
+
+  it("keeps a figure on screen when its label changes to INSUFFICIENT_DATA", () => {
+    // the comparison with the chain is withheld both when no read exists and when the reads are
+    // part of the Brief. Grouping by label dropped the card in exactly those two cases.
+    const withheld = fig("ISSUER_VERSUS_CHAIN", "INSUFFICIENT_DATA");
+    const sections = groupFigures([fig("BALANCE_IMPACT"), withheld]);
+    const shown = sections.flatMap((s) => s.figures.map((f) => f.key));
+    expect(shown).toContain("ISSUER_VERSUS_CHAIN");
+  });
+
+  it("drops nothing, and puts a figure it does not recognise in a section of its own", () => {
+    const all = [fig("BALANCE_IMPACT"), fig("QUOTED_SPREAD", "INSUFFICIENT_DATA"), fig("SOMETHING_NEW")];
+    const sections = groupFigures(all);
+    const shown = sections.flatMap((s) => s.figures.map((f) => f.key));
+    expect(shown.sort()).toEqual(all.map((f) => f.key).sort());
+    expect(sections.at(-1)?.title).toBe("Also computed");
+  });
+
+  it("puts every figure in exactly one section", () => {
+    const keys = FIGURE_SECTIONS.flatMap((s) => s.keys as readonly string[]);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });

@@ -127,6 +127,33 @@ export const LABELS = {
 } as const satisfies Record<FigureLabel, { text: string; tone: string; meaning: string }>;
 
 /**
+ * Which section each figure belongs to, keyed by the figure itself and never by its label.
+ *
+ * Grouping by label would make a figure vanish the moment its label changed — and the labels do
+ * change: the comparison with the chain becomes INSUFFICIENT_DATA both when no read exists and
+ * when the reads are withheld as part of the Brief, which is precisely when the reader most needs
+ * to see the card saying so. Anything this table does not name still renders, in the last section,
+ * so a figure added to the API can never quietly disappear from the screen.
+ */
+export const FIGURE_SECTIONS = [
+  {
+    title: "The event, in exact decimals",
+    note: "Arithmetic on the issuer's published multipliers. No price is involved, so none of these figures can be stale for want of one. A rebase percentage is a change in the number of tokens, not a price return.",
+    keys: ["BALANCE_IMPACT", "DOUBLE_ADJUSTMENT_ERROR", "STALE_BALANCE_ERROR", "ISSUER_VERSUS_CHAIN"],
+  },
+  { title: "What it is worth, at a reference price", note: null, keys: ["POSITION_VALUE", "IMPLIED_REINVESTMENT_PRICE"] },
+  { title: "What the desk cannot tell you", note: null, keys: ["QUOTED_SPREAD", "NET_EDGE"] },
+] as const;
+
+/** every figure, in its section, with anything unrecognised kept rather than dropped */
+export function groupFigures(figures: Figure[]): { title: string; note: string | null; figures: Figure[] }[] {
+  const named = new Set(FIGURE_SECTIONS.flatMap((s) => s.keys as readonly string[]));
+  const sections = FIGURE_SECTIONS.map((s) => ({ title: s.title, note: s.note as string | null, figures: figures.filter((f) => (s.keys as readonly string[]).includes(f.key)) }));
+  const rest = figures.filter((f) => !named.has(f.key));
+  return rest.length === 0 ? sections : [...sections, { title: "Also computed", note: null, figures: rest }];
+}
+
+/**
  * The headline, in plain English, derived from the sign of the balance change rather than assumed.
  * A corporate action can lower a multiplier as well as raise one, and the desk says which happened
  * rather than describing every rebase as a gain.

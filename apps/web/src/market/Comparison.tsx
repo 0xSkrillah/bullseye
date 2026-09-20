@@ -16,7 +16,7 @@ export function Comparison({ rows, onOpenEvidence, evidence }: { rows: Compariso
   const known = new Set(evidence.map((e) => e.id));
   const idFor = (row: ComparisonRow) => (row.evidenceId !== null && known.has(row.evidenceId) ? row.evidenceId : null);
   return (
-    <div className="mk-scroll">
+    <div className="mk-scroll" data-testid="market-comparison">
       <table className="mk-table">
         <thead>
           <tr>
@@ -33,7 +33,7 @@ export function Comparison({ rows, onOpenEvidence, evidence }: { rows: Compariso
           {rows.map((r) => {
             const id = idFor(r);
             return (
-              <tr key={r.what}>
+              <tr key={r.what} data-testid="market-comparison-row" data-what={r.what}>
                 <th scope="row" style={{ fontWeight: 500, background: "none", fontFamily: "var(--font-sans)", fontSize: 13, letterSpacing: 0, textTransform: "none", color: "var(--ink)", position: "static" }}>
                   {r.what}
                 </th>
@@ -76,7 +76,7 @@ export function EvidenceDrawer({ item, onClose }: { item: EvidenceRef | null; on
   if (!item) return null;
   return (
     <div className="mk-drawer" role="dialog" aria-modal="true" aria-label={`Evidence ${item.id}`} onClick={onClose}>
-      <div className="mk-drawer-panel" onClick={(e) => e.stopPropagation()}>
+      <div className="mk-drawer-panel" data-testid="market-evidence-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="mk-drawer-head">
           <div>
             <strong className="mono">{item.id}</strong>{" "}
