@@ -234,6 +234,25 @@ describe("costs and the absence of a spread", () => {
     expect(f.limitations.join(" ")).toMatch(/not double-counted|none is netted/i);
   });
 
+  // The lede names two different errors and they are percentages of different bases. It used to say
+  // a cached balance was wrong by "that much" — the rebase — which is the one mistake STALE_BALANCE_ERROR
+  // exists to warn against, and nothing asserted the assembled sentence, so it drifted unnoticed.
+  it("names each error with its own figure: a stale cache understates by x/(1+x), not by the rebase", () => {
+    const alreadyRebased: RebaseInputs = { ...QSRx, multiplierOld: "1.5", multiplierNew: "1.65" };
+    const { headline, figures } = assessRebase(alreadyRebased);
+    const value = (key: string) => figures.find((f) => f.key === key)!.value!.replace("-", "");
+    const rebase = value("BALANCE_IMPACT");
+    const stale = value("STALE_BALANCE_ERROR");
+    const double = value("DOUBLE_ADJUSTMENT_ERROR");
+    // the three are genuinely different numbers here, which is what makes the sentence falsifiable
+    expect(new Set([rebase, stale, double]).size).toBe(3);
+    expect(headline).toContain(`understates the holding by ${stale}%`);
+    expect(headline).toContain(`overstates it by ${double}%`);
+    expect(headline).toContain(`hold ${rebase}% more tokens`);
+    expect(headline, "the stale-cache clause must not quote the rebase").not.toContain(`understates the holding by ${rebase}%`);
+    expect(headline).not.toContain("that much");
+  });
+
   it("claims no opportunity and gives its reasons", () => {
     const a = assessRebase(QSRx);
     expect(a.stillInteresting.verdict).toBe("NO_TRANSACTABLE_OPPORTUNITY");

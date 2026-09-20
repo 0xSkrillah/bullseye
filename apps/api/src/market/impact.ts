@@ -420,9 +420,13 @@ export function assessRebase(i: RebaseInputs): RebaseAssessment {
   const figures = [balanceImpact(i), doubleAdjustmentError(i), staleBalanceError(i), issuerVersusChain(i), positionValue(i), impliedReinvestmentPrice(i), quotedSpread(i), netEdge(i, costs)];
   const impact = pctChange(i.multiplierOld, i.multiplierNew);
   const priced = figures.find((f) => f.key === "POSITION_VALUE")?.label !== "INSUFFICIENT_DATA";
+  // Each of the two errors is named with its OWN figure. A stale cache is not wrong by the rebase:
+  // it understates by x/(1+x), which is STALE_BALANCE_ERROR, and the lede used to say "by that
+  // much" — making, in prose, the exact mistake the figure below it exists to warn against.
+  const stale = pctChange(i.multiplierNew, i.multiplierOld).replace("-", "");
   const headline =
     `${i.symbol} holders on X Layer hold ${impact}% more tokens after this ${i.effectiveTimeUtc ? `action effective ${i.effectiveTimeUtc}` : "action"}, and no Transfer event says so. ` +
-    `Anything that cached a balance is now wrong by that much, and anything that applies the multiplier to an already-scaled balance is wrong by ${pctChange("1", i.multiplierNew)}% the other way. ` +
+    `A balance cached before it now understates the holding by ${stale}%, and anything that applies the multiplier to an already-scaled balance overstates it by ${pctChange("1", i.multiplierNew)}%. ` +
     (priced ? "Its value in money is shown at the issuer's reference price, which is not a quote." : "Its value in money is not shown: the issuer is publishing no reference price right now.");
   const because = [
     "No source the desk may read publishes a bid, an ask, a size or an expiry, so no spread can be quoted and none is estimated.",
