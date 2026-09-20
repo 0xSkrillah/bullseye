@@ -1,8 +1,10 @@
 # Bullseye
 
-**Autonomous intelligence for tokenised markets.** Bullseye detects a real event in a tokenised
-asset, investigates it under a hard budget, checks the evidence against X Layer, publishes only
-what a deterministic gate allows, and sells the result to people and agents over x402.
+**Autonomous intelligence for tokenised markets.** xStocks pay dividends by raising a per-token
+multiplier: every holder's balance on X Layer changes and no `Transfer` event is emitted. Bullseye
+detects that event, investigates it under a hard budget, checks the issuer's claim against the
+X Layer contract, publishes only what a deterministic gate allows, and sells the result — a dated,
+hashed record of what happened and what could not be confirmed — to people and agents over x402.
 
 ```
 SIGNAL → INVESTIGATE → VERIFY → PUBLISH → PURCHASE → DELIVER → MEASURE ECONOMICS
@@ -16,7 +18,7 @@ tokenised stocks (xStocks).
 | | |
 | --- | --- |
 | **What** | An automated desk that catches dividend rebases on tokenised stocks — where a holder's balance changes on X Layer with **no `Transfer` event** — proves them against the contract, and sells the evidence-backed report. |
-| **For whom** | Wallet, custody, data and treasury-operations teams who must reconcile those balance changes, and **AI agents** that need the same answer machine-readably and can pay per call. |
+| **For whom** | Whoever has to explain a balance change to someone who checks it — fund accounting, reconciliation, treasury and operations teams holding tokenised stocks — and the software doing that work for them, which buys the same report over x402. |
 | **Try it** | https://bullseye-production-5d0c.up.railway.app — start at `/`, pick an event, open its Brief, inspect the evidence, then the checkout. `/market` reads one event as money. |
 | **Integration URL** | `POST /api/v1/briefs/latest` — an x402 resource on the OKX seller SDK. An unpaid call answers `402` with a `PAYMENT-REQUIRED` header: `exact` / `eip155:1952` / `3000000` to the quoted pay-to address. That is OKX's own listing self-test, passing on the deployed address. |
 | **Demo video** | Not yet recorded. There is no URL, and this file will not pretend there is one. |

@@ -33,11 +33,14 @@ sponsor reports, none of which are repeated here.
 
 ### Project Summary
 
-> Bullseye is an automated intelligence desk for tokenised assets. It helps wallet, data and
-> operations teams — and AI agents — understand dividend-related balance changes by comparing
-> issuer announcements with X Layer contract records. It produces evidence-backed reports that
-> people or agents can purchase through an OKX x402 integration. The prototype reads live-network
-> asset data and demonstrates payments on X Layer testnet.
+> Bullseye is an automated intelligence desk for tokenised stocks. When an issuer pays a dividend by
+> raising a token's balance multiplier, every holder's balance on X Layer changes and no `Transfer`
+> event is emitted, so anyone keeping books sees units move with no transaction to explain them.
+> Bullseye detects the event, reads the contract either side of the issuer's effective time, pins the
+> block the change activated at, and publishes a dated, hashed report stating what was checked and
+> what could not be. People buy it in a browser and agents buy it over an OKX x402 endpoint; both
+> receive the same document. The prototype reads live issuer and X Layer data and settles on X Layer
+> testnet.
 
 ---
 
@@ -82,9 +85,15 @@ SIGNAL → INVESTIGATE → VERIFY → PUBLISH → PURCHASE → DELIVER → MEASU
 
 ### Intended user
 
-Wallet, custody, data and treasury-operations teams holding or indexing tokenised equities on X
-Layer, plus **AI agents** that need the same answer machine-readably and can pay for it per call
-without a human. The agent case is why the paid resource is x402 rather than a subscription.
+Whoever has to explain a balance change to someone who checks it: fund accounting, reconciliation,
+treasury and operations teams holding tokenised equities — and the software doing that work for
+them, which buys the same document over x402. The unit of sale is one dated, hashed report for one
+corporate action, filed with a close workpaper in place of a screenshot of an issuer page that can
+be revised later. The reasoning behind that choice, and the criteria that would kill it, are in
+[commercial/CRO_REVIEW.md](commercial/CRO_REVIEW.md) and [commercial/BUYER_STORY.md](commercial/BUYER_STORY.md).
+
+The agent case is why the paid resource is x402 rather than a subscription: software doing a
+reconciliation can buy one report per call, without a human and without an account.
 
 **Demand is not evidenced.** No interviews or usability sessions have been run
 ([DEMAND.md](DEMAND.md) holds the plan and an empty results table; ledger B4). Nothing here should
@@ -222,6 +231,19 @@ Stated plainly, because the ledger is the point of this project.
   exactly one anchor, whose `href` must be `/`) is agreed and recorded, and is a two-minute change.
   It was deliberately **not** made on release night, because weakening a green safety test to land a
   navigation convenience is the wrong trade at the wrong hour.
+- **"No `Transfer` event is emitted" is an inference, not a measurement.** It follows from how a
+  multiplier rebase works — balances are shares times a global multiplier, so raising the multiplier
+  moves every balance without a transfer — and Bullseye does **not** demonstrate it by sweeping the
+  contract's logs for the period. A Brief's own limitations say so. The claim is sound; it is
+  reasoned from the mechanism rather than measured, and that distinction should survive being
+  pressed on.
+- **Coverage: the assets are mostly not on the chain Bullseye reads.** The detector and the verifier
+  read X Layer, and the X Layer deployments are real — but they hold a minority of each asset's
+  all-chain supply, and most of the float sits on other chains. A buyer with this problem at scale
+  may well hold the asset somewhere Bullseye does not read, and reading another chain is not a small
+  change. This is the single biggest reason the intended user may not convert and no wording fixes
+  it; the sourced figures and the criteria that would kill the idea are in
+  [commercial/CRO_REVIEW.md](commercial/CRO_REVIEW.md).
 - **No ASP marketplace listing.** Not registered, not submitted, not approved (B3).
 - **One browser engine.** Edge 153. No screen reader, no axe scan, no real phone.
 - **The OKX mock merchant is still blocked** — its challenge arrives with no `PAYMENT-REQUIRED`
