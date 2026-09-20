@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Costs, FigureCard } from "../src/market/Figures";
 import { Comparison } from "../src/market/Comparison";
 import { Observations } from "../src/market/Observations";
+import { Primer } from "../src/market/Primer";
 import { FIGURE_SECTIONS, groupFigures, humanAge, LABELS, plainHeadline, type ComparisonRow, type CostAssumption, type Figure, type MarketObservation, type MarketView } from "../src/market/data";
 
 const render = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el);
@@ -226,5 +227,99 @@ describe("how figures are grouped into sections", () => {
   it("puts every figure in exactly one section", () => {
     const keys = FIGURE_SECTIONS.flatMap((s) => s.keys as readonly string[]);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+/**
+ * The explanatory layer. The screen used to open on a balance having changed with no transfer to
+ * show for it, which only means anything to a reader who already knows that a tokenised stock pays
+ * its dividend by multiplying balances. These hold the layer that says so first.
+ */
+const row = (symbol: string, name: string, old_: string, new_: string, id: string, superseded = false) => ({
+  signal: { id, asset: { symbol, name }, headline: `${symbol} rebased`, observedAt: "2026-09-18T00:30:00.000Z", detectedAt: "2026-09-18T00:31:00.000Z", facts: { multiplierOld: old_, multiplierNew: new_ } },
+  superseded,
+  investigation: null,
+});
+
+const FEED = [
+  row("QSRx", "Restaurant Brands International xStock", "1", "1.0066516577977895", "sig_1111111111111111"),
+  row("SATAx", "Strive, Inc. Series A Preferred xStock", "1.046963274862202", "1.0475034538939607", "sig_2222222222222222"),
+  row("METAx", "Meta xStock", "1.002298265651938", "1.0028515433272898", "sig_3333333333333333"),
+  row("GONEx", "Withdrawn xStock", "1", "1.05", "sig_4444444444444444", true),
+];
+
+const primer = (over: Partial<Parameters<typeof Primer>[0]> = {}) =>
+  render(createElement(Primer, { rows: FEED, dataMode: "HISTORICAL", symbol: "QSRx", multiplierOld: "1", multiplierNew: "1.0066516577977895", onChoose: noop, chosenId: "sig_1111111111111111", ...over }));
+
+describe("the explanatory layer, above the event", () => {
+  it("names the companies behind the tokens, and counts only events still on record", () => {
+    const html = primer();
+    expect(html).toContain("Real companies, held as tokens.");
+    // the issuer calls every asset "<Company> xStock"; the company is what a reader recognises
+    expect(html).toContain("Restaurant Brands International");
+    expect(html).not.toContain("Restaurant Brands International xStock");
+    // a superseded action is not an event waiting to be explained, so it is not counted or listed
+    expect(html).not.toContain("GONEx");
+    expect(html).toContain("3 assets on X Layer");
+    expect(html).toContain("3 dividend events on record");
+    // live data says where it came from, as everything else on this screen does
+    expect(html).toContain("GET /api/signals");
+    expect(html).toContain("HISTORICAL");
+  });
+
+  it("explains the mechanism before any figure, and carries no provenance label for it", () => {
+    const html = primer();
+    expect(html).toContain("A dividend with nowhere to land.");
+    expect(html).toContain("Cash lands in your account");
+    expect(html).toContain("No line appears anywhere");
+    // the mechanism is not an observation: it is not labelled LIVE/CACHED and cites no evidence id
+    const band = html.slice(html.indexOf("A dividend with nowhere to land."), html.indexOf("nobody publishes what the chain then did"));
+    for (const label of ["LIVE", "CACHED", "FIXTURE", "EV-"]) expect(band, label).not.toContain(label);
+  });
+
+  it("works the fan-out from the event's own multipliers, and marks the holdings as illustrations", () => {
+    const html = primer();
+    expect(html).toContain("One number moves. Every balance follows.");
+    // 42 × 1.0066516577977895 = 42.2793…, and a thin space separates thousands
+    expect(html).toContain("42.279");
+    expect(html).toContain("1 000.000");
+    expect(html).toContain("1 006.652");
+    expect(html).toContain("8 556.539");
+    expect(html).toContain("chosen illustrations, not observed balances");
+  });
+
+  it("says the history is empty by reasoning, never as something measured", () => {
+    const html = primer();
+    expect(html).toContain("Nobody sent anything, so there is nothing to record");
+    // no log sweep was carried out, so nothing here may claim one
+    for (const claimed of ["was emitted", "we scanned", "no Transfer event was found", "log sweep"]) expect(html, claimed).not.toContain(claimed);
+  });
+
+  it("omits the worked example rather than inventing one when the multipliers are absent", () => {
+    const html = primer({ multiplierOld: null, multiplierNew: null });
+    expect(html).not.toContain("One number moves");
+    // the rest of the layer still stands: the mechanism does not depend on this event
+    expect(html).toContain("A dividend with nowhere to land.");
+  });
+});
+
+describe("how much counting it twice costs, asset by asset", () => {
+  it("ranks the assets by the ratio, which is set by the multiplier's level and not by this dividend", () => {
+    const html = primer();
+    // SATAx: (1.0475034538939607 − 1) × 1.046963274862202 / (1.0475034538939607 − 1.046963274862202) ≈ 92.1
+    expect(html).toContain("92.1×");
+    // METAx's multiplier has drifted far less, so the same mistake costs far less
+    expect(html).toContain("5.2×");
+    // QSRx started at exactly 1, so the two errors are the same number and the ratio is 1
+    expect(html).toContain("1×");
+    // the worst offender must come first, since the point is that the reader cannot tell by looking
+    expect(html.indexOf("92.1×")).toBeLessThan(html.indexOf("5.2×"));
+    expect(html).toContain("rounded");
+  });
+
+  it("offers each row as a real control, so an extreme is one click from the event on screen", () => {
+    const html = primer();
+    expect(html).toContain("<button");
+    expect(html).toContain('aria-current="true"');
   });
 });

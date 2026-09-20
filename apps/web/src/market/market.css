@@ -752,3 +752,91 @@ details.mk-more[open] > summary {
   outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
+
+/*
+ * The explanatory layer, above the event.
+ *
+ * It reads as bands rather than cards: a reader should fall through them in order and arrive at
+ * the event already knowing why a balance can move without a transaction. Tokens only, as
+ * everywhere else on this screen, and no state hue is used here at all — nothing in this layer is
+ * a check that passed, an estimate or a failure, so green, amber and red would all be lies.
+ */
+.mk-primer { display: grid; gap: 16px; }
+.mk-band {
+  display: grid;
+  gap: 10px;
+  padding: 20px 22px;
+  background: var(--canvas-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+.mk-band-h { margin: 0; font-size: 26px; line-height: 32px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink); }
+.mk-band-p { margin: 0; max-width: var(--measure); font-size: 15px; line-height: 23px; color: var(--ink-secondary); }
+.mk-band-foot { margin: 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; line-height: 18px; color: var(--ink-secondary); }
+
+/* band 1: the companies */
+.mk-assets { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.mk-asset {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--canvas-inset);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+.mk-asset-sym { font-size: 15px; color: var(--ink); }
+.mk-asset-co { font-size: 13px; line-height: 18px; color: var(--ink-secondary); overflow-wrap: anywhere; }
+
+/* band 2: the two ways a dividend arrives */
+.mk-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.mk-compare-col { display: grid; gap: 10px; align-content: start; padding: 16px 18px; background: var(--canvas-inset); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.mk-compare-col-focus { border-color: var(--line-strong); }
+.mk-steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 15px; line-height: 22px; color: var(--ink-secondary); }
+.mk-steps li::marker { font-family: var(--font-mono); color: var(--ink-muted); }
+.mk-step-key { color: var(--ink); font-weight: 500; }
+
+/* band 3: one multiplier, every balance */
+.mk-fan-mult { margin: 0; display: grid; gap: 4px; justify-items: center; padding: 14px; background: var(--canvas-inset); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); }
+.mk-fan-mult-v { font-size: 19px; line-height: 26px; color: var(--ink); overflow-wrap: anywhere; text-align: center; }
+.mk-fan { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.mk-fan-cell { display: grid; gap: 3px; padding: 12px 14px; background: var(--canvas-inset); border: 1px solid var(--line); border-radius: var(--radius-sm); min-width: 0; }
+.mk-fan-v { font-size: 16px; line-height: 22px; color: var(--ink); overflow-wrap: anywhere; }
+.mk-fan-d { font-size: 13px; line-height: 18px; color: var(--ink-secondary); }
+.mk-fan-history { display: grid; gap: 4px; padding: 12px 14px; background: var(--canvas-inset); border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); }
+
+/* the spread: how badly counting it twice costs, asset by asset */
+.mk-spread { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.mk-spread-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mk-spread-row:hover { background: var(--canvas-overlay); }
+.mk-spread-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mk-spread-row.is-chosen { border-color: var(--line-strong); background: var(--canvas-overlay); }
+.mk-spread-sym { font-size: 14px; color: var(--ink); }
+.mk-spread-bar { display: block; height: 8px; background: var(--canvas-inset); border-radius: var(--radius-full); overflow: hidden; }
+.mk-spread-bar > span { display: block; height: 100%; min-width: 2px; background: var(--ink-secondary); border-radius: var(--radius-full); }
+.mk-spread-x { font-size: 14px; color: var(--ink); text-align: right; }
+
+@media (max-width: 1023px) {
+  .mk-assets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .mk-assets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mk-compare { grid-template-columns: minmax(0, 1fr); }
+  .mk-fan { grid-template-columns: minmax(0, 1fr); }
+  .mk-band-h { font-size: 22px; line-height: 28px; }
+  .mk-spread-row { grid-template-columns: 68px minmax(0, 1fr) 58px; gap: 8px; }
+}

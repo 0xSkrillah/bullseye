@@ -1,44 +1,45 @@
-# Proposed copy deck
-Design suggestions, not already implemented product results. Fill dynamic values only from verified APIs.
+# Copy deck — superseded
 
-## Navigation and introduction
-- Market desk / Briefs / Situation room. Use actual reachable destinations.
-- Headline: **Understand the event. Check the evidence.**
-- Supporting line: **Bullseye turns tokenised-asset events into evidence-backed reports for people and agents.**
-- Primary action when report available: **View brief**.
-- Offer explanation: **Issuer announcement, blockchain checks and the uncertainties that remain.** Only name checks actually included in the output.
+**This file is no longer the source of the Market Desk's words.** It was written for the frontend
+audit on 20 September 2026, before the screen was rebuilt around explaining the concept rather than
+reporting the event, and parts of it now describe copy that is not on the screen. Keeping two copy
+sources that disagree is worse than keeping one, so this one defers.
 
-## Event and information status
-- Effective → **Event took effect**.
-- First detected → **First detected by Bullseye**.
-- Newest fetch → **Latest source retrieval**.
-- Answered → **Page assembled** (secondary details).
-- CORPORATE_ACTION_REBASE → **Dividend-related balance adjustment**, only for the matching event type.
-- Reference-only data → **Reference observation — not a trade quote**.
-- No executable quotes → **Event analysis only. Executable prices are unavailable.**
-- Missing required sources → **Not enough data to assess this comparison.**
-- Values withheld → **Full findings included in the paid brief**.
-- Actual zero → show **0**; do not replace with Unknown.
+Where the words live now:
 
-## Offer and payment
-- “Open brf_… on the desk” → **View this brief**; show ID in details/copy.
-- TESTNET offer → **Testnet purchase · [quoted amount] [token] · [network]**.
-- Rail unknown → **Payment availability not confirmed**.
-- “The paid JSON resource” → **Agent access: x402 endpoint** with a short explanation of the402 challenge.
-- Quote requested → **Preparing your quote…** (do not invent timing).
-- Wallet action → **Review the amount and network in your wallet**.
-- Payment unknown → **Payment outcome not confirmed. Check this order; don't pay again.**
-- Recovery CTA → **Check payment status** or **Retrieve purchased brief**, mapped to the existing permitted mechanism.
-- Delivered → **Your brief is ready**; **Read report / Download JSON / View receipt**.
-- Signature refusal → exact state wording based on what was and was not submitted; never assert “no funds moved” after an ambiguous settlement.
+| What | Where |
+| --- | --- |
+| The explanatory layer above the event — the companies, the mechanism, the fan-out, the spread | `apps/web/src/market/Primer.tsx`, with the reasoning in its file comment |
+| The event's own headline and the reader block | `apps/web/src/market/MarketDesk.tsx` and `plainHeadline` in `market/data.ts` |
+| Figure labels and what each kind of claim means | `LABELS` in `apps/web/src/market/data.ts` |
+| The offer, the price, the rail and the recovery sentence | `apps/web/src/components/BriefOffer.tsx`, `BriefPaywall.tsx` |
+| Tone, casing, number formatting, colour meaning | the Bullseye design system artifact, `project/README.md` |
+| What may and may not be claimed | [docs/CLAIM_LEDGER.md](../CLAIM_LEDGER.md) — the authority over all of the above |
 
-## Empty and failure
-- No events: **No events found yet. The desk will show events once the detector records them.**
-- No report: **This event has no published brief yet. Browse available briefs.**
-- Report rejected: **Report withheld. The draft didn't pass the required checks.**
-- Withdrawn: **This report is no longer on sale.** Existing owners retain their documented retrieval rights.
-- Public API unavailable: **We couldn't load this view. Retry or choose another event.**
-- Daily allowance: **Research allowance reached. Existing briefs remain available.**
+## What changed, and why the old deck is stale
 
-## Tone
-Reserve “On target” / an original Bullseye reveal for true publication success. No “missed the bullseye” on payment problems, no casino terminology, no false urgency, no fake gains. Financial and payment notices remain literal and calm.
+The audit's deck treated the screen as a report on one event and proposed wording for its parts. The
+defect that mattered was not in any of those parts: the screen opened on a balance having changed
+with no transfer to show for it, which only means something to a reader who already knows that a
+tokenised stock pays its dividend by multiplying balances. A fund accountant meeting it for the
+first time had no footing, and neither did a judge. No amount of better wording on the event fixes
+a missing layer above it.
+
+Three of the deck's lines are now actively wrong:
+
+- **"Headline: Understand the event. Check the evidence."** The screen's first words are now
+  "What a tokenised stock does with a dividend", because establishing that the event *can happen*
+  has to come before inviting anyone to understand it.
+- **"Offer explanation: Issuer announcement, blockchain checks and the uncertainties that remain."**
+  Replaced during the conversion review: the offer now leads with the job the document does — one
+  dated record to file with a close — rather than its table of contents.
+- **Anything implying the desk states that no transfer was emitted.** It does not, and must not: no
+  event-log sweep is carried out. The absence is reasoned from how a multiplier rebase works, in the
+  explanatory layer, where it is plainly a mechanism rather than an observation.
+
+## What is still worth keeping from it
+
+The clock names (`Event took effect`, `First detected by Bullseye`), the withheld-value wording
+(`Full findings included in the paid brief`), the payment-state sentences, and the rule that an
+actual zero is shown as **0** and never as Unknown. All of those are implemented and are unchanged
+by the rebuild.

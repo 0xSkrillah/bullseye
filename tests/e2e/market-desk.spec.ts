@@ -56,9 +56,11 @@ test("a genuine-data path: the event as money, with every figure labelled and so
   const signalId = await prepare(page, "QSRx");
   await page.goto(`/market/${signalId}`);
 
-  // the headline says what happened, in the direction it happened
+  // the headline says what happened, in the direction it happened, and carries that one number
   await expect(page.getByTestId("market-headline")).toContainText("every QSRx balance on X Layer grew by 0.665165779779%");
-  await expect(page.getByTestId("market-headline")).toContainText("no transfer was emitted");
+  // it no longer ends "no transfer was emitted": no event-log sweep is carried out, so that reads
+  // as measured. The absence is reasoned from the mechanism, in the layer above.
+  await expect(page.getByTestId("market-headline")).not.toContainText("no transfer was emitted");
 
   // the question this screen exists to answer, answered
   const verdict = page.getByTestId("market-verdict");
@@ -196,4 +198,65 @@ test("an event with no investigation gets the issuer's side and nothing that nee
   await expect(page.getByTestId("brief-offer-cta")).toHaveCount(0);
   // two issuer points, and no chain marks invented to fill the chart
   await expect(page.getByTestId("market-chart").locator("circle")).toHaveCount(2);
+});
+
+/**
+ * The thing standing between a judge and the product was that the screen reported an event before
+ * establishing that the event can happen. This walks the order a first-time reader meets.
+ */
+test("the screen explains what a tokenised stock does with a dividend before it reports one", async ({ page }) => {
+  const signalId = await prepare(page, "QSRx");
+  await page.goto(`/market/${signalId}`);
+
+  const top = async (sel: string) => (await page.locator(sel).first().boundingBox())!.y;
+
+  // the explanation comes first: the companies, the mechanism, then one multiplier fanning out
+  await expect(page.getByTestId("primer-assets")).toBeVisible();
+  await expect(page.locator(".mk-primer")).toContainText("Real companies, held as tokens.");
+  await expect(page.locator(".mk-primer")).toContainText("A dividend with nowhere to land.");
+  await expect(page.locator(".mk-primer")).toContainText("One number moves. Every balance follows.");
+
+  // the worked example is this event's own arithmetic, on holdings marked as illustrations
+  await expect(page.getByTestId("primer-fanout")).toContainText("42.279");
+  await expect(page.locator(".mk-primer")).toContainText("chosen illustrations, not observed balances");
+
+  // and the empty history is reasoned, never claimed as a measurement
+  await expect(page.getByTestId("primer-history")).toContainText("Nobody sent anything, so there is nothing to record");
+
+  // order on the page: explanation, then this event's headline, then its figures
+  expect(await top(".mk-primer")).toBeLessThan(await top('[data-testid="market-headline"]'));
+  expect(await top('[data-testid="market-headline"]')).toBeLessThan(await top('[data-testid="market-figure-section"]'));
+
+  // the offer survives the rebuild intact: price, rail, the testnet sentence and the way in
+  const offer = page.getByTestId("brief-offer");
+  await expect(offer).toContainText("TESTNET");
+  await expect(offer).toContainText("not revenue");
+  await expect(page.getByTestId("brief-offer-cta")).toHaveText("View this brief");
+});
+
+test("how much counting a rebase twice costs varies across the book, and an extreme is one click away", async ({ page }) => {
+  const signalId = await prepare(page, "QSRx");
+  await page.goto(`/market/${signalId}`);
+
+  const rows = page.locator(".mk-spread-row");
+  // count() does not auto-wait, and the table is built from the signals feed: wait for the list
+  await expect(page.getByTestId("primer-spread")).toBeVisible();
+  await expect(rows.first()).toBeVisible();
+  expect(await rows.count()).toBeGreaterThan(1);
+
+  // QSRx started at a multiplier of exactly 1, so its two errors are the same number
+  await expect(rows.filter({ hasText: "QSRx" }).first()).toContainText("1×");
+
+  // SATAx's multiplier has drifted far from 1 over its life, so the same mistake costs far more.
+  // The ratio is computed from the issuer's published multipliers, so the figure follows the data.
+  const worst = rows.first();
+  const text = (await worst.innerText()).replace(/\s+/g, " ");
+  expect(text).toMatch(/\d+(\.\d)?×/);
+  const multiple = Number(text.match(/([\d.]+)×/)![1]);
+  expect(multiple, "the worst offender should be an order of magnitude worse than the event").toBeGreaterThan(10);
+
+  // and choosing it opens that event, so the extreme is reachable rather than merely stated
+  await worst.click();
+  await expect(page).toHaveURL(/\/market\/sig_[0-9a-f]{16}$/);
+  await expect(page.getByTestId("market-headline")).not.toBeEmpty();
 });

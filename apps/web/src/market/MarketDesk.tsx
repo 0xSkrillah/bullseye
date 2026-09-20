@@ -3,6 +3,7 @@ import { groupFigures, humanAge, LABELS, marketApi, plainHeadline, type Evidence
 import { Costs, FigureCard } from "./Figures";
 import { Comparison, EvidenceDrawer } from "./Comparison";
 import { Observations } from "./Observations";
+import { Primer } from "./Primer";
 import { ProvenanceBadge, type BadgeKind } from "../components/ProvenanceBadge";
 import { SiteNav } from "../components/SiteNav";
 import { BriefOffer } from "../components/BriefOffer";
@@ -58,6 +59,9 @@ export function MarketDesk() {
   }, [rows]);
 
   const signalId = chosen ?? suggested?.signal.id ?? null;
+  // the feed's row for the event on screen: the explanatory layer works its example from the
+  // issuer's published multipliers, which are on the signal and not in the market view
+  const chosenRow = rows.find((r) => r.signal.id === signalId) ?? null;
   const view = usePoll<MarketResponse>(() => marketApi.view(signalId!), 20_000, signalId !== null, [signalId]);
 
   const pick = useCallback((id: string) => {
@@ -163,6 +167,16 @@ export function MarketDesk() {
     <>
       {picker}
 
+      <Primer
+        rows={rows}
+        dataMode={feed.data?.dataMode ?? null}
+        symbol={m.asset.symbol}
+        multiplierOld={chosenRow?.signal.facts?.multiplierOld ?? null}
+        multiplierNew={chosenRow?.signal.facts?.multiplierNew ?? null}
+        onChoose={pick}
+        chosenId={signalId}
+      />
+
       <section className="mk-lead">
         <div className="mk-hero">
           <span className="mk-eyebrow">
@@ -171,11 +185,18 @@ export function MarketDesk() {
             {audience === "PUBLIC" ? <span title="On-chain figures are part of the Brief in this view.">free view</span> : <span title="Operator or viewer token: the desk's own working detail.">diagnostic view</span>}
           </span>
           <h1 className="mk-title" data-testid="market-headline">{plainHeadline(m)}</h1>
-          <p className="mk-lede">{m.headline}</p>
+          {/*
+            One number a reader has to compare, per sentence. The API's own lede carries three
+            percentages at twelve significant figures; each of them is a card below, at the same
+            size and next to its label, where they can be compared by eye instead of parsed out of
+            a paragraph. Nothing is lost: the sentence is still the Brief's, and its figures are
+            still on the screen.
+          */}
           <p className="mk-for" data-testid="market-for">
-            <strong>For whoever has to explain this balance change in someone else&rsquo;s books.</strong> The holding moved with no transaction against it, so a ledger rebuilt from transfers will
-            not show it, and the issuer&rsquo;s own record can be revised later. The arithmetic below is free to read. The Brief is the dated, hashed record of what the issuer announced, what X Layer
-            actually did and what was not checked &mdash; one document to attach to a close, a reconciliation or a support ticket.
+            <strong>This is the event a fund accountant has to explain, six months later.</strong> The position is bigger than the opening
+            balance plus trades, nothing in the history accounts for the difference, and the issuer&rsquo;s own record can be revised after
+            the fact. The arithmetic below is free to read. The Brief is the dated, hashed record of what the issuer announced, what X Layer
+            actually did and what was not checked.
           </p>
           <p className="mk-when">
             Event took effect {m.clocks.effectiveAt ? <Timestamp iso={m.clocks.effectiveAt} full /> : <span className="mk-none">not stated by the issuer</span>} · first detected by Bullseye{" "}

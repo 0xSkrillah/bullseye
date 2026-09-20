@@ -109,7 +109,22 @@ export interface MarketResponse {
 
 /** the feed, so the screen can pick an event when the URL names none */
 export interface MarketSignalRow {
-  signal: { id: string; asset: { symbol: string }; headline: string; observedAt: string; detectedAt: string };
+  /**
+   * `asset.name` and `facts` are the issuer's own published fields, already in this response and
+   * now read: the explanatory layer names the companies and works the event's arithmetic from the
+   * multipliers rather than restating either. Both are optional so an older server that answers
+   * without them renders the screen with those parts absent rather than failing.
+   */
+  signal: {
+    id: string;
+    asset: { symbol: string; name?: string };
+    headline: string;
+    observedAt: string;
+    detectedAt: string;
+    facts?: { multiplierOld?: string; multiplierNew?: string };
+  };
+  /** the issuer replaced or cancelled this action; it is not counted in the explanatory layer */
+  superseded?: boolean;
   investigation: { id: string; briefId: string | null } | null;
 }
 
@@ -176,7 +191,11 @@ export function plainHeadline(m: MarketView): string {
   if (pct === null) return `${m.asset.name}: a corporate action changed how ${symbol} balances are scaled on X Layer`;
   if (pct === "0") return `${m.asset.name}: the issuer published an action that leaves every ${symbol} balance unchanged`;
   const fell = pct.startsWith("-");
-  return `${m.asset.name}: every ${symbol} balance on X Layer ${fell ? "fell" : "grew"} by ${pct.replace("-", "")}%, and no transfer was emitted to show it`;
+  // The headline carries one number and stops there. It used to end "and no transfer was emitted to
+  // show it", which reads as something Bullseye measured: no event-log sweep was carried out, and
+  // the absence follows from how a multiplier rebase works. That reasoning now lives in the
+  // explanatory layer above, where it is plainly a mechanism rather than an observation.
+  return `${m.asset.name}: every ${symbol} balance on X Layer ${fell ? "fell" : "grew"} by ${pct.replace("-", "")}%`;
 }
 
 /** "3 h 47 min", for an age a reader has to judge freshness by */
