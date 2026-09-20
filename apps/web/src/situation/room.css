@@ -1,0 +1,362 @@
+/* The Situation Room. Loaded only with the /room chunk. Tokens only: no colour literal in this file. */
+@import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap");
+
+/* The room's type is a token override on its own root, so every shared component inside it follows
+   and the desk at "/" keeps IBM Plex. Both faces have one weight; nothing here asks for bold. */
+.room {
+  --font-sans: "Share Tech Mono", "IBM Plex Mono", Consolas, monospace;
+  --font-mono: "Share Tech Mono", "IBM Plex Mono", Consolas, monospace;
+  --font-display: "VT323", "Share Tech Mono", monospace;
+  /* wall scale; the narrower layouts below step it down */
+  --room-label: 13px;
+  --room-text: 13px;
+  --room-state: 30px;
+  --room-headline: 34px;
+  --room-clock: 46px;
+  --room-gap: var(--space-4);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--room-gap);
+  padding: var(--space-6);
+  min-height: 100vh;
+  font-family: var(--font-mono);
+  font-size: var(--room-text);
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.room h1, .room h2 { margin: 0; font-weight: 400; }
+
+/* shared words */
+.room-label { font-family: var(--font-mono); font-size: var(--room-label); line-height: 16px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-secondary); white-space: nowrap; }
+.room-line { font-size: var(--room-text); line-height: 16px; color: var(--ink-secondary); }
+.room-ink { color: var(--ink); }
+.room-dim { color: var(--ink-secondary); }
+.room-ok { color: var(--verified); }
+.room-bad { color: var(--invalid); }
+.room-unknown { color: var(--uncertain); }
+/* read, not seen: the sentence a drawing stands for */
+.room-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.room-state { font-family: var(--font-display); font-size: var(--room-state); line-height: 28px; color: var(--ink); white-space: nowrap; }
+.room-state.room-ok { color: var(--verified); }
+.room-state.room-bad { color: var(--invalid); }
+/* the health check stopped answering: the last answer is not a fact any more */
+.room-state.room-unknown { color: var(--uncertain); }
+.room-state-row { display: flex; align-items: center; gap: var(--space-3); min-height: 28px; flex-wrap: wrap; }
+.room-numeral { font-family: var(--font-display); font-size: 26px; line-height: 22px; color: var(--ink); }
+.room-numeral .mono { font-family: var(--font-display); }
+
+/* status strip */
+.room-strip { display: flex; min-height: 96px; background: var(--canvas-raised); border: 1px solid var(--line); border-radius: var(--radius-md); }
+.room-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding: var(--space-3) 20px; border-right: 1px solid var(--line); flex: 0 0 auto; }
+.room-cell-grow { flex: 1 1 0; }
+.room-cell-wide { max-width: 360px; }
+.room-brand { justify-content: center; gap: var(--space-2); }
+.room-brand-row { display: flex; align-items: center; gap: 10px; }
+.room-mark circle { stroke: var(--ink); stroke-width: 1; fill: none; }
+.room-mark .core { fill: var(--ink); stroke: none; }
+.room-wordmark { font-family: var(--font-display); font-size: 38px; line-height: 32px; letter-spacing: .04em; }
+.room-clock { border-right: 0; margin-left: auto; align-items: flex-end; justify-content: center; }
+.room .room-clock-time { font-family: var(--font-display); font-size: var(--room-clock); line-height: 40px; color: var(--ink); }
+
+/* rows and panels */
+.room-row { display: grid; gap: var(--room-gap); min-height: 0; }
+.room-row-a { grid-template-columns: 470px minmax(0, 1fr); }
+.room-row-b { grid-template-columns: 560px 332px 410px minmax(0, 1fr); }
+.room-panel { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; min-height: 0; padding: var(--space-4); background: var(--canvas-raised); border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+.room-panel-head { display: flex; align-items: center; gap: 14px; min-height: 28px; }
+.room-headline { font-family: var(--font-display); font-size: var(--room-headline); line-height: 28px; color: var(--ink); white-space: nowrap; }
+.room-meta { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--room-text); color: var(--ink-secondary); text-align: right; }
+.room-foot { display: flex; justify-content: space-between; gap: var(--space-3); margin-top: auto; font-size: 12px; line-height: 16px; color: var(--ink-secondary); }
+
+/* empty states: deliberate, never broken */
+.room-empty { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); text-align: center; padding: var(--space-4); }
+.room-empty-title { font-family: var(--font-display); font-size: 40px; line-height: 38px; color: var(--ink); }
+.room-empty-note { font-size: 14px; line-height: 20px; color: var(--ink-secondary); max-width: 72ch; }
+.room-empty-note.room-bad { color: var(--invalid); }
+
+/* opportunity field: the shared radar. Its texture and its sweep are switched off by prop:
+   a sweep that never stops implies the desk is always listening, and it scans on a tick. */
+.room-radar { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; }
+.room-radar-note { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); text-align: center; pointer-events: none; }
+.room-radar-note .room-empty-title { font-size: 30px; line-height: 28px; }
+.room-radar-box { position: relative; width: 100%; max-width: 340px; }
+.room-radar-box .be-radar { margin: 0 auto; }
+.room-radar-words { position: absolute; inset: 0; height: 100%; pointer-events: none; }
+/* text: the secondary ink (8:1 on the field), not the muted one (4.4:1, under the 4.5 that small text needs) */
+.room-radar-words .ring { fill: var(--ink-secondary); font-size: 13px; }
+.room-radar-words .name { fill: var(--ink-secondary); font-size: 13px; }
+.room-radar-words .name.is-known { fill: var(--ink); }
+.room-radar-words .reticle { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.room-radar-words .cross { fill: none; stroke: var(--invalid); stroke-width: 2; }
+.room-radar-words .half { fill: none; stroke: var(--uncertain); stroke-width: 2; }
+.room-radar-words .voided { fill: none; stroke: var(--ink-secondary); stroke-width: 1.5; }
+.room-legend { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: var(--space-3); font-size: 11px; line-height: 16px; color: var(--ink-secondary); }
+
+/* opportunity board */
+.room-board-head { display: flex; align-items: center; gap: var(--space-3); min-height: 24px; border-bottom: 1px solid var(--line-strong); font-size: 12px; letter-spacing: .08em; color: var(--ink-secondary); }
+/* wide enough for the longest provenance word (HISTORICAL), so a row never starts further right than its header */
+.room-board-head .col-source { flex: 0 0 104px; padding-left: var(--space-1); }
+.room-board-head .col-asset { flex: 0 0 96px; }
+.room-board-head .col-effective { flex: 0 0 160px; }
+.room-board-head .col-change { flex: 0 0 234px; white-space: nowrap; overflow: hidden; }
+.room-board-head .col-track { flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center; }
+.room-board-rows { flex: 1 1 auto; min-height: 0; }
+.room-board-head .short, .room-board-head .tiny { display: none; text-decoration: none; }
+.room-board-head .long.short { display: inline; }
+.room-board-key { display: none; margin: 0; font-size: 11px; line-height: 15px; color: var(--ink-secondary); }
+/* rows share the header's columns; a row is one opportunity, a cell of the track is one stage */
+.room-board-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.room-board-row, .room-board-more { display: flex; align-items: center; gap: var(--space-3); min-height: 24px; font-size: var(--room-text); }
+.room-board-row.is-focus { background: var(--canvas-overlay); outline: 1px solid var(--line-strong); border-radius: var(--radius-sm); }
+.room-board-row .col-source { flex: 0 0 104px; padding-left: var(--space-1); }
+.room-board-row .col-asset { flex: 0 0 96px; font-family: var(--font-display); font-size: 24px; line-height: 22px; color: var(--ink); white-space: nowrap; }
+.room-board-row .col-effective { flex: 0 0 160px; color: var(--ink-secondary); white-space: nowrap; }
+.room-board-row .col-change { flex: 0 0 234px; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.room-board-row .col-change .bar { flex: 1 1 auto; height: 8px; display: flex; background: var(--canvas-inset); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.room-board-row .col-change .bar > span { background: var(--ink); border-radius: 2px; }
+.room-board-row .col-change .pct { flex: 0 0 auto; color: var(--ink); }
+.room-board-row .col-track { flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+/* the word is in the change column on the wall; it moves next to the asset where that column is not shown */
+.room-board-row .col-voided { display: none; flex: 0 0 auto; font-size: 11px; letter-spacing: .08em; }
+.room-board-row.is-superseded .col-asset, .room-board-row.is-superseded .col-effective { text-decoration: line-through; text-decoration-color: var(--invalid); color: var(--ink-secondary); }
+.room-board-more { color: var(--ink-secondary); padding-left: var(--space-1); }
+.room-node { position: relative; display: flex; align-items: center; justify-content: center; min-height: 24px; }
+.room-node::before, .room-node::after { content: ""; position: absolute; top: 50%; height: 1px; background: var(--line); }
+.room-node::before { left: 0; right: calc(50% + 9px); }
+.room-node::after { left: calc(50% + 9px); right: 0; }
+.room-node:first-child::before, .room-node:last-child::after { display: none; }
+.room-node.link-in::before, .room-node.link-out::after { background: var(--ink); height: 2px; margin-top: -1px; }
+.room-node .glyph { position: relative; z-index: 1; width: 16px; text-align: center; font-size: 15px; line-height: 16px; color: var(--ink-muted); }
+.room-node .note { position: absolute; left: calc(50% + 12px); z-index: 1; padding: 0 3px; font-size: 11px; line-height: 14px; letter-spacing: .04em; background: var(--canvas-raised); color: var(--ink-secondary); white-space: nowrap; }
+.room-board-row.is-focus .room-node .note { background: var(--canvas-overlay); }
+.room-node.is-done .glyph { color: var(--ink); }
+.room-node.is-running .glyph, .room-node.is-pending .glyph, .room-node.is-unverified .glyph, .room-node.is-unknown .glyph { color: var(--uncertain); }
+.room-node.is-running .note, .room-node.is-pending .note, .room-node.is-unverified .note { color: var(--uncertain); }
+.room-node.is-pass .glyph, .room-node.is-pass .note { color: var(--verified); }
+.room-node.is-fail .glyph, .room-node.is-fail .note { color: var(--invalid); }
+
+/* investigation */
+.room-gauges { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.room-gauge { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.room-gauge-name { font-size: 12px; letter-spacing: .08em; color: var(--ink-secondary); white-space: nowrap; }
+.room-gauge-track { height: 10px; background: var(--canvas-inset); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); }
+.room-gauge-value { font-size: var(--room-text); color: var(--ink); white-space: nowrap; }
+.room-gauge-track { display: flex; overflow: hidden; }
+.room-gauge-track .fill { background: var(--ink); }
+.room-gauge-track .fill.is-estimated { background: var(--uncertain); }
+.room-gauge.is-over .room-gauge-name, .room-gauge.is-over .room-gauge-value { color: var(--invalid); }
+.room-gauge.is-over .room-gauge-track { border-color: var(--invalid); }
+/* one line: the row beside it is empty, so the note may run under the next gauge rather than wrap and grow the panel */
+.room-gauge-extra { display: block; white-space: nowrap; color: var(--ink-secondary); }
+.room-status { font-family: var(--font-display); font-size: 24px; line-height: 22px; margin-left: var(--space-2); white-space: nowrap; }
+.room-status.room-unknown { color: var(--uncertain); }
+
+/* diagrams */
+.room-svg { display: block; width: 100%; height: auto; font-family: var(--font-mono); }
+.room-svg text { fill: var(--ink-secondary); font-size: 12px; }
+.room-svg .display { font-family: var(--font-display); font-size: 28px; fill: var(--ink); }
+.room-svg .lane { letter-spacing: 1px; }
+.room-svg .rule { stroke: var(--line); stroke-width: 1; }
+.room-svg .axis { stroke: var(--line-strong); stroke-width: 1; }
+.room-svg .ceiling { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+.room-svg .slot { fill: none; stroke: var(--line-strong); stroke-width: 1; }
+/* a read that was collected but whose value a visitor is not shown: a filled square on the axis */
+.room-svg .slot.is-collected { fill: var(--ink); stroke: none; }
+.room-svg .is-ink { fill: var(--ink); }
+.room-svg text.is-warn { fill: var(--uncertain); }
+.room-svg text.is-bad { fill: var(--invalid); }
+.room-svg .elapsed { stroke: var(--ink-secondary); stroke-width: 1; stroke-dasharray: 2 4; }
+.room-svg .m-model { fill: var(--ink); }
+.room-svg .m-model.is-bad { fill: var(--invalid); }
+.room-svg .m-tool { fill: var(--canvas-raised); stroke: var(--ink); stroke-width: 1.5; }
+/* collected, not judged: an evidence item is ink. Green is the gate's tick, and a read that matched the issuer. */
+.room-svg .m-evidence { fill: var(--ink); }
+.room-svg .m-checks { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.room-svg .m-glyph { font-size: 16px; }
+.room-svg .m-glyph.is-ok { fill: var(--verified); }
+.room-svg .m-glyph.is-bad { fill: var(--invalid); }
+.room-svg .step { fill: none; stroke: var(--ink); stroke-width: 2; }
+.room-svg .break { fill: none; stroke: var(--ink-secondary); stroke-width: 1; }
+.room-svg .read { fill: var(--verified); }
+.room-svg .read.is-bad { fill: var(--invalid); }
+/* the transitions are part of what the drawing says: 3:1 against the panel at least, which the rule colour is not */
+.room-machine .edge { stroke: var(--ink-muted); stroke-width: 1; }
+/* the newest order's own path through the states, from its event trail */
+.room-machine .edge.is-walked { stroke: var(--ink); stroke-width: 2; }
+.room-machine .node.is-visited .name { fill: var(--ink); }
+.room-machine .arrow { fill: var(--ink-muted); }
+.room-machine .node circle { fill: var(--canvas-raised); stroke: var(--line-strong); stroke-width: 1; }
+.room-machine .node .count { font-family: var(--font-display); font-size: 20px; fill: var(--ink-secondary); }
+.room-machine .node[class*="is-"] circle { stroke-width: 2; }
+.room-machine .node[class*="is-"] .name { fill: var(--ink); }
+.room-machine .node.is-ink circle { stroke: var(--ink); } .room-machine .node.is-ink .count { fill: var(--ink); }
+.room-machine .node.is-warn circle { stroke: var(--uncertain); } .room-machine .node.is-warn .count { fill: var(--uncertain); }
+.room-machine .node.is-ok circle { stroke: var(--verified); } .room-machine .node.is-ok .count { fill: var(--verified); }
+.room-machine .node.is-bad circle { stroke: var(--invalid); } .room-machine .node.is-bad .count { fill: var(--invalid); }
+/* chain-verified or not is a glyph beside the node, the board's own pair, so it never rests on green against amber */
+.room-machine .node .mark { font-size: 13px; fill: var(--uncertain); }
+.room-machine .node.is-ok .mark { fill: var(--verified); }
+
+/* gate */
+/* a real table: rules down, runs across. One glyph per draft in a cell. */
+.room-gate-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; line-height: 17px; }
+.room-gate-table th, .room-gate-table td { padding: 0; font-weight: 400; text-align: center; white-space: nowrap; }
+.room-gate-table .rule { text-align: left; color: var(--ink-secondary); overflow: hidden; text-overflow: clip; }
+.room-gate-table tbody .rule { color: var(--ink); }
+.room-gate-table .run { width: 58px; font-size: 14px; letter-spacing: 2px; }
+.room-gate-table .run.small { font-size: 11px; letter-spacing: 0; color: var(--ink-secondary); }
+.room-gate-table .run.is-focus { background: var(--canvas-overlay); }
+/* the focused run is marked by a rule and a pointer, as on the board: the tint alone is too faint to see from across a room */
+.room-gate-table thead .run.is-focus { box-shadow: inset 0 2px 0 var(--ink); }
+.room-gate-table thead th { height: 34px; vertical-align: bottom; border-bottom: 1px solid var(--line-strong); font-size: 12px; letter-spacing: .08em; }
+.room-gate-table thead .run { font-size: 11px; letter-spacing: 0; }
+.room-gate-table thead .run > span { display: block; line-height: 14px; }
+.room-gate-table thead .run .sym { font-family: var(--font-display); font-size: 20px; line-height: 16px; color: var(--ink); }
+.room-gate-table tfoot tr:first-child th, .room-gate-table tfoot tr:first-child td { border-top: 1px solid var(--line); }
+.room-gate-table tfoot th, .room-gate-table tfoot td { height: 17px; letter-spacing: .08em; }
+.room-gate-table tfoot td { letter-spacing: 0; font-size: 13px; color: var(--ink); }
+.room-gate-table td { position: relative; }
+.room-gate .room-empty-title { font-size: 26px; line-height: 26px; margin-top: var(--space-2); }
+
+/* commerce */
+.room-economics { display: flex; flex-direction: column; gap: 2px; padding-top: var(--space-2); border-top: 1px solid var(--line); }
+.room-eco-line { display: flex; align-items: center; gap: var(--space-2); min-height: 17px; font-size: 12px; line-height: 17px; color: var(--ink); white-space: nowrap; overflow: hidden; }
+.room-eco-line.room-dim, .room-eco-text.room-dim { color: var(--ink-secondary); }
+/* a sentence of figures: it wraps rather than hide its end, where the words "Not revenue." and "not profit" are */
+.room-eco-text { display: block; min-height: 17px; font-size: 12px; line-height: 17px; color: var(--ink); }
+.room-eco-text.room-unknown { color: var(--uncertain); }
+.room-eco-text .sw { display: inline-block; width: 8px; height: 8px; margin-right: 4px; background: var(--ink); }
+.room-eco-text .sw.is-rejected { background: var(--ink-secondary); }
+.room-eco-text .sw.is-stopped { background: var(--ink-muted); }
+/* still running: hatched, so it differs from stopped by more than a shade */
+.room-eco-text .sw.is-running, .room-eco-bar .seg.is-running { background: repeating-linear-gradient(90deg, var(--ink-muted) 0 2px, transparent 2px 4px); }
+.room-eco-sym { flex: 0 0 64px; font-family: var(--font-display); font-size: 20px; line-height: 16px; }
+.room-eco-bar { flex: 1 1 60px; min-width: 40px; height: 8px; display: flex; gap: 2px; background: var(--canvas-inset); border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.room-eco-bar .seg { background: var(--ink); }
+.room-eco-bar .seg.is-rejected { background: var(--ink-secondary); }
+.room-eco-bar .seg.is-stopped { background: var(--ink-muted); }
+/* what the server asks to be printed beside an aggregate: what the counts are, and that test payments are not revenue */
+/* wraps in full wherever the page scrolls; the wall shows it only when it fits whole (see .is-tight), never cut mid-sentence */
+.room-note { font-size: 11px; line-height: 15px; color: var(--ink-secondary); }
+
+/* a diagram keeps its drawn size on a narrow screen and scrolls inside its panel, so its words never shrink below 11px */
+.room-scroll { overflow-x: auto; overflow-y: hidden; flex: 0 0 auto; }
+
+/* activity */
+.room-activity { display: flex; align-items: center; gap: 18px; min-height: 56px; padding: 0 20px; overflow: hidden; background: var(--canvas-raised); border: 1px solid var(--line); border-radius: var(--radius-md); }
+.room-activity-rule { width: 1px; height: 28px; background: var(--line); }
+.room-activity-state { font-family: var(--font-display); font-size: 24px; line-height: 22px; color: var(--ink); white-space: nowrap; }
+.room-activity-source { margin-left: auto; white-space: nowrap; text-align: right; }
+.room-activity-source span { display: block; }
+/* Two rows of whole events, newest first, read like text. An event that does not fit wraps to the next row, and a third row is
+   not shown: nothing is ever cut in the middle, where the words "Not revenue." are. */
+.room-activity-events { flex: 1 1 0; min-width: 0; height: 52px; display: flex; flex-wrap: wrap; align-items: center; align-content: flex-start; column-gap: 18px; row-gap: 0; margin: 0; padding: 0; list-style: none; overflow: hidden; white-space: nowrap; }
+.room-activity-events li { display: inline-flex; align-items: center; gap: var(--space-2); flex: 0 0 auto; height: 26px; max-width: 100%; padding-right: 18px; border-right: 1px solid var(--line-strong); }
+.room-activity-events .what { font-family: var(--font-display); font-size: 20px; line-height: 20px; color: var(--ink); }
+
+/* The wall: one screen, no scrollbars. The bottom row needs 350px (the gate table with its three foot rows), and the rest of the
+   column takes 728px (padding 48, gaps 48, strip 96, top row 480, activity 56): 1078 in all, so a 1080 viewport and nothing shorter.
+   Anything smaller reflows and scrolls, where nothing is cut. */
+@media (min-width: 1900px) and (min-height: 1078px) {
+  .room { height: 100vh; overflow: hidden; grid-template-rows: auto 480px minmax(0, 1fr) auto; }
+  /* the wall cannot scroll: when the economics block needs its optional lines, the server's caveat gives way (the figures still say TESTNET and "Not revenue.") */
+  .room-note.is-tight { display: none; }
+  /* one line for the newest order or for the unknown outcome: the promise about a retry wins */
+  .room-commerce .room-line.is-second { display: none; }
+}
+
+/* Laptop: the same picture at the desk's type scale; the page may scroll. */
+@media (max-width: 1899px), (max-height: 1077px) {
+  .room { --room-label: 11px; --room-text: 12px; --room-state: 22px; --room-headline: 26px; --room-clock: 30px; --room-gap: var(--space-3); padding: var(--space-4); }
+  .room-cell { padding: 10px 14px; }
+  .room-wordmark { font-size: 28px; line-height: 24px; }
+  .room-row-a { grid-template-columns: 340px minmax(0, 1fr); }
+  .room-row-b { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .room-runchart, .room-machine { max-width: 640px; }
+  /* this layout scrolls, so the ticker shows every event it was given, in as many rows as they take */
+  .room-activity { padding-top: var(--space-2); padding-bottom: var(--space-2); }
+  .room-activity-events { height: auto; overflow: visible; }
+  /* and an event wider than the row wraps inside itself instead of running off the edge */
+  .room-activity-events li { flex-wrap: wrap; white-space: normal; height: auto; min-height: 26px; }
+  .room-stepchart { max-width: 360px; }
+  .room-empty-title { font-size: 30px; line-height: 28px; }
+  .room-board-head .col-change, .room-board-row .col-change { flex-basis: 170px; }
+  .room-board-head .col-effective, .room-board-row .col-effective { flex-basis: 140px; }
+  .room-board-row .col-asset { font-size: 20px; }
+  .room-node .note { display: none; }
+  .room-board-key { display: block; }
+  .room-board-head { letter-spacing: 0; }
+  .room-board-head .long { display: none; }
+  .room-board-head .short { display: inline; }
+  .room-gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Tablet: two columns, pipeline order kept when read row by row. */
+@media (max-width: 1199px) {
+  /* two columns: a rule's name wraps rather than lose its last letters */
+  .room-gate-table .rule { white-space: normal; overflow-wrap: anywhere; }
+  .room-strip { flex-wrap: wrap; }
+  .room-cell { flex: 1 1 200px; border-bottom: 1px solid var(--line); }
+  .room-clock { margin-left: 0; align-items: flex-start; }
+  .room-row-a { grid-template-columns: minmax(0, 1fr); }
+  .room-row-b { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .room-board-head .col-effective, .room-board-head .col-change, .room-board-row .col-effective, .room-board-row .col-change { display: none; }
+  .room-board-row .col-voided { display: inline; }
+  .room-runchart { min-width: 526px; }
+  .room-machine { min-width: 490px; }
+}
+
+/* A narrow phone draws the diagrams smaller than their viewBox: their words are set larger so they stay 11px or more on screen. */
+@media (max-width: 420px) {
+  .room-svg text { font-size: 15px; }
+  .room-radar-words .ring, .room-radar-words .name { font-size: 16px; }
+}
+
+/* Phone: one column, top to bottom in pipeline order. */
+@media (max-width: 767px) {
+  .room { padding: var(--space-4); }
+  .room-cell { flex: 1 1 100%; border-right: 0; }
+  .room-row-b { grid-template-columns: minmax(0, 1fr); }
+  .room-board-head .long, .room-board-head .short, .room-board-head .long.short { display: none; }
+  .room-board-head .tiny { display: inline; }
+  .room-board-head .col-source, .room-board-row .col-source { display: none; }
+  .room-gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .room-activity { flex-wrap: wrap; padding: var(--space-3) var(--space-4); }
+  .room-activity-source { margin-left: 0; white-space: normal; }
+  .room-foot, .room-legend { flex-direction: column; gap: 2px; }
+  /* a head, a price line and the activity line wrap instead of being cut by the panel edge */
+  .room-panel-head { flex-wrap: wrap; row-gap: var(--space-1); }
+  .room-meta { margin-left: 0; flex-wrap: wrap; text-align: left; }
+  .room-eco-line { flex-wrap: wrap; white-space: normal; overflow: visible; }
+  .room-gate-table .run { width: 44px; }
+  .room-activity-events { flex: 1 1 100%; height: auto; overflow: visible; flex-wrap: wrap; white-space: normal; row-gap: var(--space-2); }
+  .room-activity-events li { flex: 1 1 100%; min-width: 0; height: auto; line-height: inherit; flex-wrap: wrap; }
+  .room-activity-events li { padding-right: 0; border-right: 0; }
+}
+
+/* Motion. Something moves only because an API answer changed it (see useFresh.ts): once, for under two seconds.
+   Nothing loops: a wall that is always moving says the desk is always busy, and it is not. */
+@keyframes room-fresh-wash { from { background-color: var(--canvas-overlay); box-shadow: inset 3px 0 0 var(--ink); } to { background-color: transparent; box-shadow: inset 3px 0 0 transparent; } }
+@keyframes room-fresh-word { 0% { opacity: .2; } 25% { opacity: 1; } 45% { opacity: .35; } 70%, 100% { opacity: 1; } }
+@keyframes room-fresh-glyph { 0% { transform: scale(2.2); } 60%, 100% { transform: scale(1); } }
+@keyframes room-fresh-ring { 0% { stroke-width: 7; } 100% { stroke-width: 2; } }
+@keyframes room-fresh-enter { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+.room-board-row[data-fresh], .room-gate-table th[data-fresh] { animation: room-fresh-wash 1.8s ease-out 1; }
+.room-node[data-fresh] .glyph { animation: room-fresh-glyph 1.2s cubic-bezier(.2, .9, .3, 1) 1; }
+.room-headline [data-fresh], .room-status[data-fresh], .room-state[data-fresh], .room-line[data-fresh] { animation: room-fresh-word 1.6s ease-out 1; }
+.room-machine .node[data-fresh] circle { animation: room-fresh-ring 1.6s ease-out 1; }
+.room-runchart g[data-fresh] { animation: room-fresh-word 1.6s ease-out 1; }
+.room-activity-events li[data-fresh] { animation: room-fresh-enter .5s ease-out 1, room-fresh-wash 1.8s ease-out 1; }
+
+/* Reduced motion: nothing moves, and what is new is still marked, with a still rule for as long as it counts as new. */
+@media (prefers-reduced-motion: reduce) {
+  .room *, .room *::before, .room *::after { animation: none !important; transition: none !important; }
+  .room-board-row[data-fresh], .room-gate-table th[data-fresh], .room-activity-events li[data-fresh] { box-shadow: inset 3px 0 0 var(--ink); }
+  .room-node[data-fresh] .glyph, .room-headline [data-fresh], .room-status[data-fresh], .room-state[data-fresh], .room-line[data-fresh] { text-decoration: underline; }
+  .room-machine .node[data-fresh] circle { stroke-width: 4; }
+  /* the focused gate column already carries a rule on top: keep it, and add the one that says "new" */
+  .room-gate-table thead .run.is-focus[data-fresh] { box-shadow: inset 3px 0 0 var(--ink), inset 0 2px 0 var(--ink); }
+  .room-runchart g[data-fresh] > rect, .room-runchart g[data-fresh] > circle { stroke: var(--ink); stroke-width: 4; }
+  .room-runchart g[data-fresh] > text { text-decoration: underline; }
+}

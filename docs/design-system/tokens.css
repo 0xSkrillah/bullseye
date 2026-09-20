@@ -41,6 +41,7 @@
   --measure: 68ch;
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  --font-display: var(--font-mono);
 }
 [data-theme="light"] {
   --canvas: #f4f3ee;

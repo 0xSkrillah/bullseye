@@ -46,6 +46,8 @@
   --measure: 68ch;
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  /* short display runs only: a scoreboard heading, never body text */
+  --font-display: var(--font-mono);
 }
 /*
  * Projector (light), as specified in docs/design-system. Chosen with ?theme=light for a bright
