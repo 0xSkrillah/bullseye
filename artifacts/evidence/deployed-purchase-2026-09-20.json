@@ -1,0 +1,409 @@
+{
+  "what": "A purchase of a Bullseye Brief from the public deployment, reported by the owner and checked here against X Layer testnet and against what the deployed desk says in public. Read-only: one unpaid GET (which issues a quote), unauthenticated GETs, and JSON-RPC reads. No payment, no signature, no operator route, no token.",
+  "base": "https://bullseye-production-5d0c.up.railway.app",
+  "checkedAt": "2026-09-20T18:49:58.102Z",
+  "reportedByTheOwner": {
+    "claim": "I was able to successfully purchase this intel pack",
+    "briefHeadline": "QQQx multiplier rebase reaches the X Layer contract: multiplier 1.0034560758968376 at the issuer's effective time",
+    "explorerUrl": "https://web3.okx.com/explorer/x-layer-testnet/tx/0x30313b87921dd68f07ae95320442ac5510fd89be371b8200bded84912573b726"
+  },
+  "boundaries": [
+    "X Layer testnet with test tokens: this proves the payment and delivery mechanics, not revenue.",
+    "The order id is not public and operator routes are disabled on the deployment, so this does not read the seller's own record of the transaction hash. The transaction is joined to the desk's only order by network, asset, amount, pay-to address and time, not by reading the order.",
+    "The Brief itself is behind the paywall. What is recorded here is its public preview and content hash, not the delivered document.",
+    "The quote in this file was open when the buyer's order was opened, so it carries the terms the buyer was charged against. It expires 15 minutes after it was issued; a later run of this check will show a different quote, and that would not mean anything changed.",
+    "Who the buyer is is not established here. The authorizing address is the one that paid, and it is the same address as the agent buyer in the 18 September purchase."
+  ],
+  "chain": {
+    "rpc": "https://testrpc.xlayer.tech",
+    "chainId": 1952,
+    "txHash": "0x30313b87921dd68f07ae95320442ac5510fd89be371b8200bded84912573b726",
+    "receiptStatus": "success",
+    "blockNumber": 41470689,
+    "blockTimestamp": "2026-09-20T18:38:46.000Z",
+    "submittedBy": "0x40817a0d9043732d48823c05ab2ffb643ef8d90a",
+    "to": "0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c",
+    "gasUsed": 81527,
+    "transfers": [
+      {
+        "token": "0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c",
+        "from": "0xc19e520dfe1a493961fe7092f6017e1f2bdc50d6",
+        "to": "0xa8bcd760a7c280c05090431c6afdf15df324d64a",
+        "valueBaseUnits": "3000000"
+      }
+    ],
+    "authorizationUsed": [
+      {
+        "token": "0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c",
+        "authorizer": "0xc19e520dfe1a493961fe7092f6017e1f2bdc50d6",
+        "nonce": "0xc4823a89d8a47b42b160ae81d95f2ae650d23e9372528515af498886dd9005e0"
+      }
+    ],
+    "txInputSelector": "0xe3ee160e"
+  },
+  "sellerTerms": {
+    "source": "unpaid GET https://bullseye-production-5d0c.up.railway.app/api/v1/briefs/brf_0d55468f0c4045ef",
+    "httpStatus": 402,
+    "paymentRequiredHeaderPresent": true,
+    "accepts": {
+      "scheme": "exact",
+      "network": "eip155:1952",
+      "asset": "0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c",
+      "amount": "3000000",
+      "payTo": "0xa8bcd760a7c280c05090431c6afdf15df324d64a",
+      "maxTimeoutSeconds": 300,
+      "extra": {
+        "name": "USD₮0",
+        "version": "1"
+      }
+    },
+    "resourceDescription": "Bullseye Brief brf_0d55468f0c4045ef: QQQx rebased +0.072906% (CashDividend)",
+    "bullseye": {
+      "quoteId": "quo_e05289901bf0aed9",
+      "termsHash": "1e2dad96338b8f8476561630df826353bf090a1f11538b660052d0e4c6ee96cc",
+      "priceUsd": "3.00",
+      "expiresAt": "2026-09-20T18:53:21.601Z",
+      "rail": "OKX_X402_TESTNET"
+    },
+    "quoteIssuedAt": "2026-09-20T18:38:21.601Z",
+    "note": "The desk reuses an open quote for the same Brief and resource rather than minting one per request (checkout.quote / orderLedger.findOpenQuote). While the buyer's quote is still open, an unpaid request is answered with that same quote; after it expires a fresh one is minted and this field changes."
+  },
+  "checks": [
+    {
+      "name": "the transaction succeeded",
+      "ok": true,
+      "detail": "receipt status 0x1"
+    },
+    {
+      "name": "it is on the network the desk quotes",
+      "ok": true,
+      "detail": "RPC chainId 1952 vs quoted eip155:1952"
+    },
+    {
+      "name": "it carries a transfer of the quoted asset, amount and pay-to address",
+      "ok": true,
+      "detail": "3000000 base units of 0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c to 0xa8bcd760a7c280c05090431c6afdf15df324d64a"
+    },
+    {
+      "name": "the payer signed an EIP-3009 authorization rather than sending the funds themselves",
+      "ok": true,
+      "detail": "AuthorizationUsed by 0xc19e520dfe1a493961fe7092f6017e1f2bdc50d6; transaction submitted by 0x40817a0d9043732d48823c05ab2ffb643ef8d90a"
+    },
+    {
+      "name": "the desk records one paid order, delivered and verified against the chain",
+      "ok": true,
+      "detail": "total 1, byState {\"DELIVERED\":{\"count\":1,\"chainVerified\":1}}"
+    },
+    {
+      "name": "that order is for the Brief the buyer names",
+      "ok": true,
+      "detail": "brf_0d55468f0c4045ef (QQQx)"
+    },
+    {
+      "name": "the block is inside the desk's own payment window",
+      "ok": true,
+      "detail": "payment pending 2026-09-20T18:38:44.538Z, block 2026-09-20T18:38:46.000Z, paid 2026-09-20T18:38:56.525Z"
+    },
+    {
+      "name": "the desk counts it as a test payment, not revenue",
+      "ok": true,
+      "detail": "Every paid order so far used test tokens or the fixture rail. Revenue is zero."
+    },
+    {
+      "name": "the terms served to this check are the quote the buyer's order was opened against",
+      "informational": true,
+      "ok": true,
+      "detail": "quote quo_e05289901bf0aed9 (terms 1e2dad96338b8f8476561630df826353bf090a1f11538b660052d0e4c6ee96cc) was issued at 2026-09-20T18:38:21.601Z, before the order was opened at 2026-09-20T18:38:44.538Z, and is still open"
+    }
+  ],
+  "deskRecord": {
+    "health": {
+      "service": "bullseye",
+      "dataSource": {
+        "mode": "LIVE",
+        "asOf": "2026-09-20T18:50:00.704Z"
+      },
+      "synthesis": {
+        "provider": "openrouter",
+        "model": "openrouter/auto",
+        "ready": true,
+        "detail": "cost tier medium; price cap $3/$15 per million tokens in/out"
+      },
+      "paymentRail": {
+        "rail": "OKX_X402_TESTNET",
+        "network": "eip155:1952",
+        "ready": true,
+        "detail": "facilitator supports exact on eip155:1952",
+        "payTo": "0xa8bcd760a7c280c05090431c6afdf15df324d64a",
+        "isTestnet": true
+      },
+      "priceUsd": "3.00",
+      "budget": {
+        "maxVariableCostUsd": 0.6,
+        "maxModelCalls": 6,
+        "maxToolCalls": 14,
+        "maxLatencyMs": 180000,
+        "maxOutputTokensPerCall": 8000
+      },
+      "operatorRoutes": "DISABLED",
+      "diagnostics": "DISABLED",
+      "autoDesk": {
+        "enabled": true,
+        "intervalMinutes": 30,
+        "maxInvestigationsPerDay": 3
+      },
+      "sdk": {
+        "@okxweb3/x402-core": "0.1.0",
+        "@okxweb3/x402-evm": "0.2.1",
+        "@okxweb3/x402-express": "0.1.1",
+        "@okxweb3/x402-fetch": "0.1.0"
+      }
+    },
+    "commerceSummary": {
+      "label": "AGGREGATE",
+      "note": "Counts of orders by state. No buyer, order or payment identifiers. These are test payments: not revenue, and not evidence of demand.",
+      "rail": "OKX_X402_TESTNET",
+      "isTestnet": true,
+      "countsAsRevenue": false,
+      "priceUsd": "3.00",
+      "total": 1,
+      "byState": {
+        "DELIVERED": {
+          "count": 1,
+          "chainVerified": 1
+        }
+      },
+      "byBrief": [
+        {
+          "briefId": "brf_0d55468f0c4045ef",
+          "symbol": "QQQx",
+          "orders": 1,
+          "furthestState": "DELIVERED",
+          "count": 1,
+          "chainVerified": 1
+        }
+      ],
+      "latest": {
+        "at": "2026-09-20T18:42:05.841Z",
+        "state": "DELIVERED",
+        "rail": "OKX_X402_TESTNET",
+        "chainVerified": true,
+        "trail": [
+          {
+            "at": "2026-09-20T18:38:44.538Z",
+            "from": null,
+            "to": "QUOTED"
+          },
+          {
+            "at": "2026-09-20T18:38:44.538Z",
+            "from": "QUOTED",
+            "to": "PAYMENT_PENDING"
+          },
+          {
+            "at": "2026-09-20T18:38:45.631Z",
+            "from": "PAYMENT_PENDING",
+            "to": "PAYMENT_UNKNOWN"
+          },
+          {
+            "at": "2026-09-20T18:38:56.525Z",
+            "from": "PAYMENT_UNKNOWN",
+            "to": "PAID"
+          },
+          {
+            "at": "2026-09-20T18:38:56.707Z",
+            "from": "PAID",
+            "to": "DELIVERING"
+          },
+          {
+            "at": "2026-09-20T18:38:56.710Z",
+            "from": "DELIVERING",
+            "to": "DELIVERED"
+          }
+        ]
+      },
+      "latestReceipt": null
+    },
+    "sales": {
+      "paidOrders": 1,
+      "revenueOrders": 0,
+      "revenueUsd": 0,
+      "testOrders": 1,
+      "testPaymentsUsd": 3,
+      "unverifiedMainnetOrders": 0,
+      "unverifiedMainnetUsd": 0,
+      "note": "Every paid order so far used test tokens or the fixture rail. Revenue is zero."
+    },
+    "orderTrail": [
+      {
+        "at": "2026-09-20T18:38:44.538Z",
+        "from": null,
+        "to": "QUOTED"
+      },
+      {
+        "at": "2026-09-20T18:38:44.538Z",
+        "from": "QUOTED",
+        "to": "PAYMENT_PENDING"
+      },
+      {
+        "at": "2026-09-20T18:38:45.631Z",
+        "from": "PAYMENT_PENDING",
+        "to": "PAYMENT_UNKNOWN"
+      },
+      {
+        "at": "2026-09-20T18:38:56.525Z",
+        "from": "PAYMENT_UNKNOWN",
+        "to": "PAID"
+      },
+      {
+        "at": "2026-09-20T18:38:56.707Z",
+        "from": "PAID",
+        "to": "DELIVERING"
+      },
+      {
+        "at": "2026-09-20T18:38:56.710Z",
+        "from": "DELIVERING",
+        "to": "DELIVERED"
+      }
+    ],
+    "publicActivity": [
+      {
+        "at": "2026-09-20T18:38:56.710Z",
+        "kind": "ORDER_STATE",
+        "refId": "ref_b80e403c617439cf",
+        "symbol": "QQQx",
+        "summary": "QQQx: DELIVERING → DELIVERED",
+        "rail": "OKX_X402_TESTNET",
+        "state": "DELIVERED"
+      },
+      {
+        "at": "2026-09-20T18:38:56.707Z",
+        "kind": "ORDER_STATE",
+        "refId": "ref_b80e403c617439cf",
+        "symbol": "QQQx",
+        "summary": "QQQx: PAID → DELIVERING",
+        "rail": "OKX_X402_TESTNET",
+        "state": "DELIVERING"
+      },
+      {
+        "at": "2026-09-20T18:38:56.525Z",
+        "kind": "ORDER_STATE",
+        "refId": "ref_b80e403c617439cf",
+        "symbol": "QQQx",
+        "summary": "QQQx: PAYMENT_UNKNOWN → PAID",
+        "rail": "OKX_X402_TESTNET",
+        "state": "PAID"
+      },
+      {
+        "at": "2026-09-20T18:38:45.631Z",
+        "kind": "ORDER_STATE",
+        "refId": "ref_b80e403c617439cf",
+        "symbol": "QQQx",
+        "summary": "QQQx: PAYMENT_PENDING → PAYMENT_UNKNOWN",
+        "rail": "OKX_X402_TESTNET",
+        "state": "PAYMENT_UNKNOWN"
+      },
+      {
+        "at": "2026-09-20T18:38:44.538Z",
+        "kind": "ORDER_STATE",
+        "refId": "ref_b80e403c617439cf",
+        "symbol": "QQQx",
+        "summary": "QQQx: QUOTED → PAYMENT_PENDING",
+        "rail": "OKX_X402_TESTNET",
+        "state": "PAYMENT_PENDING"
+      },
+      {
+        "at": "2026-09-20T18:38:44.538Z",
+        "kind": "ORDER_STATE",
+        "refId": "ref_b80e403c617439cf",
+        "symbol": "QQQx",
+        "summary": "QQQx: QUOTED",
+        "rail": "OKX_X402_TESTNET",
+        "state": "QUOTED"
+      }
+    ]
+  },
+  "brief": {
+    "id": "brf_0d55468f0c4045ef",
+    "headline": "QQQx multiplier rebase reaches the X Layer contract: multiplier 1.0034560758968376 at the issuer's effective time",
+    "publishedAt": "2026-09-20T10:31:50.162Z",
+    "dataMode": "LIVE",
+    "synthesis": {
+      "provider": "openrouter",
+      "model": "openrouter/auto",
+      "mode": "LIVE",
+      "routedModels": [
+        "deepseek/deepseek-v4.1-flash"
+      ]
+    },
+    "signalId": "sig_9045bfe981e2e6a0",
+    "asset": "QQQx",
+    "confidence": "MEDIUM",
+    "evidenceCount": 9,
+    "evidenceKinds": [
+      "CORPORATE_ACTION_RECORD",
+      "ISSUER_MULTIPLIER_STATE",
+      "ONCHAIN_MULTIPLIER_BEFORE",
+      "ONCHAIN_MULTIPLIER_AFTER",
+      "ONCHAIN_MULTIPLIER_LATEST",
+      "ONCHAIN_ACTIVATION_BLOCK",
+      "PROOF_OF_RESERVES",
+      "TRADING_STATUS",
+      "SUPPLY"
+    ],
+    "unknownCount": 3,
+    "conflictCount": 0,
+    "contentHash": "9a8b7da7cd93d4adb4eb9e2e95ac4b2f6b73eef3a5cf68b34e2a46c5ffdbb4f3"
+  },
+  "signal": {
+    "id": "sig_9045bfe981e2e6a0",
+    "category": "CORPORATE_ACTION_REBASE",
+    "asset": {
+      "symbol": "QQQx",
+      "name": "Nasdaq xStock",
+      "isin": "CH1436219724",
+      "underlyingSymbol": "QQQ",
+      "network": "XLayer",
+      "chainId": 196,
+      "tokenAddress": "0xa753a7395cae905cd615da0b82a53e0560f250af"
+    },
+    "observedAt": "2026-09-19T23:00:00.000Z",
+    "detectedAt": "2026-09-20T10:30:02.641Z",
+    "headline": "QQQx rebased +0.072906% (CashDividend)",
+    "reasonFlagged": "Issuer reported a CashDividend that moves the QQQx balance multiplier from 1.0027250296551051 to 1.0034560758968376. Holder balances on X Layer change without Transfer events, so the change needs independent on-chain confirmation.",
+    "facts": {
+      "corporateActionId": "d250616c-360f-48e6-bd33-4807a7266050",
+      "corporateActionVersion": 2,
+      "caType": "CashDividend",
+      "status": "Initial",
+      "multiplierOld": "1.0027250296551051",
+      "multiplierNew": "1.0034560758968376",
+      "changePct": 0.072906,
+      "grossCashflowUsd": "0.7514",
+      "netCashflowUsd": "0.52598",
+      "withholdingTaxRate": "0.3"
+    },
+    "sources": [
+      {
+        "mode": "LIVE",
+        "source": "api.xstocks.fi",
+        "url": "https://api.xstocks.fi/api/v2/public/corporate-actions/history?pageSize=50&sortBy=createdTimeUtc&sortOrder=desc",
+        "fetchedAt": "2026-09-20T10:30:02.641Z",
+        "sha256": "e9661b825667f2e1ec64879bd9f19189039b824adace3e13dbb96a26d9f6eb31"
+      },
+      {
+        "mode": "LIVE",
+        "source": "api.xstocks.fi",
+        "url": "https://api.xstocks.fi/api/v2/public/assets/QQQx",
+        "fetchedAt": "2026-09-20T10:30:03.024Z",
+        "sha256": "b427f873eaeb0eb4aa9d03eff67b48c2e4935712eafb9e481cd741be43d58e2b"
+      }
+    ],
+    "provenance": {
+      "mode": "LIVE",
+      "detector": "xstocks-rebase-on-xlayer",
+      "detectorVersion": "1.0.0",
+      "inputHash": "d2009fe6a9275a9c66f541bec6791634884ad5764c9fa99157545def31534a09"
+    }
+  },
+  "verdict": "A successful x402 payment of the quoted amount, asset and pay-to address on X Layer testnet, and the deployed desk reports one order for that Brief, delivered and verified against the chain."
+}
