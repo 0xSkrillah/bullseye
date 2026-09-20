@@ -8,8 +8,10 @@ export function Desk({ feed, work, console: consoleRegion, strip }: { feed: Reac
   const hidden = (r: Region) => (region === r ? "" : " is-hidden-phone");
   return (
     <div className="be be-desk">
-      <div className="be-seg" role="tablist" aria-label="Region" style={{ gridColumn: "1 / -1" }}>
+      <div className="be-seg" role="tablist" aria-label="Region" style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 8 }}>
         {(["FEED", "WORK", "CONSOLE"] as Region[]).map((r) => <button key={r} className={`be-btn${region === r ? " be-btn-primary" : ""}`} role="tab" aria-selected={region === r} onClick={() => setRegion(r)}>{r}</button>)}
+        {/* the Market Desk reads the same events as money; it is a separate chunk and loads nothing here */}
+        <a className="be-btn" href="/market" style={{ marginLeft: "auto", textDecoration: "none" }}>Market Desk</a>
       </div>
       <section className={`be-region${hidden("FEED")}`} aria-label="Feed">{feed}</section>
       <div style={{ display: "grid", gap: 24 }}>

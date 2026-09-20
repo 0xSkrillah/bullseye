@@ -61,6 +61,8 @@ export interface ComparisonRow {
   what: string;
   source: string;
   url: string | null;
+  /** the evidence item this row came from. Named here because every X Layer read shares one RPC URL. */
+  evidenceId: string | null;
   value: string | null;
   unit: string;
   observedAt: string | null;
@@ -253,6 +255,7 @@ export function buildMarketView(deps: MarketViewDeps): MarketView {
       what,
       source: source ?? item?.provenance.source ?? "—",
       url: item?.provenance.url ?? null,
+      evidenceId: item?.id ?? null,
       value,
       unit,
       observedAt: at,
@@ -277,7 +280,8 @@ export function buildMarketView(deps: MarketViewDeps): MarketView {
   row("Executable sell quote (bid)", undefined, null, currency ?? "currency not stated", "No source in the permitted set publishes one.", "—", null);
   row("Quote size", undefined, null, `${signal.asset.symbol} tokens`, "No quote, so no size. The figures in money above use the desk's stated holding of " + STATED_HOLDING_TOKENS + ".", "—", null);
   row("Quote expiry", undefined, null, "seconds", "No quote, so nothing expires. Freshness here is the age of a reference observation.", "—", null);
-  row("Trading status", status, null, "halt flags", status ? status.summary.replace(/^Issuer trading status: /, "") : "Not recorded.", undefined, status?.observedAt);
+  const halted = status ? status.values.isMarketTradingHalted === true || status.values.isAtomicTradingHalted === true : null;
+  row("Trading status", status, halted === null ? null : halted ? "halted" : "not halted", "halt flags", status ? status.summary.replace(/^Issuer trading status: /, "") : "Not recorded: no investigation has read the issuer status for this event.", undefined, status?.observedAt);
 
   // ---- the evidence drawer
   const evidenceRefs: EvidenceRef[] = evidence.map((e) => {

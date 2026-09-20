@@ -459,6 +459,30 @@ describe("provenance and freshness on the comparison panel", () => {
     }
   });
 
+  it("names the evidence item each row came from, not one that merely shares its URL", async () => {
+    const c = await testContainer();
+    const { signal } = await investigateFirstSignal(c);
+    const res = await request(createApp(c)).get(`/api/market/${signal.id}`).set("Authorization", "Bearer x");
+    const rows = res.body.market.comparison;
+    // On a live or recorded desk every X Layer read carries the same URL — the RPC endpoint — so a
+    // row matched to its evidence by URL resolves to whichever chain item happens to come first.
+    // Observed on the recorded QSRx run, where all four chain items share https://rpc.xlayer.tech
+    // and the head-multiplier row linked to EV-CHAIN-ACTIVATION. The row names its own item instead.
+    expect(rows.find((r: { what: string }) => r.what === "Multiplier on X Layer").evidenceId).toBe("EV-CHAIN-LATEST");
+    expect(rows.find((r: { what: string }) => r.what === "Issuer reference price").evidenceId).toBe("EV-PRICE");
+    expect(rows.find((r: { what: string }) => r.what === "Multiplier the issuer published").evidenceId).toBe("EV-CA");
+    expect(rows.find((r: { what: string }) => r.what === "Quote expiry").evidenceId).toBeNull();
+  });
+
+  it("carries the trading status as a value, because the issuer does publish one", async () => {
+    const c = await testContainer();
+    const { signal } = await investigateFirstSignal(c);
+    const res = await request(createApp(c)).get(`/api/market/${signal.id}`).set("Authorization", "Bearer x");
+    const row = res.body.market.comparison.find((r: { what: string }) => r.what === "Trading status");
+    expect(row.value).toBe("not halted");
+    expect(row.evidenceId).toBe("EV-STATUS");
+  });
+
   it("marks an observation stale once the clock has moved past the limit, and stops computing money", async () => {
     let at = FIXTURE_CLOCK;
     const c = await testContainer({}, {}, () => at);

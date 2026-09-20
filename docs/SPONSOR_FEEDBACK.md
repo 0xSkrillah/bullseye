@@ -3,11 +3,13 @@
 Observations from integrating OKX x402 payments, X Layer and the xStocks API into Bullseye.
 SF-1 and SF-2 have a reproduction that runs from this repository. SF-4 and SF-6 are reproduced
 with the guide's example and a direct RPC call. SF-3 and SF-5 are read from the SDK and the
-guide. SF-7 is a single observation from the one real settlement. These are
+guide. SF-7 is a single observation from the one real settlement. SF-8 to SF-11 are xStocks data
+contract findings, each reproduced live by `npm run market-probe`. These are
 developer-experience and documentation findings. None of them is a security vulnerability, and
 none was tested beyond what is described.
 
-Environment for every item: Windows 11, Node v26.7.0, npm 12.0.2, 18 September 2026.
+Environment for every item: Windows 11, Node v26.7.0, npm 12.0.2, 18 September 2026; SF-8 to
+SF-11 on 20 September 2026.
 
 | Package / surface | Version used |
 | --- | --- |
@@ -220,6 +222,86 @@ not to sign a new one. It never calls `settle` a second time for the same author
 buyer re-sent the authorization it reconciled from the transaction receipt and `getSettleStatus`,
 moved the order to PAID and delivered once (`apps/api/test/checkout.test.ts`, "treats a settle
 timeout as unknown: no delivery, no second charge, then reconciles to PAID").
+
+## SF-8 · `price-data` is a bare, nullable number: no currency, no observation time, no side
+
+Found on 20 September 2026 while establishing whether a price discrepancy could be computed at all
+(`npm run market-probe`; artifact `artifacts/integration/market-probe-2026-09-20T13-17-24-494Z.json`).
+
+**Reproduce.** `GET /public/assets/QSRx/price-data`.
+
+- While the underlying market is open (18 September, 19:28 UTC): `{"quote": 72.75}`.
+- While it is closed (20 September, 12:58 UTC): `{"quote": null}`, after **20.1 s**.
+
+**Impact.** Three separate problems for anyone valuing a tokenised asset.
+
+1. The response states no currency, no observation time, no venue and no side. The currency can be
+   recovered from `GET /public/assets/{symbol}` (`trading.currency`, `underlying.currency`), but the
+   price itself can only be dated by the time the caller fetched it — and the asset endpoint is
+   served with `cache-control: public, s-maxage=30, stale-while-revalidate=60`, so a fetch time can
+   be up to 90 s older than it looks. A consumer cannot tell a fresh quote from a cached one.
+2. `quote` is documented as a number and is null in practice. A schema that reads the field as a
+   positive number — as this repository's did (`XsPrice` in `apps/api/src/adapters/xstocks.ts`) —
+   rejects the body outright, so a caller loses the whole response rather than learning that no
+   price is being published. Bullseye's evidence tool for the reference price therefore fails
+   whenever the NYSE session is closed, which is most of the week.
+3. 20 s is long enough to exhaust a default HTTP timeout, and the slow path is the one that returns
+   nothing.
+
+There is also no two-sided quote anywhere in the public API: `/quote`, `/quotes`, `/orderbook`,
+`/book` and `/depth` all answer 404 for a valid symbol. Nothing publishes a bid, an ask, a size or
+an expiry, so a size-specific spread cannot be computed from these sources and must not be
+estimated from the reference price. Bullseye's Market Desk labels every such figure
+INSUFFICIENT DATA for this reason.
+
+**Suggested fix.** Return `{"quote": null, "asOf": ..., "currency": ..., "reason": "market_closed"}`
+rather than a bare null, document the field as nullable, and say in the OpenAPI description that
+the value is a reference price rather than an executable quote.
+
+## SF-9 · The three supply figures are not in one unit or one scope
+
+**Reproduce.** For QSRx on 20 September 2026:
+
+| Endpoint | Value |
+| --- | --- |
+| `GET /public/assets/QSRx/total-supply` | `814558.3231943906` |
+| `GET /public/assets/QSRx/circulating-supply` | `0.4329033180347051` |
+| `GET /public/proof-of-reserves/QSRx` | `sharesHeld "3"`, `circulatingSupply "0.432903322893486089"` |
+
+**Impact.** Total and circulating supply are 6.3 orders of magnitude apart, and neither is
+documented as being per network, per deployment or issuer-wide. `proof-of-reserves` is issuer-wide,
+while `totalSupply()` on the X Layer contract covers one deployment, and the same token address is
+deployed on eight EVM networks (SF-10). The obvious calculation — shares backing one token — gives
+0.0000037 with one denominator and 6.93 with the other, and nothing in the responses says which is
+meaningful. Bullseye computes neither, and says so on screen.
+
+**Suggested fix.** State the scope and unit of each supply figure in the OpenAPI description, and
+say whether `circulating-supply` is multiplier-adjusted.
+
+## SF-10 · `deployments[]` is unordered and repeats one address across networks
+
+**Reproduce.** `GET /public/assets/QSRx` twice, two days apart. On 18 September the array began
+with Ethereum; on 20 September it began with Ton. The same EVM address
+`0xc6437a260bf2b7e9d9e402b2ef7e9a84d3622046` appears for Ethereum, BSC, Arbitrum, Mantle,
+HyperEVM, Ink, X Layer and Optimism: 10 deployments over 3 distinct addresses.
+
+**Impact.** Code that reads `deployments[0]`, or that keys a cache by address, silently gets the
+wrong network. An address is not a network identity here.
+
+**Suggested fix.** Say in the docs that the array has no defined order and that EVM addresses are
+shared across networks, so a deployment must be selected by `network`.
+
+## SF-11 · The multiplier endpoint uses `0` as "nothing pending", and 0 is a valid-looking multiplier
+
+**Reproduce.** `GET /public/assets/QSRx/multiplier?network=XLayer` with no pending action:
+`{"currentMultiplier": 1.0066516577977895, "newMultiplier": 0, "activationDateTime": 0, "reason": null}`.
+
+**Impact.** `newMultiplier: 0` reads as a multiplier of zero, which would wipe every balance, and
+`activationDateTime: 0` reads as 1 January 1970. A consumer that does not know 0 is a sentinel will
+either act on it or store it. `reason: null` is the only hint that nothing is pending.
+
+**Suggested fix.** Use `null` for both fields when no change is pending, or add an explicit
+`hasPendingChange` boolean.
 
 ## What worked well
 
