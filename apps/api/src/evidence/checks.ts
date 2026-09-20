@@ -130,7 +130,20 @@ export function runConsistencyChecks(signal: SignalEvent, evidence: EvidenceItem
       `implied ${implied}% at current price vs reported ${signal.facts.changePct}% (relative gap ${(rel * 100).toFixed(1)}%, tolerance ${REBASE_SIZE_TOLERANCE * 100}%)`,
       ["EV-PRICE", "EV-CA"],
     );
-  } else add("CHK-REBASE-SIZE-PLAUSIBLE", "Rebase size is consistent with net cashflow per share divided by the reference price", "UNKNOWN", "needs EV-PRICE and a net cashflow figure", []);
+  } else {
+    // Name only what actually blocked it. The guard above reads EV-PRICE and the reported change;
+    // it never reads a net cashflow figure, which is already folded into the implied percentage
+    // upstream. Saying "needs EV-PRICE and a net cashflow figure" asserted the evidence set lacked
+    // a figure it usually holds and cites — an untrue statement about absence, in the document a
+    // buyer pays for. The three cases are distinct and the middle one is the common one: since
+    // SF-8, EV-PRICE is collected with a null quote whenever the issuer's market is closed.
+    const why = !price
+      ? "EV-PRICE not collected"
+      : typeof price.values.impliedRebasePctAtCurrentPrice !== "number"
+        ? "EV-PRICE was collected but the issuer published no reference price, so no implied percentage can be computed"
+        : "the issuer reports a change of zero, so there is nothing to test";
+    add("CHK-REBASE-SIZE-PLAUSIBLE", "Rebase size is consistent with net cashflow per share divided by the reference price", "UNKNOWN", why, []);
+  }
 
   if (status) {
     const halted = status.values.isMarketTradingHalted === true || status.values.isAtomicTradingHalted === true;

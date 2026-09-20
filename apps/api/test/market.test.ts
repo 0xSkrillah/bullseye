@@ -578,7 +578,15 @@ describe("a closed market publishes no price (SF-8)", () => {
     // says so rather than reporting a failure the issuer is not responsible for.
     expect(check).toBeDefined();
     expect(check!.status).toBe("UNKNOWN");
-    expect(check!.detail).toMatch(/needs EV-PRICE and a net cashflow figure/);
+    // It must name what actually blocked it. EV-PRICE WAS collected here — a null quote is an
+    // observation — so "not collected" would be wrong too.
+    expect(check!.detail).toMatch(/EV-PRICE was collected but the issuer published no reference price/);
+    // And it must not claim a missing net cashflow figure. The guard never reads one, and the
+    // evidence set holds it: asserting its absence was a false statement about absence inside the
+    // document a buyer pays for, which is the one thing this product sells.
+    const ca = c.investigations.evidence(view.id).find((e) => e.id === "EV-CA");
+    expect(ca!.values.netCashflowUsd, "the evidence set does hold a net cashflow figure").toBeDefined();
+    expect(check!.detail).not.toMatch(/net cashflow/i);
     // and no other check is dragged down with it: the core four are about the multiplier
     for (const id of ["CHK-BEFORE-MATCHES-OLD", "CHK-AFTER-MATCHES-NEW", "CHK-LATEST-MATCHES-NEW", "CHK-ACTION-STILL-CURRENT"]) {
       expect(checks.find((x) => x.id === id)?.status, id).toBe("PASS");
