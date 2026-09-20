@@ -10,6 +10,7 @@ import { ACTIVITY_KINDS, recentActivity } from "./activity.js";
 import { buildReceipt } from "../economics/receipt.js";
 import { deskEconomics } from "../economics/deskEconomics.js";
 import { projectChain, projectInvestigation, projectUsage, type Audience } from "./projections.js";
+import { buildMarketView } from "../market/marketView.js";
 import { RailNotReadyError } from "../commerce/checkout.js";
 import { SDK_VERSIONS } from "../commerce/rail.js";
 import { SourceUnavailableError } from "../adapters/transport.js";
@@ -192,6 +193,36 @@ export function createApp(c: Container) {
     if (!view) return res.status(404).json({ error: "investigation_not_found" });
     const audience = audienceOf(req);
     res.json({ audience, chain: projectChain(c.investigations.chain(view.id), audience, c.investigations.signalMayStillSell(view.signalId)) });
+  });
+
+  /**
+   * The Market Desk: what one verified event does to money, and what the desk cannot say about
+   * transacting on it. It reads only what is already stored, so a page load makes no external
+   * call and spends nothing. The chain side is projected by exactly the rule the other read
+   * routes use, and every figure derived from a withheld read is withheld with it.
+   */
+  app.get("/api/market/:signalId", (req, res) => {
+    const signal = c.signals.get(String(req.params.signalId));
+    if (!signal) return res.status(404).json({ error: "signal_not_found" });
+    const audience = audienceOf(req);
+    const latest = c.investigations.latestForSignal(signal.id);
+    const protect = c.investigations.signalMayStillSell(signal.id);
+    const chain = latest ? projectChain(c.investigations.chain(latest.id), audience, protect) : null;
+    const withdrawn = c.signals.supersession(signal.id);
+    const market = buildMarketView({
+      signal,
+      investigationId: latest?.id ?? null,
+      evidence: latest ? c.investigations.evidence(latest.id) : [],
+      chain,
+      chainWithheld: Boolean(chain?.withheld),
+      briefId: latest?.briefId ?? null,
+      briefWithdrawn: withdrawn !== null,
+      priceUsd: c.config.BRIEF_PRICE_USD,
+      // the transport's clock, so a recorded replay judges freshness against the recording
+      now: c.transport.now(),
+      audience,
+    });
+    res.json({ audience, market });
   });
 
   app.get("/api/desk/status", (_req, res) => {

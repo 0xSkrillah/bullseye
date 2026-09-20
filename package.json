@@ -23,6 +23,7 @@
     "test:e2e": "playwright test",
     "spike": "tsx --env-file-if-exists=.env scripts/spike.ts",
     "detect": "tsx --env-file-if-exists=.env scripts/detect.ts",
+    "market-probe": "tsx --env-file-if-exists=.env scripts/market-probe.ts",
     "buy": "tsx --env-file-if-exists=.env scripts/buy-brief.ts",
     "verify-payment": "tsx --env-file-if-exists=.env scripts/verify-payment.ts",
     "demo": "tsx --env-file-if-exists=.env scripts/run-demo.ts",
