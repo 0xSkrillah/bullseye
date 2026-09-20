@@ -56,6 +56,23 @@ agrees with the issuer.
    also what the web app renders. The receipt keeps price, measured cost and estimated allowances
    apart. Testnet payments are never revenue; estimated contribution is never profit.
 
+### The Market Desk
+
+`/market` reads one verified event as money, for a customer deciding whether it is still worth
+anything: the balance change in exact decimals, the two ways to get it wrong, the same event valued
+at the issuer's reference price, and then everything the desk cannot tell you. Its answer for every
+event so far is **no transactable opportunity**, and that is the finding. No source Bullseye may
+read publishes a bid, an ask, a size or an expiry, so no spread can be quoted; the costs that would
+be netted against one are unknown, and an unknown cost is not zero. Figures are computed by integer
+arithmetic on `BigInt` at 36 decimal places, never in floating point and never by a model, and each
+carries its label before its value, its inputs, its limitations, and — when an input is missing or
+stale — the names of what is missing in place of a number. Read-only: no brokerage, no execution,
+no leverage, no key custody, no new contract. [docs/MARKET_DESK.md](docs/MARKET_DESK.md).
+
+A rebase changes how many tokens a holder has. It is not a price return, and applying a multiplier
+to a balance that already includes it is the likeliest way to be wrong about one of these events —
+on the recorded VGKx rebase that error is +1.116517183338 % against a rebase of +0.1741971579 %.
+
 Run on 18 September 2026 over the issuer's 50 most recent corporate actions, the detector flagged
 fifteen dividend rebases on X Layer deployments, six of them effective that day. For the two that were
 investigated and recorded (IFFx and QSRx) the chain held the old multiplier at 00:29:00Z, the new
@@ -107,6 +124,7 @@ npm run wallet           # is the buyer funded? prints its address and testnet b
 npm run model-check      # one tiny metered model call, reconciled against the provider's own ledger
 npm run dev              # API + UI. Leave it running; the commands below talk to it from a second terminal
 npm run detect           # what the detector sees right now
+npm run market-probe     # what the permitted sources really publish for one asset, and what they do not
 npm run demo -- QSRx     # drive the golden path for one flagged ticker and save a transcript (add --buy to purchase)
 npm run buy -- latest    # an agent discovers, pays for and receives the newest Brief; prints the order id
 npm run verify-payment -- ord_8a2102084ad69dab   # re-checks that order against X Layer without trusting the API
@@ -141,12 +159,12 @@ Seven documentation and SDK findings, each with a reproduction, are in
 
 ```
 packages/domain    Zod schemas, order state machine, canonical hashing
-apps/api           adapters · signals · evidence · research · gate · commerce · economics · http
-apps/web           React/Vite desk built from docs/design-system
-scripts            spike · record · detect · wallet-check · model-check · buy-brief · spend-guard · verify-payment · run-demo
+apps/api           adapters · signals · evidence · research · gate · commerce · economics · market · http
+apps/web           React/Vite desk built from docs/design-system; src/market is the Market Desk at /market
+scripts            spike · record · detect · market-probe · wallet-check · model-check · buy-brief · spend-guard · verify-payment · run-demo
 tests/e2e          Playwright
 artifacts          integration results · recorded source responses · demo transcripts
-docs               product, architecture, data contracts, economics, evals, demand,
+docs               product, architecture, data contracts, market desk, economics, evals, demand,
                    sponsor feedback, claim ledger, build provenance, demo runbook, deployment
 Dockerfile         API and built web desk in one container (docs/DEPLOYMENT.md)
 ```
@@ -154,7 +172,12 @@ Dockerfile         API and built web desk in one container (docs/DEPLOYMENT.md)
 ## Limits
 
 One signal type, one issuer, one chain. A polling detector with no measured latency, reading the
-issuer's 50 most recent corporate actions. One live investigation and one live testnet settlement:
+issuer's 50 most recent corporate actions. The Market Desk shows no spread and no net edge for any
+event, because the permitted sources publish no two-sided quote, no size and no fee schedule; that
+is a limit of the data, established from live responses (`npm run market-probe`) and not worked
+around. It computes no shares-backing-per-token figure either, because the issuer's supply figures
+are not in one unit or scope. There is no forward tracker: an honest one needs observations
+accumulated over days, and this slice does not pretend to have them. One live investigation and one live testnet settlement:
 no quality evaluation, no rejection rate, no measured detector recall. In the one live run the
 routed endpoint did not enforce strict structured output: the first draft failed the schema and cost a revision. No
 demand evidence yet ([docs/DEMAND.md](docs/DEMAND.md)). The one live Brief was first detected

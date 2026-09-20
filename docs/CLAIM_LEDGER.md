@@ -2,7 +2,7 @@
 
 Every claim Bullseye makes about itself, what backs it, and what does not. If a claim is not in
 the "Verified" table with evidence you can run or open, do not repeat it in a pitch, a README or
-a demo. Last reviewed: 19 September 2026.
+a demo. Last reviewed: 20 September 2026.
 
 Status values: **VERIFIED** (evidence in this repo, reproducible) · **PARTIAL** (mechanism built
 and tested, but not against the real external system) · **BLOCKED** (cannot be done yet; reason
@@ -20,6 +20,14 @@ They were merged to `main` as `826820d` and deployed on 19 September 2026 (V43).
 the public service now runs this code and serves the new read contract. It does not mean any of
 it has been exercised there with a wallet extension or on a real rail: nobody has bought from
 the deployed address. B5 is the list of what that would take.
+
+Rows V45 to V50 were added on 20 September 2026 with the Market Desk
+([MARKET_DESK.md](MARKET_DESK.md)), which reads one verified event as money. Its central finding is
+a negative one and is the reason none of those rows claims an opportunity: the sources Bullseye may
+read publish no bid, ask, size or expiry for any asset, so no spread can be quoted, and the costs
+that would have to be netted against one are unknown. The desk shows that absence by name instead
+of estimating around it. They are verified offline, against recorded real responses, except V48,
+whose data feasibility was established from live responses the same day.
 
 ## Verified
 
@@ -70,6 +78,13 @@ the deployed address. B5 is the list of what that would take.
 | V43 | The fixes are on `main` and deployed, and the deployed service serves the new read contract while still selling. 19 Sep 2026: `main` fast-forwarded from `84e4a22` to `826820d`; Railway deployment `9840ee30` built from that commit and started with the existing volume (three investigations and two Briefs written by the older code loaded unchanged; the auto desk idled at its daily cap, so no investigation was interrupted). Read back from the public address without credentials: `GET /api/orders` answers `403`; an unknown order id and a missing token answer `403`; the investigation list and the published run are the PUBLIC view (evidence, check, model and tool details null, usage without cost, chain figures null with the issuer's figures kept); the rejected run's chain figures are readable; `/api/commerce/summary` and `/api/desk/economics` answer as labelled aggregates (three investigations, measured research $0.169, revenue $0, no orders); the public activity feed names no order or quote; two Briefs are on sale; the unpaid listing self-test answers `402` with a `PAYMENT-REQUIRED` header for `3000000` base units on `eip155:1952` to the same pay-to address as before; the desk page is served. | `artifacts/evidence/deployed-check-2026-09-19.json` (19 checks, all passed; unauthenticated `GET`s and one unpaid `POST`). It is not a purchase: nobody has bought from the deployed address, no unknown payment has been recovered there, and gate 2.0.0 has not yet judged a live draft. |
 | V44 | Every push to `main` and every pull request is tested without secrets. The first run, on `826820d`, passed: typecheck, unit and integration tests and the build on Node 22 and on Node 24, and the seven browser tests on Linux with Playwright's own Chromium. | `.github/workflows/ci.yml`; GitHub Actions run `35458243392` (jobs `test (22.x)`, `test (24.x)`, `browser`: success). One run. |
 
+| V45 | The Market Desk's figures are computed by exact decimal arithmetic, not in floating point and not by a model. Integer arithmetic on `BigInt` at 36 decimal places, from decimal strings, rounded once at a precision the caller states. A value that does not parse is refused, not repaired; more precision than the scale holds is refused, not truncated. | `apps/api/src/market/decimal.ts`; `apps/api/test/market.test.ts` ("decimal arithmetic", 6 tests), including that `0.1 + 0.2` is exactly `0.3` here and that `""`, `" 1"`, `"1,024.5"`, `"1e21"`, `1e21` and `5e-7` all throw. No model is reachable from `market/`. |
+| V46 | For the real QSRx rebase of 18 Sep 2026 the desk states the balance change as `+0.665165779779 %`, the stale-cache understatement as `−0.66077056013 %`, the double-application overstatement as `+0.665165779779 %`, a position value of `+48.39 USD` on a stated 100 tokens, and an implied reinvestment price of `73.2900 USD` against a reference price of `72.75`. A rebase percentage is labelled a balance change, never a price return. | `apps/api/test/market.test.ts` ("what the rebase does, from the real QSRx event", 6 tests) against the numbers in `artifacts/recorded/xstocks-2026-09-18/`; `tests/e2e/market-desk.spec.ts` asserts the same figures in a browser. `docs/MARKET_DESK.md` shows the derivation of each. |
+| V47 | The double-application error is computed off the multiplier's level, not off the size of the change, so the two diverge when a multiplier was already above 1. On the recorded VGKx rebase the rebase is `+0.1741971579 %` and the double-application error is `+1.116517183338 %`. | `apps/api/test/market.test.ts` ("prices the double application of the multiplier off its level"); `tests/e2e/market-desk.spec.ts` ("the insufficient-data fallback") asserts both figures on the recorded VGKx event in a browser. |
+| V48 | The desk refuses to show a figure whose inputs are missing or stale, names what is missing, and never treats an unknown cost as zero. No spread and no net edge has ever been shown: the permitted sources publish no bid, ask, size, expiry, venue or fee schedule. Established from live responses, not from documentation. | `npm run market-probe`, artifact `artifacts/integration/market-probe-2026-09-20T13-17-24-494Z.json` (10 checks, 4 blocked; `/quote`, `/quotes`, `/orderbook`, `/book`, `/depth` all 404; `price-data` returned `{"quote": null}` while the market was closed). `apps/api/test/market.test.ts` ("missing and stale inputs", "costs and the absence of a spread", 9 tests); `tests/e2e/market-desk.spec.ts`. Blockers written up as SF-8 to SF-11. |
+| V49 | The Market Desk changes no access rule. A visitor reading a signal that may still sell gets the issuer's public figures and no chain values — not the reads, not the block numbers, and not any figure derived from them — while still being told how many reads exist. | `apps/api/test/market.test.ts` ("the paywall boundary", 3 tests), including that a chain value the issuer never published appears nowhere in a public body, by value or block number, and that the operator's view does carry it. It reuses `projectChain` from `apps/api/src/http/projections.ts` unchanged. |
+| V50 | Opening the Market Desk makes no external call and spends nothing. `GET /api/market/:signalId` reads only stored evidence and stored chain reads. | `apps/api/src/http/app.ts` (the route takes nothing but the container's stores and `transport.now()`); `apps/api/src/market/marketView.ts` has no adapter or transport import. The 36 API tests run with no network. |
+
 ## Partial
 
 | # | Claim | What exists | What is missing |
@@ -94,6 +109,13 @@ testnet or fixture payments are revenue · that estimated contribution is profit
 demand · mainnet settlement · Brief quality, a gate rejection rate, a settlement success rate, a
 typical cost per Brief or a time per investigation (one live investigation and one live
 settlement exist; neither is a sample) · detector recall (nothing measures events it misses) ·
+a tradable spread, an arbitrage, a realisable amount or a net edge on any event (no source Bullseye
+may read publishes a bid, an ask, a size or an expiry; every such figure is labelled INSUFFICIENT
+DATA and the missing inputs are named) · that the Market Desk's reference figures could be
+transacted at (a reference price has no side, no size and no venue) · that the implied
+reinvestment price is a mispricing (most of the difference is the nineteen hours between the two
+observations, and the figure says so) · shares backing a token (the issuer's supply figures are not
+in one unit or scope) · that a forward tracker exists ·
 real-time detection or early warning (no latency has been measured; the detector polls; the one
 live Brief was first detected 21 h 29 min after the event took effect, and the desk labels such a
 case retrospective) · that a browser purchase has been made with a real wallet · that anyone has

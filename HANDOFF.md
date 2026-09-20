@@ -3,6 +3,68 @@
 State of the build on 18 September 2026 (build day 2 of 9). Submission closes 25 September 2026,
 23:59 UTC. Read [docs/CLAIM_LEDGER.md](docs/CLAIM_LEDGER.md) before repeating any claim.
 
+## 20 September: the Market Desk
+
+A customer-facing, read-only screen at `/market` that reads one verified event as money and answers
+one question: is this still interesting once the data, the adjustments and the costs have been
+checked. Written up in [docs/MARKET_DESK.md](docs/MARKET_DESK.md); claims are CLAIM_LEDGER V45 to
+V50. On branch `claude/market-desk`, **not merged and not deployed** — that is the owner's call,
+and the feature freeze is 24 September.
+
+**The answer it gives is no, and that is the deliverable.** Two hours were budgeted for proving the
+data first. Inside that box, `npm run market-probe` established from live responses that the
+permitted sources publish no bid, no ask, no size, no expiry, no venue and no fee schedule for any
+asset (`/quote`, `/quotes`, `/orderbook`, `/book` and `/depth` all 404), that `price-data` is a bare
+nullable number with no currency and no observation time of its own, and that the three supply
+figures are not in one unit or scope. So the desk ships EVENT IMPACT ONLY, with missing-data states,
+and no opportunity was manufactured to fill the gap. Four new sponsor findings, SF-8 to SF-11.
+
+What it does show, from real recorded data: the balance change in exact decimals; the two ways to be
+wrong about a rebase, which are different numbers off different bases; the issuer against the chain
+at 18 decimals; the same event valued at the issuer's reference price for a stated holding; and the
+price the issuer's own multiplier implies it reinvested at, which reconstructs its arithmetic
+exactly (`0.4875` at `73.29`) and differs from its current reference price mostly because the two
+were observed nineteen hours apart.
+
+| | |
+| --- | --- |
+| Arithmetic | Integer arithmetic on `BigInt` at 36 decimal places, from decimal strings, rounded once. No model writes a number. A value that does not parse is refused, not repaired. |
+| Labels | EVENT IMPACT · REFERENCE DISCREPANCY · ESTIMATED QUOTED SPREAD (never used; it exists so the screen can name what is missing) · INSUFFICIENT DATA. The label renders before the value. |
+| Costs | Each named, with `ISSUER_PUBLISHED` or `UNKNOWN`. An unknown cost stays unknown and no net figure is offered while one is. |
+| Access | No access rule changed. It reuses `projectChain`: a visitor gets the issuer's public figures, is told how many chain reads exist, and gets none of their values — nor any figure derived from them, which would give the number away by arithmetic. |
+| Cost to run | A page load makes no external call and spends nothing. The probe makes ten free unauthenticated reads and one free `eth_call`. No model, no payment, nothing signed. |
+| Scope | Read-only. No brokerage, execution, leverage, key custody or new contract. The Situation Room, the detector, the gates, the buyer flow and the paid Briefs are untouched. |
+
+Tests at the end of the slice, Node 26.7.0: `npm run typecheck` clean; `npm test` API **286 in 21
+files**, web **81 in 6**; `PW_CHANNEL=msedge npm run test:e2e` **11 browser tests**; `npm run build`
+ok. Baseline before it, at `e0b9892`: API 250 in 20, web 59 in 5, 7 browser tests. Layout checked at
+375, 768 and 1440 px with no horizontal overflow.
+
+**Deliberately not built: the forward tracker.** The brief made it optional and conditional on the
+core passing. An honest tracker has to accumulate observations over days before it shows anything,
+the submission closes on 25 September, and it would need new persistence during a feature freeze. A
+tracker that could not produce an outcome series before the deadline would look like evidence
+without being any.
+
+**One thing the owner should know, unrelated to this screen.** `XsPrice` reads `price-data.quote` as
+a positive number, and the live endpoint returns `{"quote": null}` whenever the underlying market is
+closed — which is most of the week. The investigator survives it (the tool call is recorded as an
+error and the run continues without `EV-PRICE`), so this is degradation, not breakage, and it has
+been left alone: making the schema nullable changes what evidence an investigation records, and that
+is the frozen publication path. It is SF-8, and it is the owner's call whether to touch it before
+the freeze.
+
+**The Situation Room is still not on `main`,** and it is not in this branch either. It exists only
+as uncommitted work in the worktree at `.claude/worktrees/bullseye-situation-room-a091ef`, based on
+`84e4a22`, which is now behind `main`. Nothing in this slice touched it. To keep a later merge cheap
+this branch adds its route as a four-line branch in `apps/web/src/main.tsx` — the same shape the
+Room uses, so both `if` blocks can be kept — puts every other file under `apps/web/src/market/`,
+reads the API through the existing `getJson` rather than editing `lib/api.ts`, and puts the link to
+`/market` in `apps/web/src/layout/Desk.tsx`, which the Room does not modify. The Room worktree does
+modify `App.tsx`, `main.tsx`, `lib/api.ts`, `lib/usePoll.ts`, `screens/Console.tsx` and the design
+tokens, and its `App.tsx` predates the buyer-flow hardening, so that merge still needs a careful
+read.
+
 ## 19 September: fixes after an outside review
 
 An outside review of commit `1ae8e79` found three things that mattered: the browser could not

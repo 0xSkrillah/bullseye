@@ -74,6 +74,42 @@ match.
 | 3:05–3:20 | Reconciliation | "When the facilitator times out we say unknown, deliver nothing, and a retry cannot charge twice. And when evidence is missing, nothing is published and nothing is sold." | Show a PAYMENT_UNKNOWN order or a REJECTED investigation (see below). The recorded live run of 18 September contains both adverse cases without any staging: the gate rejected the model's first draft on SCHEMA and published the one permitted revision, and order `ord_8a2102084ad69dab` went PAYMENT_UNKNOWN on a facilitator `timeout` and was reconciled from the chain to PAID, then delivered once. The rejection is in the recorded transcript; the payment's chain-verified result is in the delivery envelope and the `verify-payment` artifact, and its state-by-state trail is in that run's database (see below). Say that it is one run. |
 | 3:20–3:30 | Console | "Bullseye does not sell another AI. It sells verified intelligence, produced and delivered by an AI-native business." | |
 
+## The Market Desk (0:90)
+
+A separate, self-contained 90 seconds for the screen at `/market`
+([MARKET_DESK.md](MARKET_DESK.md)). It runs in Mode B and needs nothing: no keys, no network, no
+funds. Nothing on screen is a live figure and the badge says HISTORICAL throughout.
+
+Set up before you start recording, so the 90 seconds is all screen:
+
+```bash
+npm run start:offline          # terminal 1, API on :4402
+npm run dev:web                # terminal 2, UI on :5173
+curl -s -X POST localhost:4402/api/signals/scan > /dev/null
+```
+
+Then open `/` and click **Market Desk**, or go straight to
+`http://localhost:5173/market/sig_24ecf336903c1da1` (QSRx). Investigate it first from the desk at
+`/` if the chain figures are to be on screen; without an investigation the screen still works and
+shows the issuer's side with everything else marked INSUFFICIENT DATA, which is also worth showing.
+
+| Time | On screen | Say |
+| --- | --- | --- |
+| 0:00 | The headline and the eyebrow: QSRx, X Layer, chain 196, HISTORICAL. | "One real event. An xStocks dividend rebase: every QSRx balance on X Layer grew by 0.665 %, and no transfer was emitted to say so." |
+| 0:12 | The verdict panel. | "The question a customer actually has is whether that is worth anything. The answer is at the top, before any number: no transactable opportunity — and here is why." |
+| 0:25 | The four clocks. | "Four clocks, kept apart. When it took effect, when we first saw it — nineteen hours later, so this is a look back and the screen says so — when the freshest source response arrived, and when this page was assembled." |
+| 0:38 | The chart. | "One mark per observation we actually recorded, each at its own timestamp, with the effective time marked. Nothing is drawn between them: a line would claim we know what the multiplier was between two reads, and we don't." |
+| 0:48 | The three EVENT IMPACT cards. | "Exact decimal arithmetic, no floating point and no model. The rebase is a change in the number of tokens, not a price return. A cache holding the old balance understates it by 0.6608 % — a different number, off a different base. And applying the multiplier to a balance that already includes it overstates by 0.6652 %. On another asset in this recording that second error is six times the rebase itself." |
+| 1:03 | The two REFERENCE DISCREPANCY cards. Open one's Limitations. | "In money, at the issuer's reference price, for a holding we state: 48.39 dollars on a hundred tokens. And the price the issuer's own multiplier implies it reinvested at — 73.29, which reconstructs its arithmetic exactly. It differs from its current reference price mostly because the two were observed nineteen hours apart, and the card says that first." |
+| 1:18 | The two INSUFFICIENT DATA cards, then the costs table. | "And what we can't tell you. No spread, because nothing we're allowed to read publishes a bid, an ask, a size or an expiry — we checked the live API, those routes 404. No net edge, because five of the costs are unknown, and an unknown cost is not zero." |
+| 1:28 | The comparison panel, scrolled to the empty rows. | "Every figure with its source, its unit, its observation time and the hash of the response — including the rows that are empty. That is the product." |
+
+If you have another 20 seconds, open an evidence id and show the sha256, then the Brief panel:
+"what the chain returned is what the Brief sells; this screen shows that the read happened."
+
+**Do not say** on this screen: arbitrage, spread, edge, opportunity (except to say there isn't one),
+profit, or that any figure could be transacted at. Do not call the reference price a quote.
+
 ## Showing the failure cases
 
 On the fixture rail only (`/api/_fixture/control` does not exist on the OKX rails):
