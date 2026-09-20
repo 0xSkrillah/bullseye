@@ -1,6 +1,8 @@
+import { useId } from "react";
 import { humanAge, type ComparisonRow, type EvidenceRef } from "./data";
 import { ProvenanceBadge, type BadgeKind } from "../components/ProvenanceBadge";
 import { Timestamp } from "../primitives/Timestamp";
+import { useDialogFocus } from "../lib/dialogFocus";
 
 const BADGE_KINDS = new Set(["LIVE", "CACHED", "HISTORICAL", "FIXTURE", "STALE", "TESTNET"]);
 const badge = (mode: string | null) => (mode !== null && BADGE_KINDS.has(mode) ? (mode as BadgeKind) : null);
@@ -71,15 +73,23 @@ export function Comparison({ rows, onOpenEvidence, evidence }: { rows: Compariso
  * One evidence item, as it was recorded: what it observed, when, until when it is usable, and the
  * hash of the response it came from. A reader who does not trust the figure can fetch the URL and
  * hash it themselves. Values that are part of the Brief are absent and say so.
+ *
+ * It is a modal: opening it moves focus to its heading, Tab stays inside it, Escape and Close both
+ * shut it, and focus returns to the button that opened it. The backdrop covers the page, so
+ * nothing behind it can be clicked either.
  */
 export function EvidenceDrawer({ item, onClose }: { item: EvidenceRef | null; onClose: () => void }) {
+  const titleId = useId();
+  const { containerRef, titleRef, onKeyDown } = useDialogFocus<HTMLDivElement, HTMLHeadingElement>(item?.id ?? null, onClose);
   if (!item) return null;
   return (
-    <div className="mk-drawer" role="dialog" aria-modal="true" aria-label={`Evidence ${item.id}`} onClick={onClose}>
-      <div className="mk-drawer-panel" data-testid="market-evidence-drawer" onClick={(e) => e.stopPropagation()}>
+    <div className="mk-drawer" onClick={onClose}>
+      <div className="mk-drawer-panel" role="dialog" aria-modal="true" aria-labelledby={titleId} ref={containerRef} onKeyDown={onKeyDown} data-testid="market-evidence-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="mk-drawer-head">
           <div>
-            <strong className="mono">{item.id}</strong>{" "}
+            <h2 className="mk-drawer-title mono" id={titleId} tabIndex={-1} ref={titleRef}>
+              {item.id}
+            </h2>{" "}
             <span style={{ color: "var(--ink-secondary)", fontSize: 13 }}>{item.kind.replaceAll("_", " ").toLowerCase()}</span>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

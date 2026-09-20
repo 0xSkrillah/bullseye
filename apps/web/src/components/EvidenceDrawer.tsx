@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, type KeyboardEvent } from "react";
+import { useId } from "react";
 import type { EvidenceItem } from "@bullseye/domain";
 import { instantMs } from "../format";
+import { useDialogFocus } from "../lib/dialogFocus";
 import { Enum } from "../primitives/Enum";
 import { Id } from "../primitives/Id";
 import { Timestamp } from "../primitives/Timestamp";
@@ -18,22 +19,13 @@ export interface EvidenceDrawerProps {
   highlightKey?: string | null;
 }
 
-const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const sub = { fontSize: 11, color: "var(--ink-secondary)" } as const;
 const summary = { margin: 0, fontSize: 13, lineHeight: "18px" } as const;
 
 export function EvidenceDrawer({ item, now, onClose, index, highlightKey }: EvidenceDrawerProps) {
   const titleId = useId();
-  const ref = useRef<HTMLElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const itemId = item?.id ?? null;
-
-  useEffect(() => {
-    if (itemId === null) return;
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    titleRef.current?.focus();
-    return () => opener?.focus();
-  }, [itemId]);
+  // the shared modal lifecycle: focus in, Tab kept inside, Escape closes, focus returned
+  const { containerRef: ref, titleRef, onKeyDown } = useDialogFocus<HTMLElement, HTMLHeadingElement>(item?.id ?? null, onClose);
 
   if (!item) return null;
 
@@ -41,27 +33,6 @@ export function EvidenceDrawer({ item, now, onClose, index, highlightKey }: Evid
   const keys = Object.keys(item.values);
   const width = keys.reduce((w, k) => Math.max(w, k.length), 0) + 2;
   const sourceIsLink = /^https?:\/\//.test(item.provenance.url);
-
-  const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      onClose();
-      return;
-    }
-    if (e.key !== "Tab" || !ref.current) return;
-    const nodes = [...ref.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
-    const first = nodes[0];
-    const last = nodes[nodes.length - 1];
-    if (!first || !last) return;
-    const active = document.activeElement;
-    if (e.shiftKey && (active === first || active === titleRef.current)) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && active === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  };
 
   return (
     <aside className="be-drawer" role="dialog" aria-modal="true" aria-labelledby={titleId} ref={ref} onKeyDown={onKeyDown} data-testid="evidence-drawer" data-evidence-id={item.id}>
