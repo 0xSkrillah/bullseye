@@ -138,7 +138,11 @@ test("a genuine-data path: the event as money, with every figure labelled and so
   await expect(drawer).toBeHidden();
 
   // it points at the existing paid Brief rather than reproducing it, and keeps the price out of the figures
-  await expect(page.getByRole("link", { name: /Open brf_/ })).toBeVisible();
+  const cta = page.getByTestId("brief-offer-cta");
+  await expect(cta).toBeVisible();
+  await expect(cta).toHaveText("View this brief");
+  await expect(cta).toHaveAttribute("href", /^\/\?brief=brf_/);
+  await expect(page.getByTestId("brief-offer")).toContainText("brf_");
   await expect(page.getByText("separate ledgers")).toBeVisible();
 
   // nothing on this screen reads as advice or a promise
@@ -188,7 +192,8 @@ test("an event with no investigation gets the issuer's side and nothing that nee
   await expect(figureByKey(page, "BALANCE_IMPACT")).toHaveAttribute("data-label", "EVENT_IMPACT");
   await expect(figureByKey(page, "ISSUER_VERSUS_CHAIN")).toHaveAttribute("data-label", "INSUFFICIENT_DATA");
   await expect(page.getByTestId("market-chart")).toContainText("No on-chain read has been recorded");
-  await expect(page.getByText("No Brief exists for this event")).toBeVisible();
+  await expect(page.getByTestId("brief-offer")).toContainText("No brief has been published for this event");
+  await expect(page.getByTestId("brief-offer-cta")).toHaveCount(0);
   // two issuer points, and no chain marks invented to fill the chart
   await expect(page.getByTestId("market-chart").locator("circle")).toHaveCount(2);
 });
