@@ -185,6 +185,22 @@ Run on the submitted tree. Node **26.7.0**, Windows 11.
 
 Nothing is skipped and no test was weakened to pass. CI runs Node 22 and 24 on GitHub Actions.
 
+Two things worth stating rather than letting someone find them:
+
+- **CI silently skipped a test until 20 September.** `apps/api/test/public-deployment.test.ts` skips
+  itself unless `apps/web/dist` exists, and the workflow ran `npm test` *before* `npm run build`, so
+  on a fresh checkout it never ran — on every run, both Node versions. It covers Express serving
+  `index.html` for a deep link, which is the `/?brief=` route, and Playwright points at the vite dev
+  server with its own history fallback, so nothing else covered it either. The workflow now builds
+  first and CI runs 9 tests in that file rather than 8. A skip is not a failure, which is why it
+  survived so long; `npm test` on an unbuilt tree still reports 293 + 1 where a built tree reports 294.
+- **The browser job flaked once on the submission commit.** The first attempt failed with
+  `apiRequestContext.get: socket hang up` in the golden-path spec — a transport error, not an
+  assertion — and ended the run early at 11 passed. The unit jobs passed on both Node versions in
+  that same attempt, and a re-run of the same commit passed 17/17. It is a harness flake, observed
+  once and not reproduced; it is recorded here because one green run after a red one is weaker
+  evidence than an unbroken green, and a judge re-running CI deserves to know it can happen.
+
 **Coverage of the release-critical journey**, and its limits, from
 [frontend-pack/QA_REPORT.md](frontend-pack/QA_REPORT.md):
 
