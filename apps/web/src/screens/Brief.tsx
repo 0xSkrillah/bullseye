@@ -100,7 +100,8 @@ export function BriefScreen({ preview, signal = null, withdrawn = null, gate = n
   );
   return (
     <>
-      <span className="be-stage">Brief · <Id value={preview.id} keep={6} /> · published <Timestamp iso={preview.publishedAt} /></span>
+      {/* the full id is an attribute, not truncated text: a link that promised one report has to be checkable against it */}
+      <span className="be-stage" data-testid="brief-id" data-brief-id={preview.id}>Brief · <Id value={preview.id} keep={6} /> · published <Timestamp iso={preview.publishedAt} /></span>
       <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 24, alignItems: "start", paddingBottom: 24, borderBottom: "1px solid var(--line)" }}>
         <ConfidenceIndicator level={preview.confidence} size={96} cap={(brief?.gate ?? gate)?.confidenceCap} rationale={brief?.draft.confidence.rationale} />
         <div>

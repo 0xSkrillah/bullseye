@@ -1,36 +1,51 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Quote } from "@bullseye/domain";
-import { api, type Health, type OrderRow, type SignalRow } from "./lib/api";
+import { api, ApiError, type Health, type OrderRow, type SignalRow } from "./lib/api";
 import { usePurchase } from "./checkout/usePurchase";
 import { CheckoutNotice, purchaseIsOpen } from "./components/CheckoutNotice";
 import { useNow, usePoll } from "./lib/usePoll";
+import { useDeskRoute } from "./lib/route";
 import { Desk } from "./layout/Desk";
 import { Feed } from "./screens/Feed";
 import { Investigation } from "./screens/Investigation";
 import { BriefScreen } from "./screens/Brief";
 import { Console } from "./screens/Console";
 import { Money } from "./primitives/Money";
+import { ProvenanceBadge } from "./components/ProvenanceBadge";
 
 /**
  * One story, left to right: SIGNAL → INVESTIGATE → VERIFIED INTELLIGENCE → PURCHASE → DELIVERY.
  * State lives in the API; this component only decides which stage the working area shows.
+ *
+ * What it shows is in the URL. `?brief=` names an exact report — the link the Market Desk hands a
+ * buyer — and the report's own event is selected with it, whether or not it is the newest one.
+ * `?signal=` names an event. Both survive a reload, a direct paste and Back/Forward.
  */
 export function App() {
   const now = useNow();
-  const [lockedId, setLockedId] = useState<string | null>(null);
+  const { route, go } = useDeskRoute();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
 
   const health = usePoll<Health>(() => api.health(), 15_000).data;
   const signals = usePoll(() => api.signals(), 5_000);
   const rows: SignalRow[] = signals.data?.signals ?? [];
+  // scan, investigate and reconcile start paid work; off localhost they answer 401/403 and the auto desk runs them instead
+  const operator = health?.operatorRoutes === "OPEN_ON_LOCALHOST";
+
+  // the exact report asked for by the URL is read first: it names its own event, so nothing has to be locked to find it
+  const requested = route.briefId;
+  const requestedPreview = usePoll(() => api.briefPreview(requested!), 30_000, requested !== null, [requested]);
+  const requestedMissing = requested !== null && requestedPreview.cause instanceof ApiError && requestedPreview.cause.status === 404;
+
+  const lockedId = route.signalId ?? requestedPreview.data?.signal.id ?? null;
   const locked = rows.find((r) => r.signal.id === lockedId) ?? null;
   const invId = locked?.investigation?.id ?? null;
   const inv = usePoll(() => api.investigation(invId!), 2_000, invId !== null, [invId]).data;
-  const briefId = inv?.investigation.briefId ?? locked?.investigation?.briefId ?? null;
-  const preview = usePoll(() => api.briefPreview(briefId!), 10_000, briefId !== null, [briefId]).data;
-  // scan, investigate and reconcile start paid work; off localhost they answer 401/403 and the auto desk runs them instead
-  const operator = health?.operatorRoutes === "OPEN_ON_LOCALHOST";
+  // an exact link decides which Brief is on screen; otherwise it is whichever one this event published
+  const briefId = requested ?? inv?.investigation.briefId ?? locked?.investigation?.briefId ?? null;
+  const derivedPreview = usePoll(() => api.briefPreview(briefId!), 10_000, requested === null && briefId !== null, [briefId]);
+  const preview = requested !== null ? requestedPreview.data : derivedPreview.data;
 
   // this browser's own purchase of the Brief: its record, its order (read with its claim token) and what it was delivered
   const purchase = usePurchase(briefId);
@@ -43,12 +58,13 @@ export function App() {
   useEffect(() => { if (operator) api.scan().catch(() => undefined); }, [operator]);
 
   const lock = useCallback((id: string) => {
-    setLockedId(id); setQuote(null);
+    go({ briefId: null, signalId: id });
+    setQuote(null);
     const row = rows.find((r) => r.signal.id === id);
     if (operator && row && !row.investigation) api.investigate(id).then(() => signals).catch((e) => setBanner(`Investigation could not start: ${String(e)}`));
-  }, [rows, signals, operator]);
+  }, [rows, signals, operator, go]);
 
-  // a card locked before /api/health answered: start its investigation once the desk learns it is the operator.
+  // an event selected before /api/health answered: start its investigation once the desk learns it is the operator.
   // Only `operator` is a dependency: `rows` changes on every poll and would start paid work again and again.
   useEffect(() => {
     if (!operator || !lockedId) return;
@@ -78,20 +94,51 @@ export function App() {
   const startOver = useCallback(() => { purchase.startOver(); setQuote(null); }, [purchase.startOver]);
   const notice = <CheckoutNotice record={purchase.record} issue={purchase.issue} busy={purchase.busy} durable={purchase.durable} autoChecks={purchase.autoChecks} origin={location.origin} onResume={() => void purchase.resume()} onReconcile={() => void purchase.reconcile()} onStartOver={startOver} onDismiss={purchase.dismiss} />;
 
-  const work = !locked ? (
+  const work = requestedMissing ? (
+    <>
+      <span className="be-stage">Report not found</span>
+      <p style={{ fontSize: 14, lineHeight: "22px", maxWidth: "60ch" }}>
+        No report with the id <span className="mono">{requested}</span> is published here. A link may be old, or the report may have been withdrawn from sale.
+        Nothing was charged, and any report already bought from this browser can still be opened from its own link.
+      </p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="be-btn be-btn-primary" type="button" onClick={() => go({ briefId: null, signalId: null })}>Back to the events</button>
+        <a className="be-btn" href="/market" style={{ textDecoration: "none" }}>Market Desk</a>
+      </div>
+    </>
+  ) : requested !== null && preview === null && requestedPreview.error !== null ? (
+    <>
+      <span className="be-stage">Report unavailable</span>
+      <p style={{ fontSize: 14, lineHeight: "22px", maxWidth: "60ch" }}>We could not load this report just now. Nothing was charged. Try again, or pick an event from the feed.</p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="be-btn be-btn-primary" type="button" onClick={() => location.reload()}>Retry</button>
+        <button className="be-btn" type="button" onClick={() => go({ briefId: null, signalId: null })}>Back to the events</button>
+      </div>
+    </>
+  ) : requested !== null && preview === null ? (
+    <>
+      <span className="be-stage">Brief</span>
+      <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>Opening the report…</span>
+    </>
+  ) : !locked && !preview ? (
     <>
       <span className="be-stage">Investigation</span>
-      <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>Lock an event in the Feed to start. Bullseye investigates within a budget, passes a deterministic gate, and only then offers a Brief.</span>
+      <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>Choose an event in the Feed to start. Bullseye investigates within a budget, passes a deterministic gate, and only then offers a Brief.</span>
     </>
-  ) : health && !operator && !locked.investigation ? (
+  ) : health && !operator && locked && !locked.investigation && !preview ? (
     <>
       <span className="be-stage">Investigation</span>
       <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>Not investigated yet. Starting an investigation is an operator action; the auto desk runs it on the public deployment.</span>
     </>
   ) : briefId && preview ? (
     <BriefScreen preview={preview.preview} signal={preview.signal} withdrawn={preview.withdrawn ?? null} gate={inv?.investigation.gate ?? null} brief={delivered} envelope={purchase.envelope} quote={quote} now={now} paying={purchase.busy} purchaseOpen={purchaseIsOpen(purchase.record)} notice={notice} onRequestQuote={requestQuote} onPay={pay} />
-  ) : (
+  ) : locked ? (
     <Investigation signal={locked.signal} data={inv} brief={delivered} now={now} />
+  ) : (
+    <>
+      <span className="be-stage">Investigation</span>
+      <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>Choose an event in the Feed to start.</span>
+    </>
   );
 
   const strip = (
@@ -107,12 +154,19 @@ export function App() {
     <>
       {(banner || signals.error) && (
         <div className="be be-banner" style={{ margin: "24px 24px 0" }}>
-          <span>{banner ?? `API unreachable: ${signals.error}. Start apps/api on :4402.`}</span>
+          <span>{banner ?? "The desk is not answering just now. Nothing was charged. Retry, or read the events on the Market Desk."}</span>
           <button className="be-btn" type="button" onClick={() => { setBanner(null); location.reload(); }}>Retry</button>
         </div>
       )}
       <Desk
-        feed={<Feed rows={rows} lockedId={lockedId} listening={signals.data === null} onLock={lock} onRadarLock={radarLock} />}
+        status={health ? (
+          <>
+            <ProvenanceBadge kind={health.dataSource.mode} title="Weakest input mode behind what this desk shows" />
+            <span className="mono">{health.paymentRail.rail}</span>
+            {health.paymentRail.isTestnet && <ProvenanceBadge kind="TESTNET" />}
+          </>
+        ) : null}
+        feed={<Feed rows={rows} lockedId={lockedId} listening={signals.data === null && signals.error === null} error={signals.error} onLock={lock} onRadarLock={radarLock} />}
         work={work}
         console={<Console health={health} order={order} gate={inv?.investigation.gate ?? null} briefId={briefId} challenge={challenge} onReconcile={reconcile} />}
         strip={strip}

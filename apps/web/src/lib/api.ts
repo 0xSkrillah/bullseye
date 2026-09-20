@@ -38,7 +38,8 @@ export const api = {
   investigate: (signalId: string) => j<{ created: boolean; id: string }>(`/api/signals/${signalId}/investigate`, { method: "POST" }),
   investigation: (id: string) => j<InvestigationResponse>(`/api/investigations/${id}`),
   briefs: () => j<BriefListResponse>("/api/briefs"),
-  briefPreview: (id: string) => j<BriefPreviewResponse>(`/api/briefs/${id}/preview`),
+  /** the id can come from a link someone else wrote, so it is encoded and the API decides whether it exists */
+  briefPreview: (id: string) => j<BriefPreviewResponse>(`/api/briefs/${encodeURIComponent(id)}/preview`),
   quote: (briefId: string) => j<Quote>(`/api/briefs/${briefId}/quotes`, { method: "POST" }),
   /** every buyer's order: an operator route, open only on localhost or with the operator's token. The buyer's own flow never calls it. */
   orders: () => j<{ orders: OrderRow[] }>("/api/orders"),
