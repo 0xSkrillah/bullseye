@@ -74,6 +74,23 @@ can explain it. At runtime, the only AI component is the investigator's model ca
 (`apps/api/src/research/model.ts`); schemas, budgets, checks, the publication gate and payment
 state are ordinary deterministic code.
 
+### Design guidance
+
+Checked rather than assumed, because "no designs were carried in" is a claim about designs as well
+as code. The interface was developed against written guidance authored **for this repository during
+the build period**: a project-local frontend skill (`.claude/skills/bullseye-frontend`) holding an
+audit and review method, and design briefs in `private/` for the desk and the Situation Room. They
+are instructions and acceptance criteria — a method for reviewing screens — not imported components,
+a purchased template or a third-party design system. They are git-ignored and ship with nothing.
+
+The design system that the screens actually use (`docs/design-system`: tokens, component contracts,
+screens and UI copy) was authored during the period and is in the history. The typefaces are the
+only visual assets from outside, and they are open-licence: IBM Plex Sans and IBM Plex Mono on the
+desk, Share Tech Mono and VT323 on the Situation Room.
+
+Using npm libraries and written guidance does not make this a pre-existing project. Carrying in code
+or designs would have, and none was.
+
 ## How to verify this document
 
 ```bash

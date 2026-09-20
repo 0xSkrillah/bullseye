@@ -11,6 +11,18 @@ SIGNAL → INVESTIGATE → VERIFY → PUBLISH → PURCHASE → DELIVER → MEASU
 OKX Dev Day 2026 · track: **Build a Company** (agent services, data and API services) · X Layer ·
 tokenised stocks (xStocks).
 
+## For a judge, in one minute
+
+| | |
+| --- | --- |
+| **What** | An automated desk that catches dividend rebases on tokenised stocks — where a holder's balance changes on X Layer with **no `Transfer` event** — proves them against the contract, and sells the evidence-backed report. |
+| **For whom** | Wallet, custody, data and treasury-operations teams who must reconcile those balance changes, and **AI agents** that need the same answer machine-readably and can pay per call. |
+| **Try it** | https://bullseye-production-5d0c.up.railway.app — start at `/`, pick an event, open its Brief, inspect the evidence, then the checkout. `/market` reads one event as money. |
+| **Integration URL** | `POST /api/v1/briefs/latest` — an x402 resource on the OKX seller SDK. An unpaid call answers `402` with a `PAYMENT-REQUIRED` header: `exact` / `eip155:1952` / `3000000` to the quoted pay-to address. That is OKX's own listing self-test, passing on the deployed address. |
+| **Demo video** | Not yet recorded. There is no URL, and this file will not pretend there is one. |
+| **One proof** | On 20 September the unattended desk published a QQQx Brief at 10:31:50Z and it was bought from the deployed address at 18:38 — and the payment went **`PAYMENT_UNKNOWN` and recovered to `PAID` without a second charge**, on the real OKX facilitator. [`artifacts/evidence/deployed-purchase-2026-09-20.json`](artifacts/evidence/deployed-purchase-2026-09-20.json), ledger V53. |
+| **Limits** | Testnet only; two settlements, both by the owner; no stranger has bought anything; no demand evidence; runs counted in ones and twos. The full list is [docs/SUBMISSION.md](docs/SUBMISSION.md) §5 and the ledger below. |
+
 > **Read this first.** [docs/CLAIM_LEDGER.md](docs/CLAIM_LEDGER.md) lists what is verified, what is
 > only partly done and what is blocked. On 18 September 2026 the whole path ran live once: a real
 > xStocks event, X Layer reads, a model investigation through OpenRouter, a Brief published by the

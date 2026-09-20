@@ -1,0 +1,279 @@
+# Submission
+
+The single source for the OKX Dev Day 2026 form. Every factual claim here is backed by a row in
+[CLAIM_LEDGER.md](CLAIM_LEDGER.md) or an artifact in `artifacts/`; where something is not proven,
+this file says so rather than softening it. Anything in **[OWNER]** can only be settled by Connel
+Bryn Bennett and is listed again at the end.
+
+Prepared 20 September 2026. Deadline **25 September 2026, 23:59 UTC**.
+
+This supersedes [SUBMISSION_DRAFTS.md](SUBMISSION_DRAFTS.md) for final form answers. That file is
+kept for its organiser question, its ASP metadata table, its integration diagram and its two
+sponsor reports, none of which are repeated here.
+
+---
+
+## 1. Form answers
+
+| Field | Answer |
+| --- | --- |
+| Team Name | Bullseye |
+| Team Size | 1 |
+| Team Members' Names | Connel Bryn Bennett **[OWNER: confirm exact spelling as registered]** |
+| Track | Build a Company – OKX AI |
+| Participation Route | **[OWNER]** In-Person only if the date is confirmed — see §7 |
+| Able to attend the in-person finale? | **[OWNER]** The form offers "0: Unable to" and 1–4 without defining them; for a confirmed solo attendee `1` appears intended. Verify against the live form. |
+| Team Display Picture (1:1) | Optional in the supplied PDF. Reuse an existing original mark; not a release blocker. |
+| Project Name | Bullseye |
+| Repository Link | https://github.com/0xSkrillah/bullseye |
+| Product Link | https://bullseye-production-5d0c.up.railway.app **[OWNER: test signed out before submitting]** |
+| Demo Video | **[OWNER: not recorded. No URL exists. Do not invent one.]** |
+| New project or existing? | New project, initialised 18 September 2026 — see §6 |
+| Contact | **[OWNER]** the actual Luma registration email and/or Telegram. The PDF being signed in as bryn@bizdev.studio does not establish which address registered. |
+
+### Project Summary
+
+> Bullseye is an automated intelligence desk for tokenised assets. It helps wallet, data and
+> operations teams — and AI agents — understand dividend-related balance changes by comparing
+> issuer announcements with X Layer contract records. It produces evidence-backed reports that
+> people or agents can purchase through an OKX x402 integration. The prototype reads live-network
+> asset data and demonstrates payments on X Layer testnet.
+
+---
+
+## 2. What the product actually is, today
+
+xStocks reinvest dividends by raising a per-token **multiplier**. Every holder's balance on X Layer
+changes and **no `Transfer` event is emitted**. Anyone who caches balances, accounts in shares or
+prices collateral sees the number move with no transaction to explain it.
+
+Bullseye runs the whole path unattended:
+
+```
+SIGNAL → INVESTIGATE → VERIFY → PUBLISH → PURCHASE → DELIVER → MEASURE ECONOMICS
+```
+
+1. **Detect** — a pure function over the issuer's public corporate-action history flags multiplier
+   changes on assets deployed on X Layer. Same inputs, same signal ids.
+2. **Investigate** — a model chooses evidence tools; a governor enforces ceilings on cost, model
+   calls, tool calls and latency *before every call*. Every fact is written by code from a
+   schema-validated response, with URL, fetch time, sha256 and a LIVE/CACHED/HISTORICAL/FIXTURE
+   label. **No model ever writes a number.**
+3. **Verify** — code reads `multiplier()` on the X Layer contract 60 s before the effective time,
+   60 s after and at the head, bisects for the activation block, and compares with the issuer at
+   18-decimal precision.
+4. **Publish, or not** — a deterministic gate refuses drafts with missing or stale evidence,
+   undisclosed conflicts, inflated confidence, advice language, or any figure not bound to
+   evidence. A rejected draft creates no Brief and nothing can be charged.
+5. **Sell** — `GET /api/v1/briefs/:id` is an x402 resource on the OKX seller SDK. Quotes are
+   immutable and hashed; one signed authorization is one order and settles at most once. A timeout
+   is `PAYMENT_UNKNOWN`: nothing is delivered and a retry cannot charge twice.
+6. **Deliver and account** — one JSON document (`bullseye.brief/v1`), which is also what the web
+   app renders. Testnet payments are never counted as revenue.
+
+### Screens a judge can open
+
+| Route | What it is |
+| --- | --- |
+| `/` | The desk: events, the Brief, permitted evidence, and the checkout. **The product entry.** |
+| `/?brief=<id>` | One exact Brief by link. Resolves to that Brief's own event, survives reload. |
+| `/market` | Market Desk: one verified event read as money, event impact only. |
+| `/room` | Situation Room: a read-only wall display of the whole pipeline. Supplementary. |
+
+### Intended user
+
+Wallet, custody, data and treasury-operations teams holding or indexing tokenised equities on X
+Layer, plus **AI agents** that need the same answer machine-readably and can pay for it per call
+without a human. The agent case is why the paid resource is x402 rather than a subscription.
+
+**Demand is not evidenced.** No interviews or usability sessions have been run
+([DEMAND.md](DEMAND.md) holds the plan and an empty results table; ledger B4). Nothing here should
+be read as evidence that anyone wants to buy this.
+
+---
+
+## 3. OKX integration
+
+| | |
+| --- | --- |
+| Rail | OKX x402, `exact` scheme |
+| Network | X Layer **testnet**, `eip155:1952` (mainnet `eip155:196` is implemented but never run) |
+| Asset | testnet USD₮0 `0x9e29b3aada05bf2d2c827af80bd28dc0b9b4fb0c` |
+| Price | 3.00 USD₮0 per Brief (`3000000` base units) |
+| SDK | `@okxweb3/x402-core` 0.1.0, `@okxweb3/x402-evm` 0.2.1, `@okxweb3/x402-express` 0.1.1, `@okxweb3/x402-fetch` 0.1.0 |
+| Settlement | The OKX hosted facilitator, verified independently against X Layer by our own reconciliation |
+| Chain reads | X Layer mainnet RPC for contract state; X Layer testnet RPC to confirm settlements |
+
+**Integration URL (paid resource):**
+`https://bullseye-production-5d0c.up.railway.app/api/v1/briefs/brf_0d55468f0c4045ef`
+
+An unpaid `GET` answers `402` with a `PAYMENT-REQUIRED` header carrying `x402Version` 2 and
+`accepts[0]` = `exact` / `eip155:1952` / `3000000` / `maxTimeoutSeconds` 300 — this is OKX's own
+documented listing self-test, passing on the deployed address (ledger V33).
+`POST /api/v1/briefs/latest` is the stable address for agents that want the newest Brief.
+
+### The strongest honest claim
+
+On **20 September 2026**, on the public deployment, with nobody driving it:
+
+- the unattended desk detected a QQQx dividend rebase, investigated it under budget, and gate 2.0.0
+  passed the draft — PUBLISH across all 11 rules — publishing `brf_0d55468f0c4045ef` at 10:31:50Z;
+- at 18:38 the same day that Brief was **bought from the deployed address** and delivered. Tx
+  [`0x30313b87…73b726`](https://web3.okx.com/explorer/x-layer-testnet/tx/0x30313b87921dd68f07ae95320442ac5510fd89be371b8200bded84912573b726),
+  block 41470689, receipt success: an EIP-3009 `transferWithAuthorization` of 3.000000 testnet
+  USD₮0 to the desk's quoted pay-to address, submitted by a relayer rather than the payer;
+- **the payment went uncertain and recovered without a second charge.** The order's own public trail
+  reads `QUOTED → PAYMENT_PENDING → PAYMENT_UNKNOWN → PAID → DELIVERING → DELIVERED`. Nothing was
+  delivered while the outcome was unknown, and one transfer exists on chain. This is the hardest
+  part of x402 to get right, and it ran for real on the real facilitator — not on fixtures.
+
+Evidence: `artifacts/evidence/deployed-purchase-2026-09-20.json` (9 checks, all passed, built from
+JSON-RPC reads of the receipt and its block, the seller's own `PAYMENT-REQUIRED` terms, and the
+deployment's public aggregates). Ledger V52, V53.
+
+**What that does not say.** It is testnet with test tokens, so it is payment and delivery mechanics,
+not revenue. The owner reports making this purchase from the browser with a wallet extension, and
+that report is worth stating — but the chain and the desk's public record show the settlement and
+the delivery, **not which client signed**, and the payer is the same address as the 18 September
+agent buyer. So the browser-wallet path is owner-reported, not independently established, and no
+stranger has bought anything (ledger V34, P6). The transaction is joined to the order by
+network, asset, amount, pay-to and time, because operator routes are disabled on the deployment and
+the seller's own record of the order was deliberately not read.
+
+---
+
+## 4. Test results
+
+Run on the submitted tree. Node **26.7.0**, Windows 11.
+
+| Command | Result |
+| --- | --- |
+| `npm ci` | **[to run on the final tree — see §8]** |
+| `npm run typecheck` | clean |
+| `npm test` | API **294 passed** (21 files) · web **222 passed** (12 files) |
+| `npm run build` | ok — `/market` and `/room` are separate chunks; the desk at `/` loads neither |
+| `PW_CHANNEL=msedge npm run test:e2e` | **17 passed** |
+
+Nothing is skipped and no test was weakened to pass. CI runs Node 22 and 24 on GitHub Actions.
+
+**Coverage of the release-critical journey**, and its limits, from
+[frontend-pack/QA_REPORT.md](frontend-pack/QA_REPORT.md):
+
+- Choosing a non-default event on `/market` opens **that** Brief, on click, direct load and reload —
+  browser-proven, and each test was run against the pre-fix code and observed to fail there.
+- Back/Forward keep address and event in step — proven **between events on `/market`**. Back/Forward
+  between the desk and a `?brief=` link is *not* covered.
+- No page-wide horizontal overflow at 360, 390, 768, 1024, 1199, 1200, 1280, 1335, 1336 and 1440 px
+  across `/`, `/?brief=<id>` and `/market/<id>`.
+- The evidence dialog takes the keyboard and gives it back: focus enters, is trapped over 12 Tabs
+  and a Shift+Tab, Escape closes, and focus returns to the button that opened it.
+- An unknown Brief id says so and never shows a different report instead.
+
+---
+
+## 5. Limitations
+
+Stated plainly, because the ledger is the point of this project.
+
+- **Testnet only.** Two settlements, both testnet, both by the owner. No mainnet payment has ever
+  been made. Testnet payments are not revenue and revenue is £0/$0.
+- **No stranger has bought anything.** The one browser-wallet purchase is owner-reported; the public
+  record does not establish which client signed (P6). Nobody outside the project has bought anything.
+- **No demand evidence.** No interviews, no usability sessions, no customer metrics (B4).
+- **Scale is ones and twos.** A handful of live investigations and two settlements: no quality
+  evaluation, no rejection rate, no measured detector recall.
+- **Not an early warning.** The first live Brief was detected 21 h 29 min after the event took
+  effect. It is a look back, and the desk labels it so.
+- **The Market Desk deliberately shows no tradable edge.** The permitted sources publish no bid, no
+  ask, no size, no expiry and no fee schedule, so no spread and no net edge is computable. It ships
+  EVENT IMPACT ONLY with missing-data states rather than manufacturing an opportunity (V45–V51).
+- **`/room` has no automated browser coverage.** Its 141 unit tests pass and it was checked by hand
+  at 1920/1440/1280/390 px and with the API stopped, where it degrades honestly. Nothing in CI would
+  catch a visual regression there. It is also a deliberately non-interactive wall display, so it has
+  no link out: reach it from the header and leave with the browser's Back button.
+- **No ASP marketplace listing.** Not registered, not submitted, not approved (B3).
+- **One browser engine.** Edge 153. No screen reader, no axe scan, no real phone.
+- **The OKX mock merchant is still blocked** — its challenge arrives with no `PAYMENT-REQUIRED`
+  header and OKX's own client SDK cannot parse it (B1, sponsor report SF-1).
+
+---
+
+## 6. Reuse and provenance disclosure
+
+Checked against the actual history, not assumed. First commit `5011886`, **18 September 2026
+21:26:51 +0200**; nothing in the history predates the build period (17–25 September).
+
+- **New project.** Before 18 September the project was planning documents only — a product dossier
+  and an implementation brief. No code, schemas, prompts or designs were carried in.
+- **Third-party code** is installed from npm and pinned in `package-lock.json`; none is vendored.
+  The OKX x402 packages, `viem`, `express`, `zod`, `react`, `vite`, `vitest`, `@playwright/test`,
+  `typescript`. Fonts: IBM Plex Sans/Mono, and Share Tech Mono / VT323 on `/room` (all open
+  licences). Full table in [BUILD_PROVENANCE.md](BUILD_PROVENANCE.md).
+- **AI coding tools were used throughout**, as stated in the registration answers. All code was run
+  and tested as described in the README, and the team is responsible for it and can explain it.
+- **Design guidance was used and is disclosed.** The interface was developed with project-local
+  design skills and briefs written for this repository during the build period
+  (`.claude/skills/bullseye-frontend`, `private/CLAUDE_DESIGN_*.md`). These are instructions and
+  review method, not imported code or a purchased template; they are git-ignored and ship with
+  nothing. The design system in `docs/design-system` was authored during the period.
+- At runtime the **only** AI component is the investigator's model call. Schemas, budgets, checks,
+  the publication gate and all payment state are ordinary deterministic code.
+
+Using npm libraries and written guidance does not make this a pre-existing project; carrying in code
+or designs would have, and none was.
+
+---
+
+## 7. Owner-only blockers
+
+Nothing below can be done by an agent. Ordered by what blocks the submission.
+
+1. **Record and upload the 2–4 minute demo video.** It does not exist. Run sheet:
+   [DEMO_RUN_SHEET.md](DEMO_RUN_SHEET.md). Upload publicly, then **check the link signed out and on
+   another device**.
+2. **Decide whether to deploy the Situation Room.** `main` is 2 commits ahead of `origin/main` and
+   **pushing `main` deploys to Railway**. Nothing has been pushed. Deploying re-runs CI and replaces
+   the live frontend; not deploying means `/room` exists in the repo but not at the product URL, and
+   the submission must not claim otherwise.
+3. **Confirm the finale date.** The supplied PDF says **In-Person, 7 October 2026**; the terms page
+   read on 19 September said **6 October, 10:00–14:00 SGT**. Unresolved. Do not book travel on it.
+   This is question 2 in [SUBMISSION_DRAFTS.md](SUBMISSION_DRAFTS.md).
+4. **Ask the organisers whether the testnet x402 integration meets the track minimum** without an
+   approved ASP listing. The kit requires publishing **or** integrating a working service through
+   OKX AI and a service/listing/integration URL; it does not say every project needs an approved
+   marketplace listing, and it is silent on testnet vs mainnet. A drafted <150-word question is in
+   SUBMISSION_DRAFTS.md. Log submitted / pending / approved separately — **pending is neither
+   approval nor disqualification.**
+5. **Decide on an agent purchase against the deployed host** (optional, see §8). The buyer wallet
+   holds **4 test USD₮0**, read on chain after the last purchase — exactly one more 3.00 purchase
+   and no more without a faucet top-up.
+6. **Confirm registration contact, team name spelling, and personally accept the terms.** No agent
+   submits the form. Retain the email receipt; organisers may ask about inaccessible links and the
+   form requires a reply within 24 hours.
+7. **Send the sponsor reports** (SF-1 mock merchant, SF-7 `syncSettle` timeout) if not already sent.
+   Log sent and acknowledged separately.
+
+**Do not** switch to mainnet to make the pitch stronger, and do not raise model budgets.
+
+---
+
+## 8. What remains to finish the release
+
+- [ ] `npm ci && npm run typecheck && npm test && npm run build && npm run test:e2e` once more on the
+      final tree, after the last doc commit, so the submitted SHA is the tested SHA.
+- [ ] Record the submitted commit here: **`[FILL IN: git rev-parse HEAD after the final commit]`**
+- [ ] **[OWNER]** push `main` (= deploy) or decide not to; if pushed, wait for CI green and re-check
+      the public routes signed out.
+- [ ] **[OWNER]** optional: one agent purchase against the deployed host, to pair with the browser-side
+      purchase already recorded. Bounded: **one** order, 3.00 testnet USD₮0, `eip155:1952`, against an
+      already-published Brief. Verify quoted amount, network and recipient before signing; then the
+      on-chain receipt, the delivery JSON, and retrieval after reload without a second charge.
+      **If the outcome is uncertain, reconcile the same authorization — never sign a fresh payment.**
+- [ ] **[OWNER]** video recorded, uploaded, link checked signed out.
+- [ ] **[OWNER]** form submitted, receipt retained.
+
+### Done condition
+
+If a core payment or integration requirement is still unresolved when the form is submitted, this is
+a **prepared submission package with an explicit blocker**, not a completed release. Say so rather
+than rounding up.

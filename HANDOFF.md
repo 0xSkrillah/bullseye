@@ -5,7 +5,8 @@ State of the build on 18 September 2026 (build day 2 of 9). Submission closes 25
 
 ## 20 September: the customer journey through the frontend
 
-On branch `claude/frontend-journey`, not yet merged. A frontend design pack reviewed `f590f5a` and
+Merged to `main` and deployed on 20 September (`3d005c1`); the Situation Room followed in `e055b6a`.
+A frontend design pack reviewed `f590f5a` and
 published nine findings; all nine were reproduced against that commit — in a browser where a
 browser could show them — and all nine are fixed, along with one more found on the way. The pack
 itself is in [docs/frontend-pack](docs/frontend-pack); the evidence, the limits and what was **not**
