@@ -209,3 +209,49 @@
 .be-radar .reticle { stroke: var(--ink); fill: none; stroke-width: 1.5; }
 .be-radar .halo { fill: var(--radar-sweep); }
 @media (prefers-reduced-motion: reduce) { .be-radar .sweep { animation: none; } }
+
+/* ------------------------------------------------------------------ site nav
+   Shared by the desk at "/" and the Market Desk at "/market". The Market Desk is not inside .be,
+   so these rules stand on their own and inherit nothing from it. */
+.be-nav, .be-nav * { box-sizing: border-box; }
+.be-nav {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-6);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--line); background: var(--canvas);
+  font-family: var(--font-sans);
+}
+.be-nav-mark {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-family: var(--font-mono); font-size: 13px; line-height: 18px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink); text-decoration: none; font-weight: 500;
+}
+.be-nav-links { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.be-nav-links a {
+  display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--space-3);
+  border-radius: var(--radius-sm); border: 1px solid transparent;
+  font-size: 14px; line-height: 20px; color: var(--ink-secondary); text-decoration: none;
+}
+.be-nav-links a:hover { color: var(--ink); background: var(--canvas-raised); }
+.be-nav-links a[aria-current="page"] { color: var(--ink); border-color: var(--line-strong); background: var(--canvas-raised); }
+.be-nav-links a:focus-visible, .be-nav-mark:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.be-nav-status { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: 12px; line-height: 18px; color: var(--ink-secondary); }
+@media (max-width: 600px) {
+  .be-nav { padding: var(--space-3) var(--space-4); gap: var(--space-2) var(--space-4); }
+  .be-nav-status { margin-left: 0; width: 100%; }
+}
+
+/* the target: three rings, red centre. A mark, not a meter: nothing about it encodes a value. */
+.be-target {
+  display: inline-block; flex: none; position: relative;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-strong);
+  background: var(--canvas-inset);
+}
+.be-target::before, .be-target::after { content: ""; position: absolute; border-radius: var(--radius-full); }
+.be-target::before { inset: 2px; border: 1px solid var(--ink-secondary); }
+.be-target::after { inset: 5px; background: var(--brand-target); }
+
+/* One target moment: it fires when a real Brief is on the offer, and never on page load elsewhere. */
+.be-target.is-hit::after { animation: be-hit 420ms ease-out 1; }
+@keyframes be-hit { from { transform: scale(0.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .be-target.is-hit::after { animation: none; } }

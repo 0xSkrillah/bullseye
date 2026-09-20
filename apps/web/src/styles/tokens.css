@@ -1,4 +1,5 @@
 :root, [data-theme="dark"] {
+  color-scheme: dark;
   --canvas: #0b0c0e;
   --canvas-raised: #121316;
   --canvas-overlay: #191b1f;
@@ -7,7 +8,9 @@
   --line-strong: #5c6069;
   --ink: #ecebe6;
   --ink-secondary: #a9a9a1;
-  --ink-muted: #75766f;
+  /* normal text, so it clears 4.5:1 on both backgrounds it is used over: 5.12:1 on --canvas-raised,
+     5.39:1 on --canvas. The old #75766f was 4.05:1 and 4.27:1, below the target for body text. */
+  --ink-muted: #86877f;
   --ink-inverse: #0b0c0e;
   --verified: #4fb477;
   --verified-fill: #12281a;
@@ -16,6 +19,8 @@
   --uncertain-fill: #2b2210;
   --invalid: #e0605a;
   --invalid-fill: #331615;
+  /* the darts red of the mark. Decorative only: --invalid stays the one red that means something failed. */
+  --brand-target: #cf3a30;
   --fixture: #b9a9e3;
   --fixture-fill: #221d30;
   --historical: var(--ink-secondary);
@@ -41,4 +46,36 @@
   --measure: 68ch;
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+/*
+ * Projector (light), as specified in docs/design-system. Chosen with ?theme=light for a bright
+ * room or a printed screenshot. Roles do not change between themes: green still means passed or
+ * paid, amber still means estimated.
+ */
+[data-theme="light"] {
+  --canvas: #f4f3ee;
+  --canvas-raised: #ffffff;
+  --canvas-overlay: #ffffff;
+  --canvas-inset: #e9e8e1;
+  --line: #d8d7cf;
+  --line-strong: #7d7f85;
+  --ink: #15161a;
+  --ink-secondary: #50525a;
+  --ink-muted: #6b6d6a;
+  --ink-inverse: #f4f3ee;
+  --verified: #196d3e;
+  --verified-fill: #dcf1e3;
+  --on-verified: #f4f3ee;
+  --uncertain: #7f5300;
+  --uncertain-fill: #fbedd0;
+  --invalid: #b0261f;
+  --invalid-fill: #fadad8;
+  --fixture: #5a3ea6;
+  --fixture-fill: #e8e2f8;
+  --brand-target: #b8302a;
+  --historical: var(--ink-secondary);
+  --focus: #15161a;
+  --radar-sweep: #196d3e33;
+  --radar-grid: #c9cac3;
+  color-scheme: light;
 }

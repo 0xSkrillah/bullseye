@@ -3,9 +3,16 @@
 html, body { margin: 0; background: var(--canvas); color: var(--ink); }
 body { min-height: 100vh; }
 
+/*
+ * Three columns need 320 + 560 + 360, two 24px gaps and 24px of padding either side: 1336px. The
+ * two-column rule below therefore ends at 1335 and not at some round number, so the layout is never
+ * asked to draw three columns in less room than they take. The working area is `minmax(0, 1fr)`
+ * rather than `minmax(560px, 1fr)` so that a narrower window shrinks the column instead of pushing
+ * the console off the side of the page: nothing here is clipped, scaled or made smaller to fit.
+ */
 .be-desk {
   display: grid;
-  grid-template-columns: 320px minmax(560px, 1fr) 360px;
+  grid-template-columns: 320px minmax(0, 1fr) 360px;
   gap: var(--space-6);
   padding: var(--space-6);
   align-items: start;
@@ -22,7 +29,8 @@ body { min-height: 100vh; }
 /* the working area is the only region that scrolls independently */
 .be-region.is-work { max-height: calc(100vh - 2 * var(--space-6)); overflow-y: auto; }
 
-.be-seg { display: none; gap: var(--space-2); }
+/* phone only: on wider screens every region is already on the page, so the tabs would switch nothing */
+.be-seg { display: none; gap: var(--space-2); align-items: center; grid-column: 1 / -1; }
 .be-console-strip { display: none; }
 
 .be-banner {
@@ -49,7 +57,7 @@ body { min-height: 100vh; }
   padding: var(--space-6);
 }
 
-@media (max-width: 1199px) {
+@media (max-width: 1335px) {
   .be-desk { grid-template-columns: 280px minmax(0, 1fr); }
   .be-region.is-console { display: none; }
   .be-console-strip {
